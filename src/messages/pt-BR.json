@@ -1,0 +1,14 @@
+{
+  "navigation": {
+    "home": "Home",
+    "rooms": "Quartos",
+    "restaurant": "Restaurante",
+    "spa": "Spa",
+    "contact": "Contato",
+    "book": "Reservar"
+  },
+  "hero": {
+    "title": "Seu Refúgio Perfeito na Montanha",
+    "subtitle": "Experiência de Luxo nas Montanhas"
+  }
+} 
