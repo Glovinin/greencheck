@@ -1,22 +1,40 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowUpRight, Calendar, Heart, CheckCircle2, Mail, MessageSquare, ChevronDown } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useTheme } from 'next-themes'
 
 export default function Eventos() {
   const router = useRouter()
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  
+  const { scrollY } = useScroll()
+  const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
+
+  // After mounting, we can safely show the UI that depends on the theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleContactar = () => {
     router.push('/contato')
   }
 
+  // Evita flash de conteúdo não hidratado
+  if (!mounted) {
+    return null
+  }
+
+  const isDark = theme === 'dark'
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black pb-32 md:pb-0">
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
       
       {/* Hero Section */}
@@ -39,16 +57,32 @@ export default function Eventos() {
               <source src="https://videos.pexels.com/video-files/20203964/20203964-uhd_2560_1440_30fps.mp4" type="video/mp4" />
             </video>
           </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 backdrop-blur-[2px]" />
+          <motion.div 
+            style={{ opacity }}
+            className={`absolute inset-0 backdrop-blur-[2px] ${
+              isDark 
+                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
+                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+            }`} 
+          />
           
           {/* Elementos Decorativos */}
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className={`absolute inset-x-0 top-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-b from-black/60 to-transparent' 
+              : 'bg-gradient-to-b from-white/60 to-transparent'
+          }`} />
+          <div className={`absolute inset-x-0 bottom-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-t from-black/60 to-transparent' 
+              : 'bg-gradient-to-t from-white/60 to-transparent'
+          }`} />
         </div>
         
         <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
           <motion.div 
+            style={{ opacity }}
             className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
           >
             <motion.div
@@ -58,17 +92,27 @@ export default function Eventos() {
               className="space-y-6 md:space-y-8"
             >
               <div className="inline-block">
-                <span className="text-sm md:text-base font-medium text-primary/90 tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full backdrop-blur-sm border border-primary/20">
+                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                   Espaços para momentos especiais
                 </span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white tracking-tight leading-none">
+              <h1 className={`text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
                 Eventos Inesquecíveis
-                <span className="block text-xl sm:text-2xl md:text-3xl mt-3 font-light text-white/80">no Aqua Vista Monchique</span>
+                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
+                  isDark ? 'text-white/80' : 'text-gray-700'
+                }`}>no Aqua Vista Monchique</span>
               </h1>
               
-              <p className="text-lg sm:text-xl md:text-2xl text-white/90 font-light mb-8 md:mb-12 max-w-4xl mx-auto">
+              <p className={`text-lg sm:text-xl md:text-2xl font-light mb-8 md:mb-12 max-w-4xl mx-auto ${
+                isDark ? 'text-white/90' : 'text-gray-800'
+              }`}>
                 Casamentos, festas corporativas e celebrações especiais com vista panorâmica para a Serra de Monchique
               </p>
               
@@ -76,7 +120,11 @@ export default function Eventos() {
                 <Button 
                   size="lg" 
                   onClick={handleContactar}
-                  className="w-full sm:w-auto rounded-full bg-white text-black hover:bg-white/90 transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg shadow-lg shadow-white/10 hover:shadow-white/20 hover:scale-105"
+                  className={`w-full sm:w-auto rounded-full transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg shadow-lg hover:scale-105 ${
+                    isDark 
+                      ? 'bg-white text-black hover:bg-white/90 shadow-white/10 hover:shadow-white/20' 
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-300/40 hover:shadow-gray-300/60'
+                  }`}
                 >
                   Solicitar Orçamento <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>

@@ -1,18 +1,24 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Navbar } from '@/components/navbar'
-import { Mail, Phone, MapPin, Clock, Send, ArrowRight, Loader2 } from 'lucide-react'
+import { Mail, Phone, MapPin, ArrowRight, Loader2, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 
 export default function Contato() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const { scrollY } = useScroll()
+  const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
+  
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -20,14 +26,9 @@ export default function Contato() {
     mensagem: ''
   })
 
+  // After mounting, we can safely show the UI that depends on the theme
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-
-    handleScroll() // Checar scroll inicial
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    setMounted(true)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,46 +41,133 @@ export default function Contato() {
     setFormData({ nome: '', email: '', telefone: '', mensagem: '' })
   }
 
-  return (
-    <main className="min-h-screen bg-background pb-32 md:pb-0">
-      <div className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled 
-          ? "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" 
-          : "bg-transparent"
-      )}>
-        <Navbar />
-      </div>
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
 
+  // Evita flash de conteúdo não hidratado
+  if (!mounted) {
+    return null
+  }
+
+  const isDark = theme === 'dark'
+
+  return (
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
+      <Navbar />
+      
       {/* Hero Section */}
-      <section className="relative h-[60vh] w-full flex flex-col items-center justify-center -mt-20">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=2025"
-            alt="Fundo de contato"
-            className="w-full h-full object-cover"
+      <section className="relative min-h-[100svh] pb-20 md:pb-0">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="w-full h-[120%] -mt-10">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
+            </video>
+          </div>
+          <motion.div 
+            style={{ opacity }}
+            className={`absolute inset-0 backdrop-blur-[2px] ${
+              isDark 
+                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
+                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+            }`} 
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
+          
+          {/* Elementos Decorativos */}
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
+          <div className={`absolute inset-x-0 top-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-b from-black/60 to-transparent' 
+              : 'bg-gradient-to-b from-white/60 to-transparent'
+          }`} />
+          <div className={`absolute inset-x-0 bottom-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-t from-black/60 to-transparent' 
+              : 'bg-gradient-to-t from-white/60 to-transparent'
+          }`} />
         </div>
         
-        {/* Conteúdo Principal */}
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="text-center max-w-[800px] mx-auto">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Entre em Contato
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
-              Estamos aqui para ajudar. Entre em contato conosco para qualquer dúvida ou solicitação.
-            </p>
-          </div>
+        <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
+          <motion.div 
+            style={{ opacity }}
+            className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-6 md:space-y-8"
+            >
+              <div className="inline-block">
+                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
+                  Estamos à sua disposição
+                </span>
+              </div>
+              
+              <h1 className={`text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
+                Entre em Contato
+                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
+                  isDark ? 'text-white/80' : 'text-gray-700'
+                }`}>com o Aqua Vista Monchique</span>
+              </h1>
+              
+              <p className={`text-lg sm:text-xl md:text-2xl font-light mb-8 md:mb-12 max-w-4xl mx-auto ${
+                isDark ? 'text-white/90' : 'text-gray-800'
+              }`}>
+                Estamos aqui para ajudar. Entre em contato conosco para qualquer dúvida ou solicitação.
+              </p>
+            </motion.div>
+          </motion.div>
+
+          {/* Scroll Indicator */}
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="mt-12 md:mt-16 flex flex-col items-center"
+            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
+              isDark 
+                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
+                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+            }`}>
+              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
+                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+              }`} />
+            </div>
+            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
+              isDark ? 'text-white/80' : 'text-gray-700'
+            }`}>Explorar</span>
+          </motion.div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 bg-background">
+      <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+        
         <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8">
           {/* Contact Form */}
-          <Card className="p-6">
+          <Card className={`p-6 shadow-xl backdrop-blur-sm ${
+            isDark ? 'border-white/10' : 'border-gray-200'
+          }`}>
             <form onSubmit={handleSubmit}>
               <CardHeader>
                 <CardTitle>Envie sua Mensagem</CardTitle>
@@ -89,37 +177,41 @@ export default function Contato() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nome Completo</label>
                   <Input
+                    name="nome"
                     placeholder="Digite seu nome"
                     value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    onChange={handleInputChange}
                     className="rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email</label>
                   <Input
+                    name="email"
                     type="email"
                     placeholder="Digite seu email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={handleInputChange}
                     className="rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Telefone</label>
                   <Input
+                    name="telefone"
                     placeholder="Digite seu telefone"
                     value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    onChange={handleInputChange}
                     className="rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Mensagem</label>
                   <Textarea
+                    name="mensagem"
                     placeholder="Digite sua mensagem"
                     value={formData.mensagem}
-                    onChange={(e) => setFormData({ ...formData, mensagem: e.target.value })}
+                    onChange={handleInputChange}
                     className="rounded-lg min-h-[150px]"
                   />
                 </div>
@@ -128,7 +220,7 @@ export default function Contato() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full rounded-full"
+                  className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   {isLoading ? (
                     <>
@@ -148,14 +240,18 @@ export default function Contato() {
 
           {/* Contact Info */}
           <div className="space-y-8">
-            <Card className="p-6">
+            <Card className={`p-6 shadow-xl backdrop-blur-sm ${
+              isDark ? 'border-white/10' : 'border-gray-200'
+            }`}>
               <CardHeader>
                 <CardTitle>Informações de Contato</CardTitle>
                 <CardDescription>Escolha a melhor forma de nos contatar</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-start space-x-4">
-                  <MapPin className="h-6 w-6 text-primary mt-1" />
+                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                    <MapPin className="h-5 w-5" />
+                  </div>
                   <div>
                     <h3 className="font-medium">Endereço</h3>
                     <p className="text-sm text-muted-foreground">
@@ -165,14 +261,18 @@ export default function Contato() {
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
-                  <Phone className="h-6 w-6 text-primary mt-1" />
+                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                    <Phone className="h-5 w-5" />
+                  </div>
                   <div>
                     <h3 className="font-medium">Telefone</h3>
                     <p className="text-sm text-muted-foreground">+351 282 123 456</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
-                  <Mail className="h-6 w-6 text-primary mt-1" />
+                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                    <Mail className="h-5 w-5" />
+                  </div>
                   <div>
                     <h3 className="font-medium">Email</h3>
                     <p className="text-sm text-muted-foreground">contato@aquavista.com</p>
@@ -182,7 +282,9 @@ export default function Contato() {
             </Card>
 
             {/* Map */}
-            <Card className="p-6">
+            <Card className={`p-6 shadow-xl backdrop-blur-sm ${
+              isDark ? 'border-white/10' : 'border-gray-200'
+            }`}>
               <CardHeader>
                 <CardTitle>Nossa Localização</CardTitle>
                 <CardDescription>Venha nos visitar</CardDescription>
@@ -206,39 +308,59 @@ export default function Contato() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-primary/5" />
+      <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <div className="relative max-w-5xl mx-auto px-4 text-center space-y-6">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-3xl md:text-4xl font-bold"
-          >
-            Pronto para uma Experiência Única?
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
-          >
-            Reserve agora e desfrute de momentos inesquecíveis no Aqua Vista Hotel.
-          </motion.p>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Button 
-              size="lg"
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+        
+        <div className="relative max-w-5xl mx-auto px-4 text-center">
+          <div className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 shadow-2xl border ${
+            isDark ? 'bg-black/30 border-white/10' : 'bg-white/70 border-gray-200'
+          }`}>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className={`text-3xl md:text-4xl font-bold mb-6 ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}
             >
-              Fazer Reserva
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </motion.div>
+              Pronto para uma Experiência Única?
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              viewport={{ once: true }}
+              className={`text-lg max-w-2xl mx-auto mb-8 ${
+                isDark ? 'text-white/70' : 'text-gray-700'
+              }`}
+            >
+              Reserve agora e desfrute de momentos inesquecíveis no Aqua Vista Hotel.
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <Button 
+                size="lg"
+                onClick={() => router.push('/booking')}
+                className={`rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
+                  isDark
+                    ? 'bg-white text-black hover:bg-white/90'
+                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                }`}
+              >
+                Fazer Reserva
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </motion.div>
+          </div>
         </div>
       </section>
     </main>

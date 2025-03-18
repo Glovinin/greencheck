@@ -12,6 +12,7 @@ import { RoomDetailsSheet } from '@/components/RoomDetailsSheet'
 import { getRooms } from '@/lib/firebase/firestore'
 import { Room } from '@/lib/types'
 import Image from 'next/image'
+import { useTheme } from 'next-themes'
 
 // Dados de exemplo (serão substituídos pelos dados do Firebase)
 const quartosPadrao: QuartoUI[] = [
@@ -121,10 +122,17 @@ export default function Rooms() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [quartos, setQuartos] = useState<QuartoUI[]>([])
   const [loading, setLoading] = useState(true)
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   
   const { scrollY } = useScroll()
   const imageY = useTransform(scrollY, [0, 500], [0, 150])
   const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
+
+  // After mounting, we can safely show the UI that depends on the theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     carregarQuartos()
@@ -253,8 +261,15 @@ export default function Rooms() {
     return false
   })
 
+  // Evita flash de conteúdo não hidratado
+  if (!mounted) {
+    return null
+  }
+
+  const isDark = theme === 'dark'
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black pb-32 md:pb-0">
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
       
       {/* Hero Section - Atualizado para corresponder à homepage */}
@@ -279,13 +294,25 @@ export default function Rooms() {
           </motion.div>
           <motion.div 
             style={{ opacity }}
-            className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 backdrop-blur-[2px]" 
+            className={`absolute inset-0 backdrop-blur-[2px] ${
+              isDark 
+                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
+                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+            }`} 
           />
           
           {/* Elementos Decorativos */}
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className={`absolute inset-x-0 top-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-b from-black/60 to-transparent' 
+              : 'bg-gradient-to-b from-white/60 to-transparent'
+          }`} />
+          <div className={`absolute inset-x-0 bottom-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-t from-black/60 to-transparent' 
+              : 'bg-gradient-to-t from-white/60 to-transparent'
+          }`} />
         </div>
         
         <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
@@ -300,17 +327,27 @@ export default function Rooms() {
               className="space-y-6 md:space-y-8"
             >
               <div className="inline-block">
-                <span className="text-sm md:text-base font-medium text-primary/90 tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full backdrop-blur-sm border border-primary/20">
+                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                   Conforto e elegância
                 </span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-8xl font-bold text-white tracking-tight leading-none">
+              <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
                 Nossos Quartos
-                <span className="block text-xl sm:text-2xl md:text-3xl mt-3 font-light text-white/80">Aqua Vista Monchique</span>
+                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
+                  isDark ? 'text-white/80' : 'text-gray-700'
+                }`}>Aqua Vista Monchique</span>
               </h1>
               
-              <p className="text-lg sm:text-xl md:text-3xl text-white/90 font-light mb-8 md:mb-12">
+              <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
+                isDark ? 'text-white/90' : 'text-gray-800'
+              }`}>
                 Descubra o conforto e luxo que você merece em nossa seleção exclusiva de acomodações
               </p>
             </motion.div>
@@ -324,16 +361,26 @@ export default function Rooms() {
             onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
             style={{ cursor: 'pointer' }}
           >
-            <div className="p-3 sm:p-4 rounded-full border-2 border-white/30 backdrop-blur-sm bg-white/10 hover:bg-white/20 transition-all duration-300 cursor-pointer group">
-              <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-white/80 group-hover:text-white transition-colors duration-300" />
+            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
+              isDark 
+                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
+                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+            }`}>
+              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
+                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+              }`} />
             </div>
-            <span className="text-white/80 text-sm mt-3 font-medium tracking-wider uppercase">Explorar</span>
+            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
+              isDark ? 'text-white/80' : 'text-gray-700'
+            }`}>Explorar</span>
           </motion.div>
         </div>
       </section>
 
       {/* Filtros Modernizados */}
-      <section className="py-12 bg-muted/30 border-t border-b border-primary/10">
+      <section className={`py-12 border-t border-b ${
+        isDark ? 'bg-muted/30 border-primary/10' : 'bg-gray-100 border-gray-200'
+      }`}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-wrap gap-4 justify-center">
             <Button

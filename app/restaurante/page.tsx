@@ -1,20 +1,28 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowUpRight, Clock, ChevronDown, UtensilsCrossed, Mail } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useTheme } from 'next-themes'
 
 export default function Restaurante() {
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   
   const { scrollY } = useScroll()
   const imageY = useTransform(scrollY, [0, 500], [0, 150])
   const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
+
+  // After mounting, we can safely show the UI that depends on the theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,8 +31,15 @@ export default function Restaurante() {
     setEmail('')
   }
 
+  // Evita flash de conteúdo não hidratado
+  if (!mounted) {
+    return null
+  }
+
+  const isDark = theme === 'dark'
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black pb-32 md:pb-0">
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
       
       {/* Hero Section */}
@@ -49,13 +64,25 @@ export default function Restaurante() {
           </motion.div>
           <motion.div 
             style={{ opacity }}
-            className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 backdrop-blur-[2px]" 
+            className={`absolute inset-0 backdrop-blur-[2px] ${
+              isDark 
+                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
+                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+            }`} 
           />
           
           {/* Elementos Decorativos */}
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className={`absolute inset-x-0 top-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-b from-black/60 to-transparent' 
+              : 'bg-gradient-to-b from-white/60 to-transparent'
+          }`} />
+          <div className={`absolute inset-x-0 bottom-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-t from-black/60 to-transparent' 
+              : 'bg-gradient-to-t from-white/60 to-transparent'
+          }`} />
         </div>
         
         <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
@@ -70,41 +97,33 @@ export default function Restaurante() {
               className="space-y-6 md:space-y-8"
             >
               <div className="inline-block">
-                <span className="text-sm md:text-base font-medium text-primary/90 tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full backdrop-blur-sm border border-primary/20">
-                  Em Breve
+                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
+                  Gastronomia de excelência
                 </span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-8xl font-bold text-white tracking-tight leading-none">
-                Restaurante
-                <span className="block text-xl sm:text-2xl md:text-3xl mt-3 font-light text-white/80">Aqua Vista Monchique</span>
+              <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
+                Nosso Restaurante
+                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
+                  isDark ? 'text-white/80' : 'text-gray-700'
+                }`}>Aqua Vista Monchique</span>
               </h1>
               
-              <p className="text-lg sm:text-xl md:text-3xl text-white/90 font-light mb-8 md:mb-12 max-w-4xl mx-auto">
-                Uma experiência gastronômica extraordinária está sendo preparada.
+              <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
+                isDark ? 'text-white/90' : 'text-gray-800'
+              }`}>
+                Uma experiência gastronômica única com vista panorâmica para as montanhas
               </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-                <Button 
-                  size="lg" 
-                  onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })}
-                  className="w-full sm:w-auto rounded-full bg-white text-black hover:bg-white/90 transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg shadow-lg shadow-white/10 hover:shadow-white/20 hover:scale-105"
-                >
-                  Saiba Mais <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  onClick={() => document.getElementById('subscribe')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="w-full sm:w-auto rounded-full border-white/20 text-white hover:bg-white/10 transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm hover:border-white/40 hover:scale-105"
-                >
-                  Receba Atualizações
-                </Button>
-              </div>
             </motion.div>
           </motion.div>
 
-          {/* Scroll Indicator - ajustado para corresponder com a homepage */}
+          {/* Scroll Indicator */}
           <motion.div 
             animate={{ y: [0, 10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
@@ -112,15 +131,23 @@ export default function Restaurante() {
             onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
             style={{ cursor: 'pointer' }}
           >
-            <div className="p-3 sm:p-4 rounded-full border-2 border-white/30 backdrop-blur-sm bg-white/10 hover:bg-white/20 transition-all duration-300 cursor-pointer group">
-              <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-white/80 group-hover:text-white transition-colors duration-300" />
+            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
+              isDark 
+                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
+                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+            }`}>
+              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
+                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+              }`} />
             </div>
-            <span className="text-white/80 text-sm mt-3 font-medium tracking-wider uppercase">Explorar</span>
+            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
+              isDark ? 'text-white/80' : 'text-gray-700'
+            }`}>Explorar</span>
           </motion.div>
         </div>
       </section>
 
-      {/* About Restaurant Section */}
+      {/* About Restaurant Section - Sempre com estilo escuro independente do tema */}
       <section className="py-24 bg-black relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
@@ -192,6 +219,7 @@ export default function Restaurante() {
               </motion.div>
             </motion.div>
             
+            {/* Card de "Em Construção" - Sem overlay ou texto */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -199,19 +227,12 @@ export default function Restaurante() {
               viewport={{ once: true }}
               className="relative h-[500px] rounded-3xl overflow-hidden shadow-2xl shadow-black/30"
             >
-              <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center">
-                <div className="px-6 py-4 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 max-w-xs text-center">
-                  <UtensilsCrossed className="h-10 w-10 mx-auto mb-4 text-primary" />
-                  <h3 className="text-white text-xl font-semibold mb-2">Em Construção</h3>
-                  <p className="text-white/80 text-sm">Nosso restaurante está sendo cuidadosamente preparado para você</p>
-                </div>
-              </div>
               <div className="h-full">
                 <Image 
                   src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?q=80&w=2940" 
                   alt="Design conceitual do restaurante" 
                   fill
-                  className="object-cover transform scale-110"
+                  className="object-cover"
                 />
               </div>
             </motion.div>
@@ -219,7 +240,7 @@ export default function Restaurante() {
         </div>
       </section>
 
-      {/* Conceito Gastronômico */}
+      {/* Conceito Gastronômico - Sempre com fundo escuro independente do tema */}
       <section className="py-24 bg-black relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
@@ -395,7 +416,7 @@ export default function Restaurante() {
       </section>
 
       {/* Newsletter Subscription */}
-      <section id="subscribe" className="py-24 bg-black relative overflow-hidden">
+      <section id="subscribe" className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
@@ -407,7 +428,11 @@ export default function Restaurante() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-black/80 to-black/60 backdrop-blur-sm rounded-3xl p-10 md:p-16 border border-white/10 shadow-2xl overflow-hidden group"
+            className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 shadow-2xl overflow-hidden group ${
+              isDark
+                ? 'bg-gradient-to-br from-black/80 to-black/60 border border-white/10'
+                : 'bg-gradient-to-br from-white/90 to-white/80 border border-gray-200'
+            }`}
           >
             <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl opacity-70 group-hover:opacity-100 transition-opacity duration-700" />
             <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl opacity-70 group-hover:opacity-100 transition-opacity duration-700" />
@@ -428,7 +453,7 @@ export default function Restaurante() {
                   whileInView={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.1 }}
                   viewport={{ once: true }}
-                  className="text-3xl md:text-4xl font-bold mb-4 text-white"
+                  className={`text-3xl md:text-4xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}
                 >
                   Fique por dentro de todas as novidades
                 </motion.h2>
@@ -437,7 +462,7 @@ export default function Restaurante() {
                   whileInView={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                   viewport={{ once: true }}
-                  className="text-lg text-white/70 mb-8 max-w-2xl mx-auto"
+                  className={`text-lg mb-8 max-w-2xl mx-auto ${isDark ? 'text-white/70' : 'text-gray-700'}`}
                 >
                   Seja o primeiro a receber atualizações sobre a inauguração do nosso restaurante, 
                   eventos exclusivos e ofertas especiais.
@@ -458,11 +483,19 @@ export default function Restaurante() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Seu e-mail" 
                   required
-                  className="flex-grow px-6 py-4 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm focus:outline-none focus:border-primary/40 text-white placeholder:text-white/50 transition-colors duration-300"
+                  className={`flex-grow px-6 py-4 rounded-full focus:outline-none transition-colors duration-300 ${
+                    isDark 
+                      ? 'border border-white/20 bg-white/5 backdrop-blur-sm focus:border-primary/40 text-white placeholder:text-white/50'
+                      : 'border border-gray-300 bg-white/80 backdrop-blur-sm focus:border-primary/40 text-gray-900 placeholder:text-gray-500'
+                  }`}
                 />
                 <Button 
                   type="submit"
-                  className="rounded-full bg-primary hover:bg-primary/90 text-white px-8 py-4 h-auto transition-all duration-300 hover:shadow-lg hover:shadow-primary/20"
+                  className={`rounded-full px-8 py-4 h-auto transition-all duration-300 hover:shadow-lg ${
+                    isDark
+                      ? 'bg-primary hover:bg-primary/90 hover:shadow-primary/20 text-gray-900'
+                      : 'bg-gray-900 hover:bg-gray-800 hover:shadow-gray-300/40 text-white'
+                  }`}
                 >
                   Inscrever-se
                 </Button>
@@ -473,7 +506,7 @@ export default function Restaurante() {
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
                 viewport={{ once: true }}
-                className="text-sm text-white/50 mt-4"
+                className={`text-sm mt-4 ${isDark ? 'text-white/50' : 'text-gray-500'}`}
               >
                 Respeitamos sua privacidade. Você pode cancelar sua inscrição a qualquer momento.
               </motion.p>
