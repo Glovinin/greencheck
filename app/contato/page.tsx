@@ -41,7 +41,7 @@ export default function Contato() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background pb-32 md:pb-0">
       <div className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled 

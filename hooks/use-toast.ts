@@ -5,7 +5,7 @@ import * as React from 'react';
 
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast';
 
-const TOAST_LIMIT = 1;
+const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000000;
 
 type ToasterToast = ToastProps & {
@@ -25,7 +25,7 @@ const actionTypes = {
 let count = 0;
 
 function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER;
+  count = (count + 1) % Number.MAX_VALUE;
   return count.toString();
 }
 
@@ -168,7 +168,7 @@ function toast({ ...props }: Toast) {
   };
 }
 
-function useToast() {
+export function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
   React.useEffect(() => {
@@ -183,9 +183,35 @@ function useToast() {
 
   return {
     ...state,
-    toast,
+    toast: (props: Omit<ToasterToast, 'id'>) => {
+      const id = genId();
+
+      const update = (props: Partial<ToasterToast>) =>
+        dispatch({
+          type: 'UPDATE_TOAST',
+          toast: { ...props, id },
+        });
+      const dismiss = () => dispatch({ type: 'DISMISS_TOAST', toastId: id });
+
+      dispatch({
+        type: 'ADD_TOAST',
+        toast: {
+          ...props,
+          id,
+          open: true,
+          onOpenChange: (open) => {
+            if (!open) dismiss();
+          },
+        },
+      });
+
+      return {
+        id: id,
+        dismiss,
+        update,
+      };
+    },
     dismiss: (toastId?: string) => dispatch({ type: 'DISMISS_TOAST', toastId }),
+    dismissAll: () => dispatch({ type: 'DISMISS_TOAST' }),
   };
 }
-
-export { useToast, toast };

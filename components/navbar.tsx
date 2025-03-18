@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "./ui/button"
-import { Globe } from "lucide-react"
+import { Globe, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -90,6 +90,12 @@ export const Navbar = () => {
             Eventos
           </Link>
           <Link 
+            href="/sobre" 
+            className="text-white/90 hover:text-white transition-colors text-[13px] font-medium px-1"
+          >
+            Sobre Nós
+          </Link>
+          <Link 
             href="/contato" 
             className="text-white/90 hover:text-white transition-colors text-[13px] font-medium px-1"
           >
@@ -135,6 +141,17 @@ export const Navbar = () => {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          {/* Botão de Admin Login */}
+          <Link href="/admin/login">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:text-white/90 h-8 w-8"
+            >
+              <User className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>

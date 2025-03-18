@@ -11,14 +11,18 @@ import {
   ForkKnife,
   Waves,
   ChatCircle,
+  UserCircle,
+  Info,
 } from '@phosphor-icons/react'
 
 const navItems = [
   { href: '/', label: 'Home', icon: House },
   { href: '/rooms', label: 'Quartos', icon: MagnifyingGlass },
   { href: '/booking', label: 'Reservar', icon: Calendar },
-  { href: '/dining', label: 'Restaurante', icon: ForkKnife },
+  { href: '/restaurante', label: 'Restaurante', icon: ForkKnife },
+  { href: '/sobre', label: 'Sobre', icon: Info },
   { href: '/contato', label: 'Contato', icon: ChatCircle },
+  { href: '/admin/login', label: 'Admin', icon: UserCircle },
 ]
 
 export function MobileNav() {
@@ -29,12 +33,12 @@ export function MobileNav() {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  if (!mounted || pathname.startsWith('/admin/')) return null
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-t rounded-t-[2rem] md:hidden">
       <div className="flex items-center justify-around h-24 px-4">
-        {navItems.slice(0, 5).map((item) => {
+        {navItems.map((item) => {
           const ItemIcon = item.icon
           const isActive = pathname === item.href
           return (

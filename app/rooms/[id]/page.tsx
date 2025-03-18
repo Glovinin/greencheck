@@ -1,87 +1,32 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/navbar'
-import { ArrowLeft, Star, Square, Users, Check, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Star, Square, Users, Check, ArrowRight, Loader2, Wifi, Wind, Coffee, Utensils } from 'lucide-react'
+import { getRoomById } from '@/lib/firebase/firestore'
+import { Room } from '@/lib/types'
+import { useToast } from '@/hooks/use-toast'
 
-// Dados dos quartos
-const quartos = [
-  {
-    id: 1,
-    nome: "Suíte Luxo Vista Montanha",
-    descricao: "Uma experiência única com vista panorâmica para as montanhas de Monchique. Decoração sofisticada e ambiente acolhedor.",
-    descricaoLonga: "Desfrute de uma experiência verdadeiramente luxuosa em nossa Suíte Vista Montanha. Com uma vista deslumbrante para as montanhas de Monchique, este espaço foi meticulosamente projetado para proporcionar o máximo de conforto e sofisticação. A suíte conta com uma área de estar separada, decoração contemporânea e acabamentos premium em cada detalhe.",
-    preco: 780,
-    metros: 45,
-    capacidade: 2,
-    avaliacao: 4.9,
-    numeroAvaliacoes: 128,
-    imagens: [
-      "https://images.unsplash.com/photo-1590490360182-c33d57733427",
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461"
-    ],
-    amenidades: ["Wi-Fi", "Café da manhã", "Banheira de hidromassagem", "Smart TV 55\"", "Vista para montanha"],
-    destaques: ["Check-in premium", "Serviço de quarto 24h", "Vista panorâmica"],
-    servicosAdicionais: [
-      "Massagem no quarto",
-      "Decoração romântica",
-      "Transfer aeroporto",
-      "Jantar privativo"
-    ]
-  },
-  {
-    id: 2,
-    nome: "Suíte Premium",
-    descricao: "Espaço amplo com área de estar separada, ideal para casais que buscam conforto e privacidade.",
-    descricaoLonga: "Nossa Suíte Premium oferece um refúgio elegante e confortável para casais. Com uma área de estar separada e varanda privativa, este espaço foi projetado para proporcionar momentos de relaxamento e privacidade. A decoração contemporânea e os acabamentos refinados criam um ambiente sofisticado e acolhedor.",
-    preco: 590,
-    metros: 35,
-    capacidade: 2,
-    avaliacao: 4.7,
-    numeroAvaliacoes: 96,
-    imagens: [
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461",
-      "https://images.unsplash.com/photo-1590490360182-c33d57733427",
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b"
-    ],
-    amenidades: ["Wi-Fi", "Café da manhã", "Chuveiro premium", "Smart TV 50\"", "Varanda privativa"],
-    destaques: ["Varanda mobiliada", "Área de trabalho", "Mini bar premium"],
-    servicosAdicionais: [
-      "Café da manhã no quarto",
-      "Decoração especial",
-      "Serviço de lavanderia",
-      "Room service 24h"
-    ]
-  },
-  {
-    id: 3,
-    nome: "Suíte Família",
-    descricao: "Perfeita para famílias, com espaço adicional e todas as comodidades necessárias para uma estadia confortável.",
-    descricaoLonga: "A Suíte Família foi especialmente projetada para proporcionar o máximo conforto para toda a família. Com amplo espaço e configuração versátil, oferece área de estar separada, dois banheiros e todas as comodidades necessárias para uma estadia memorável. Ideal para famílias que buscam conforto e praticidade.",
-    preco: 890,
-    metros: 55,
-    capacidade: 4,
-    avaliacao: 4.8,
-    numeroAvaliacoes: 84,
-    imagens: [
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
-      "https://images.unsplash.com/photo-1590490360182-c33d57733427",
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461"
-    ],
-    amenidades: ["Wi-Fi", "Café da manhã", "2 Banheiros", "Smart TV 65\"", "Sala de estar"],
-    destaques: ["Área de jantar", "Berço disponível", "Kit família"],
-    servicosAdicionais: [
-      "Menu infantil",
-      "Babysitter (sob consulta)",
-      "Kit diversão infantil",
-      "Passeios em família"
-    ]
-  }
-]
+// Interface para o formato de quarto usado na interface
+interface QuartoUI {
+  id: string;
+  nome: string;
+  descricao: string;
+  descricaoLonga: string;
+  preco: number;
+  metros: number;
+  capacidade: number;
+  avaliacao: number;
+  numeroAvaliacoes: number;
+  imagens: string[];
+  amenidades: string[];
+  destaques: string[];
+  servicosAdicionais: string[];
+}
 
 const formatarPreco = (preco: number) => {
   return new Intl.NumberFormat('pt-PT', {
@@ -90,10 +35,80 @@ const formatarPreco = (preco: number) => {
   }).format(preco)
 }
 
+// Mapeamento de ícones para amenidades comuns
+const amenidadeIcons: Record<string, any> = {
+  "Wi-Fi Grátis": Wifi,
+  "Ar Condicionado": Wind,
+  "Café da manhã": Coffee,
+  "Serviço de quarto": Utensils,
+}
+
 export default function RoomDetails() {
   const params = useParams()
   const router = useRouter()
-  const quarto = quartos.find(q => q.id === Number(params.id))
+  const [quarto, setQuarto] = useState<QuartoUI | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [imagemAtiva, setImagemAtiva] = useState(0)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    loadRoom()
+  }, [params.id])
+
+  const loadRoom = async () => {
+    try {
+      setLoading(true)
+      const roomData = await getRoomById(params.id as string)
+      
+      if (!roomData) {
+        setLoading(false)
+        return
+      }
+      
+      // Converter o formato do Firebase para o formato usado na interface
+      const quartoFormatado: QuartoUI = {
+        id: roomData.id || '0',
+        nome: roomData.name,
+        descricao: roomData.description,
+        descricaoLonga: roomData.description, // Usando a mesma descrição como descrição longa
+        preco: roomData.price,
+        metros: roomData.size,
+        capacidade: roomData.capacity,
+        avaliacao: 4.8, // Valor padrão
+        numeroAvaliacoes: 50, // Valor padrão
+        imagens: roomData.images,
+        amenidades: roomData.amenities,
+        destaques: roomData.amenities.slice(0, 3), // Usando as primeiras 3 amenidades como destaques
+        servicosAdicionais: roomData.additionalServices || ["Serviço de quarto", "Café da manhã", "Transfer", "Massagem"] // Valores padrão se não houver serviços adicionais
+      }
+      
+      setQuarto(quartoFormatado)
+    } catch (error) {
+      console.error("Erro ao carregar quarto:", error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as informações do quarto",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReservar = () => {
+    router.push(`/booking?room=${params.id}`)
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Carregando informações do quarto...</p>
+        </div>
+      </main>
+    )
+  }
 
   if (!quarto) {
     return (
@@ -119,148 +134,148 @@ export default function RoomDetails() {
         <Navbar />
       </div>
       
-      {/* Hero Section Melhorada */}
-      <section className="relative h-[60vh] sm:h-[70vh] lg:h-[80vh] pt-16">
-        <div className="absolute inset-0 top-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 h-full">
-            {/* Imagem Principal */}
-            <div className="relative h-full">
-              <img
-                src={quarto.imagens[0]}
-                alt={quarto.nome}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
+      {/* Botão de Voltar */}
+      <div className="pt-20 px-4 max-w-7xl mx-auto">
+        <Button
+          variant="ghost"
+          className="mb-4 hover:bg-background"
+          onClick={() => router.push('/rooms')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
+      </div>
+      
+      {/* Conteúdo Principal */}
+      <div className="max-w-7xl mx-auto px-4 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Coluna da Esquerda - Informações do Quarto */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Cabeçalho */}
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{quarto.nome}</h1>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="font-medium">{quarto.avaliacao}</span>
+                </div>
+                <span>•</span>
+                <span>{quarto.numeroAvaliacoes} avaliações</span>
+                <span>•</span>
+                <span>{quarto.metros}m²</span>
+                <span>•</span>
+                <span>Até {quarto.capacidade} pessoas</span>
+              </div>
             </div>
             
-            {/* Grid de Imagens Secundárias */}
-            <div className="hidden md:grid grid-cols-2 gap-2 p-2 bg-background/5 backdrop-blur-sm">
-              {quarto.imagens.slice(1).map((img, i) => (
-                <div key={i} className="relative group overflow-hidden rounded-xl">
+            {/* Galeria de Imagens */}
+            <div className="relative rounded-2xl overflow-hidden aspect-[16/9] bg-muted">
+              <motion.div 
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                key={imagemAtiva}
+              >
+                <img
+                  src={quarto.imagens[imagemAtiva]}
+                  alt={`${quarto.nome} - Imagem ${imagemAtiva + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+              
+              {/* Controles da Galeria */}
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                {quarto.imagens.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setImagemAtiva(index)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${
+                      index === imagemAtiva 
+                        ? 'bg-white scale-125' 
+                        : 'bg-white/50 hover:bg-white/80'
+                    }`}
+                    aria-label={`Ver imagem ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* Miniaturas */}
+            <div className="grid grid-cols-5 gap-2">
+              {quarto.imagens.slice(0, 5).map((img, i) => (
+                <button
+                  key={i}
+                  className={`relative rounded-lg overflow-hidden aspect-square ${
+                    i === imagemAtiva ? 'ring-2 ring-primary ring-offset-2' : ''
+                  }`}
+                  onClick={() => setImagemAtiva(i)}
+                >
                   <img
                     src={img}
-                    alt={`${quarto.nome} - Imagem ${i + 2}`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    alt={`${quarto.nome} - Miniatura ${i + 1}`}
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
-                </div>
+                </button>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Botão de Voltar e Título */}
-        <div className="absolute top-20 left-0 right-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-            <Button
-              variant="outline"
-              className="rounded-full bg-black/70 hover:bg-black/80 text-white border-white/20 shadow-lg backdrop-blur-sm"
-              onClick={() => router.push('/rooms')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-            <Button
-              className="rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg"
-            >
-              Reservar
-            </Button>
-          </div>
-        </div>
-
-        {/* Informações Principais Sobrepostas */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-          <div className="max-w-7xl mx-auto px-4 py-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-white">
-              <div className="space-y-2">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold">{quarto.nome}</h1>
-                <div className="flex items-center gap-2 text-white/90">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{quarto.avaliacao}</span>
-                  </div>
-                  <span>•</span>
-                  <span>{quarto.numeroAvaliacoes} avaliações</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl md:text-4xl font-bold">{formatarPreco(quarto.preco)}</div>
-                <div className="text-white/80">por noite</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Conteúdo Principal */}
-      <section className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 gap-12">
-          {/* Coluna da Esquerda */}
-          <div className="space-y-8">
-            <div className="prose prose-lg max-w-none">
-              <p className="text-lg leading-relaxed text-muted-foreground">{quarto.descricaoLonga}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-4 p-6 bg-muted/50 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-full bg-background">
-                  <Square className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <div className="font-medium">{quarto.metros}m²</div>
-                  <div className="text-sm text-muted-foreground">Área total</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-full bg-background">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <div className="font-medium">Até {quarto.capacidade} pessoas</div>
-                  <div className="text-sm text-muted-foreground">Capacidade</div>
-                </div>
-              </div>
-            </div>
-
+            
+            {/* Descrição */}
             <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">Destaques do Quarto</h2>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {quarto.destaques.map((destaque, i) => (
-                  <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="p-2 rounded-full bg-primary/10">
-                      <Check className="h-5 w-5 text-primary" />
-                    </div>
-                    <span className="font-medium">{destaque}</span>
-                  </div>
-                ))}
-              </div>
+              <h2 className="text-2xl font-semibold">Sobre o Quarto</h2>
+              <p className="text-muted-foreground leading-relaxed">{quarto.descricaoLonga}</p>
             </div>
-          </div>
-
-          {/* Coluna da Direita */}
-          <div className="space-y-8">
+            
+            {/* Características */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-xl">
+                <Square className="h-6 w-6 text-primary mb-2" />
+                <span className="font-medium">{quarto.metros}m²</span>
+                <span className="text-xs text-muted-foreground">Área</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-xl">
+                <Users className="h-6 w-6 text-primary mb-2" />
+                <span className="font-medium">{quarto.capacidade}</span>
+                <span className="text-xs text-muted-foreground">Pessoas</span>
+              </div>
+              {quarto.destaques.slice(0, 2).map((destaque, i) => {
+                const IconComponent = amenidadeIcons[destaque] || Check;
+                return (
+                  <div key={i} className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-xl">
+                    <IconComponent className="h-6 w-6 text-primary mb-2" />
+                    <span className="font-medium text-center">{destaque}</span>
+                    <span className="text-xs text-muted-foreground">Incluído</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Amenidades */}
             <div className="space-y-4">
               <h2 className="text-2xl font-semibold">Amenidades</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {quarto.amenidades.map((amenidade, i) => (
-                  <Badge 
-                    key={i}
-                    variant="outline"
-                    className="justify-center rounded-xl py-3 text-base bg-background border-primary/20 hover:bg-primary/5"
-                  >
-                    {amenidade}
-                  </Badge>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {quarto.amenidades.map((amenidade, i) => {
+                  const IconComponent = amenidadeIcons[amenidade] || Check;
+                  return (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted/30 transition-colors">
+                      <div className="p-1.5 rounded-full bg-primary/10">
+                        <IconComponent className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium">{amenidade}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-
+            
+            {/* Serviços Adicionais */}
             <div className="space-y-4">
               <h2 className="text-2xl font-semibold">Serviços Adicionais</h2>
-              <div className="grid gap-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {quarto.servicosAdicionais.map((servico, i) => (
                   <div 
                     key={i} 
-                    className="flex items-center gap-3 p-4 rounded-xl border border-primary/10 hover:border-primary/30 hover:bg-muted/5 transition-all cursor-pointer"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/5 transition-all cursor-pointer"
                   >
                     <div className="flex-1">
                       <span className="font-medium">{servico}</span>
@@ -270,29 +285,78 @@ export default function RoomDetails() {
                 ))}
               </div>
             </div>
-
-            {/* Botão de Reserva Fixo */}
-            <div className="sticky top-4 bg-background/80 backdrop-blur-sm rounded-2xl p-6 border border-primary/10 shadow-lg">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="text-lg font-semibold">Total por noite</div>
-                  <div className="text-2xl font-bold">{formatarPreco(quarto.preco)}</div>
+          </div>
+          
+          {/* Coluna da Direita - Card de Reserva */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 bg-card rounded-2xl p-6 border shadow-lg">
+              <div className="space-y-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="text-3xl font-bold">{formatarPreco(quarto.preco)}</div>
+                    <div className="text-muted-foreground">por noite</div>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    Disponível
+                  </Badge>
                 </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Check-in</label>
+                      <div className="p-3 rounded-lg border bg-muted/20">
+                        Selecionar
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Check-out</label>
+                      <div className="p-3 rounded-lg border bg-muted/20">
+                        Selecionar
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Hóspedes</label>
+                    <div className="p-3 rounded-lg border bg-muted/20 flex justify-between items-center">
+                      <span>2 adultos, 0 crianças</span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t border-border pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">Preço por noite</span>
+                    <span>{formatarPreco(quarto.preco)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="font-medium">Taxa de serviço</span>
+                    <span>{formatarPreco(quarto.preco * 0.1)}</span>
+                  </div>
+                  <div className="flex justify-between items-center font-bold">
+                    <span>Total</span>
+                    <span>{formatarPreco(quarto.preco * 1.1)}</span>
+                  </div>
+                </div>
+                
                 <Button 
                   size="lg"
-                  className="w-full rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 py-6 text-lg font-semibold"
+                  className="w-full rounded-xl bg-white hover:bg-white/90 text-black shadow-md hover:shadow-lg transition-all py-6 text-base font-semibold"
+                  onClick={handleReservar}
                 >
                   Reservar Agora
-                  <ArrowRight className="ml-2 h-6 w-6" />
                 </Button>
-                <p className="text-sm text-center text-muted-foreground">
-                  Não será feita nenhuma cobrança ainda
+                
+                <p className="text-xs text-center text-muted-foreground">
+                  Não será feita nenhuma cobrança ainda. Você confirmará os detalhes na próxima etapa.
                 </p>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
     </main>
   )
 } 
