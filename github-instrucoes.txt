@@ -1,0 +1,30 @@
+# Instruções para enviar o projeto Aqua Vista para o GitHub
+
+1. Abra o PowerShell como administrador e navegue até a pasta do projeto:
+   ```
+   cd "C:\Users\Pedro\Desktop\Dev documents\Aqua Vista"
+   ```
+
+2. Configure o repositório remoto (se ainda não estiver configurado):
+   ```
+   git remote add origin https://github.com/SEU_USUARIO/aqua-vista-monchique.git
+   ```
+   (Substitua SEU_USUARIO pelo seu nome de usuário do GitHub)
+
+3. Verifique se o repositório remoto foi configurado corretamente:
+   ```
+   git remote -v
+   ```
+
+4. Envie o código para o GitHub:
+   ```
+   git push -u origin main
+   ```
+
+5. Se solicitado, forneça suas credenciais do GitHub
+
+Observações:
+- Se você encontrar erros relacionados a arquivos grandes, pode ser necessário usar o Git LFS ou ajustar o .gitignore
+- Se você já tem commits locais que não estão no GitHub, o comando git push enviará todos eles
+- Se você receber um erro de "non-fast-forward", pode precisar executar: git pull --rebase origin main
+  E depois: git push -u origin main 
