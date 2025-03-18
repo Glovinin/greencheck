@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '../lib/utils'
@@ -20,6 +20,7 @@ import {
   InstagramLogo,
   FacebookLogo,
   Waves,
+  CaretDown,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -49,6 +50,7 @@ export function MobileNav() {
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const menuRef = useRef<HTMLDivElement>(null)
 
   // Prevenir scroll quando o menu está aberto
   useEffect(() => {
@@ -153,6 +155,7 @@ export function MobileNav() {
                 ? "bg-black text-white" 
                 : "bg-white text-gray-900"
             )}
+            ref={menuRef}
           >
             {/* Cabeçalho do menu */}
             <div className={cn(
@@ -174,7 +177,83 @@ export function MobileNav() {
             </div>
 
             {/* Conteúdo do menu */}
-            <div className="flex-1 overflow-y-auto py-8 px-6">
+            <div 
+              className={cn(
+                "flex-1 overflow-y-auto py-8 px-6 relative scrollbar",
+                isDark 
+                  ? "scrollbar-dark" 
+                  : "scrollbar-light"
+              )} 
+              ref={menuRef}
+              style={{
+                scrollbarWidth: "auto", // Para Firefox - mudado de "thin" para "auto"
+                scrollbarColor: isDark ? "#6366f1 #1e1e2a" : "#6366f1 #f5f5f7", // Cores mais contrastantes
+              }}
+            >
+              {/* Custom scrollbar para o menu */}
+              <style jsx global>{`
+                /* Estilização para navegadores webkit (Chrome, Safari, etc) */
+                .scrollbar::-webkit-scrollbar {
+                  width: 6px; /* Aumentado de 4px para 6px */
+                  height: 6px;
+                }
+                
+                .scrollbar-dark::-webkit-scrollbar-track {
+                  background: rgba(30, 30, 42, 0.6); /* Cor de fundo escura mais visível */
+                  margin: 8px 0; /* Margem para não ocupar todo o espaço */
+                  border-radius: 10px;
+                }
+                
+                .scrollbar-dark::-webkit-scrollbar-thumb {
+                  background: linear-gradient(to bottom, #6366f1, #8b5cf6); /* Gradiente de cores */
+                  border-radius: 10px;
+                  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                
+                .scrollbar-dark::-webkit-scrollbar-thumb:hover {
+                  background: linear-gradient(to bottom, #818cf8, #a78bfa); /* Gradiente mais claro no hover */
+                  border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+                
+                .scrollbar-light::-webkit-scrollbar-track {
+                  background: rgba(245, 245, 247, 0.7); /* Cor de fundo clara mais visível */
+                  margin: 8px 0; /* Margem para não ocupar todo o espaço */
+                  border-radius: 10px;
+                }
+                
+                .scrollbar-light::-webkit-scrollbar-thumb {
+                  background: linear-gradient(to bottom,rgb(107, 58, 12), #8b5cf6); /* Mesmo gradiente para consistência */
+                  border-radius: 10px;
+                  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+                  border: 1px solid rgba(0, 0, 0, 0.05);
+                }
+                
+                .scrollbar-light::-webkit-scrollbar-thumb:hover {
+                  background: linear-gradient(to bottom, #4f46e5, #7c3aed); /* Gradiente mais escuro no hover */
+                  border: 1px solid rgba(0, 0, 0, 0.1);
+                }
+                
+                /* Efeito pulsante na scrollbar quando o menu abre */
+                @keyframes pulseScrollbar {
+                  0% { opacity: 0.5; }
+                  50% { opacity: 1; }
+                  100% { opacity: 0.5; }
+                }
+                
+                .scrollbar::-webkit-scrollbar-thumb {
+                  animation: pulseScrollbar 2s ease-in-out 1; /* Pulsa uma vez quando o menu abre */
+                }
+              `}</style>
+              
+              {/* Efeito de fade na parte inferior */}
+              <div className={cn(
+                "absolute left-0 right-0 bottom-0 h-20 pointer-events-none z-10",
+                isDark 
+                  ? "bg-gradient-to-t from-black to-transparent" 
+                  : "bg-gradient-to-t from-white to-transparent"
+              )} />
+              
               <ul className="space-y-6">
                 {allNavItems.map((item) => {
                   const ItemIcon = item.icon
