@@ -149,10 +149,18 @@ export function MobileNav() {
                     : "text-muted-foreground hover:text-primary hover:scale-110 transform"
                 )}
               >
-                <div className={cn(
-                  "relative p-2 rounded-2xl transition-all duration-300",
-                  isActive && "bg-primary/10"
-                )}>
+                <div className="relative p-2 rounded-2xl transition-all duration-300">
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeNavBackground"
+                      className="absolute inset-0 bg-primary/10 rounded-2xl -z-10"
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30
+                      }}
+                    />
+                  )}
                   <ItemIcon 
                     weight={isActive ? "fill" : "regular"} 
                     className="h-6 w-6 transition-all duration-300" 
@@ -378,12 +386,21 @@ export function MobileNav() {
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex items-center gap-4 py-3 px-4 rounded-xl transition-all",
-                          isActive 
-                            ? "bg-primary/10 text-primary font-medium" 
-                            : "hover:bg-primary/5"
+                          "flex items-center gap-4 py-3 px-4 rounded-xl transition-all relative",
+                          isActive ? "text-primary font-medium" : "hover:bg-primary/5"
                         )}
                       >
+                        {isActive && (
+                          <motion.div 
+                            layoutId="activeMenuBackground"
+                            className="absolute inset-0 bg-primary/10 rounded-xl -z-10"
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 30
+                            }}
+                          />
+                        )}
                         <div className={cn(
                           "h-10 w-10 rounded-full flex items-center justify-center",
                           isActive ? "bg-primary/20" : "bg-primary/5"
