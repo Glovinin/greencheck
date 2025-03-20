@@ -49,12 +49,18 @@ export function MobileNav() {
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const [lastScrollPosition, setLastScrollPosition] = useState(0)
+  const [isScrollingDown, setIsScrollingDown] = useState(false)
   const [contentHeight, setContentHeight] = useState(0)
   const [containerHeight, setContainerHeight] = useState(0)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const [isNavExpanded, setIsNavExpanded] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const menuRef = useRef<HTMLDivElement>(null)
-  const menuContentRef = useRef<HTMLUListElement>(null)
+  const menuContentRef = useRef<HTMLDivElement>(null)
+  const menuItemsRef = useRef<HTMLUListElement>(null)
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Prevenir scroll quando o menu está aberto
   useEffect(() => {
@@ -77,20 +83,64 @@ export function MobileNav() {
     setMenuOpen(false)
   }, [pathname])
 
+  // Detectar direção do scroll na página principal
+  useEffect(() => {
+    if (menuOpen) return;
+
+    const handlePageScroll = () => {
+      const currentScrollPos = window.scrollY;
+      
+      // Verificar direção do scroll
+      const isScrollDown = currentScrollPos > lastScrollPosition;
+      setIsScrollingDown(isScrollDown);
+      
+      // Expandir a navegação quando o scroll for para baixo
+      if (isScrollDown) {
+        setIsNavExpanded(true);
+      } else {
+        setIsNavExpanded(false);
+      }
+      
+      setLastScrollPosition(currentScrollPos);
+      
+      // Reset após período de inatividade
+      clearTimeout(scrollTimeout.current);
+      scrollTimeout.current = setTimeout(() => {
+        setIsNavExpanded(false);
+      }, 1500);
+    };
+    
+    window.addEventListener('scroll', handlePageScroll);
+    return () => {
+      window.removeEventListener('scroll', handlePageScroll);
+    };
+  }, [lastScrollPosition, menuOpen]);
+
   // Monitorar scroll e calcular alturas para o indicador de posição
   useEffect(() => {
-    if (!menuOpen || !menuRef.current || !menuContentRef.current) return
+    if (!menuOpen || !menuContentRef.current || !menuItemsRef.current) return
 
     const handleResize = () => {
-      if (menuRef.current && menuContentRef.current) {
-        setContainerHeight(menuRef.current.clientHeight)
-        setContentHeight(menuContentRef.current.scrollHeight)
+      if (menuContentRef.current && menuItemsRef.current) {
+        setContainerHeight(menuContentRef.current.clientHeight)
+        setContentHeight(menuItemsRef.current.scrollHeight)
       }
     }
     
     const handleScroll = () => {
-      if (menuRef.current) {
-        setScrollPosition(menuRef.current.scrollTop)
+      if (menuContentRef.current) {
+        setScrollPosition(menuContentRef.current.scrollTop)
+        
+        // Ativar estado de scrolling
+        setIsScrolling(true)
+        
+        // Desativar após 1 segundo sem scroll
+        if (scrollTimeout.current) {
+          clearTimeout(scrollTimeout.current)
+        }
+        scrollTimeout.current = setTimeout(() => {
+          setIsScrolling(false)
+        }, 1000)
       }
     }
     
@@ -99,12 +149,12 @@ export function MobileNav() {
     
     // Event listeners
     window.addEventListener('resize', handleResize)
-    menuRef.current.addEventListener('scroll', handleScroll)
+    menuContentRef.current.addEventListener('scroll', handleScroll)
     
     return () => {
       window.removeEventListener('resize', handleResize)
-      if (menuRef.current) {
-        menuRef.current.removeEventListener('scroll', handleScroll)
+      if (menuContentRef.current) {
+        menuContentRef.current.removeEventListener('scroll', handleScroll)
       }
     }
   }, [menuOpen])
@@ -119,11 +169,11 @@ export function MobileNav() {
 
   // Calcular progresso de scroll (0-100)
   const scrollPercentage = containerHeight && contentHeight 
-    ? Math.min(100, Math.max(0, (scrollPosition / (contentHeight - containerHeight)) * 100))
+    ? Math.min(100, Math.max(0, (scrollPosition / (contentHeight - containerHeight)) * 10))
     : 0
     
   // Verificar se há mais conteúdo abaixo (para mostrar o indicador)
-  const hasMoreContent = contentHeight > containerHeight && scrollPercentage < 100
+  const hasMoreContent = true // Sempre mostrar o indicador
 
   return (
     <>
@@ -134,7 +184,7 @@ export function MobileNav() {
           ? "bg-black/80 border-white/10" 
           : "bg-white/80 border-gray-200"
       )}>
-        <div className="flex items-center justify-around h-20 px-4">
+        <div className="flex items-center justify-around px-4 py-4 pb-safe">
           {bottomNavItems.map((item) => {
             const ItemIcon = item.icon
             const isActive = pathname === item.href
@@ -143,10 +193,10 @@ export function MobileNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ease-spring",
+                  "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
                   isActive 
-                    ? "text-primary scale-110 transform" 
-                    : "text-muted-foreground hover:text-primary hover:scale-110 transform"
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-primary"
                 )}
               >
                 <div className="relative p-2 rounded-2xl transition-all duration-300">
@@ -178,8 +228,8 @@ export function MobileNav() {
           <button 
             onClick={() => setMenuOpen(true)}
             className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ease-spring",
-              "text-muted-foreground hover:text-primary hover:scale-110 transform"
+              "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
+              "text-muted-foreground hover:text-primary"
             )}
           >
             <div className="relative p-2 rounded-2xl transition-all duration-300">
@@ -192,6 +242,19 @@ export function MobileNav() {
           </button>
         </div>
       </nav>
+
+      {/* Estilos para considerar áreas seguras (safe areas) em dispositivos iOS */}
+      <style jsx global>{`
+        .pb-safe {
+          padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+        }
+        
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .pb-safe {
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+          }
+        }
+      `}</style>
 
       {/* Menu fullscreen */}
       <AnimatePresence>
@@ -231,192 +294,80 @@ export function MobileNav() {
             {/* Conteúdo do menu */}
             <div 
               className={cn(
-                "flex-1 overflow-y-auto py-8 px-6 relative scrollbar",
+                "flex-1 overflow-y-auto py-8 px-6 relative",
                 isDark 
-                  ? "scrollbar-dark" 
-                  : "scrollbar-light"
+                  ? "bg-black" 
+                  : "bg-white"
               )} 
-              ref={menuRef}
-              style={{
-                scrollbarWidth: "auto",
-                scrollbarColor: isDark ? "#6366f1 #1e1e2a" : "#6366f1 #f5f5f7",
-              }}
+              ref={menuContentRef}
             >
-              {/* Custom scrollbar para o menu */}
-              <style jsx global>{`
-                /* Estilização para navegadores webkit (Chrome, Safari, etc) */
-                .scrollbar::-webkit-scrollbar {
-                  width: 6px;
-                  height: 6px;
-                }
-                
-                .scrollbar-dark::-webkit-scrollbar-track {
-                  background: rgba(30, 30, 42, 0.6);
-                  margin: 8px 0;
-                  border-radius: 10px;
-                }
-                
-                .scrollbar-dark::-webkit-scrollbar-thumb {
-                  background: linear-gradient(to bottom, #6366f1, #8b5cf6);
-                  border-radius: 10px;
-                  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-                  border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-                
-                .scrollbar-dark::-webkit-scrollbar-thumb:hover {
-                  background: linear-gradient(to bottom, #818cf8, #a78bfa);
-                  border: 1px solid rgba(255, 255, 255, 0.2);
-                }
-                
-                .scrollbar-light::-webkit-scrollbar-track {
-                  background: rgba(245, 245, 247, 0.7);
-                  margin: 8px 0;
-                  border-radius: 10px;
-                }
-                
-                .scrollbar-light::-webkit-scrollbar-thumb {
-                  background: linear-gradient(to bottom, #6366f1, #8b5cf6);
-                  border-radius: 10px;
-                  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
-                  border: 1px solid rgba(0, 0, 0, 0.05);
-                }
-                
-                .scrollbar-light::-webkit-scrollbar-thumb:hover {
-                  background: linear-gradient(to bottom, #4f46e5, #7c3aed);
-                  border: 1px solid rgba(0, 0, 0, 0.1);
-                }
-                
-                @keyframes pulseScrollbar {
-                  0% { opacity: 0.5; }
-                  50% { opacity: 1; }
-                  100% { opacity: 0.5; }
-                }
-                
-                .scrollbar::-webkit-scrollbar-thumb {
-                  animation: pulseScrollbar 2s ease-in-out 1;
-                }
-              `}</style>
-              
-              {/* Efeito de fade na parte inferior */}
+              {/* Efeito de fade na parte inferior - fixo */}
               <div className={cn(
-                "absolute left-0 right-0 bottom-0 h-20 pointer-events-none z-10",
+                "fixed left-0 right-0 bottom-[72px] h-24 pointer-events-none z-10",
                 isDark 
                   ? "bg-gradient-to-t from-black to-transparent" 
                   : "bg-gradient-to-t from-white to-transparent"
               )} />
               
-              {/* Indicador de scroll personalizado para iOS/mobile */}
-              {hasMoreContent && (
-                <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-20 flex flex-col items-center gap-1.5">
-                  {/* Círculos indicadores de posição - aparecem apenas em mobile */}
-                  <div className="hidden sm:flex flex-col items-center gap-1.5">
-                    {Array.from({ length: 3 }).map((_, i) => {
-                      // Determinar qual círculo está ativo baseado na posição de scroll
-                      const isActive = 
-                        (i === 0 && scrollPercentage < 33) || 
-                        (i === 1 && scrollPercentage >= 33 && scrollPercentage < 66) || 
-                        (i === 2 && scrollPercentage >= 66);
-                      
-                      return (
-                        <div 
-                          key={i}
-                          className={cn(
-                            "w-2 h-2 rounded-full transition-all duration-300",
-                            isActive 
-                              ? "bg-primary scale-125" 
-                              : isDark ? "bg-white/30" : "bg-gray-300"
-                          )}
-                        />
-                      )
-                    })}
-                  </div>
-                  
-                  {/* Indicador de scroll em forma de barra para iOS */}
-                  <div className="w-1.5 h-24 rounded-full overflow-hidden bg-black/10 dark:bg-white/10 relative">
-                    <motion.div 
-                      className="absolute bottom-0 left-0 right-0 bg-primary"
-                      style={{ 
-                        height: `${scrollPercentage}%`,
-                        borderRadius: '9999px' 
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+              {/* Efeito de fade no topo */}
+              <div className={cn(
+                "absolute left-0 right-0 top-0 h-6 pointer-events-none z-10",
+                isDark 
+                  ? "bg-gradient-to-b from-black to-transparent" 
+                  : "bg-gradient-to-b from-white to-transparent"
+              )} />
               
-              {/* Indicador de "mais conteúdo abaixo" para iOS */}
-              {hasMoreContent && scrollPercentage < 10 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="absolute left-1/2 bottom-20 transform -translate-x-1/2 z-30 pointer-events-none"
-                >
-                  <div className={cn(
-                    "flex flex-col items-center",
-                    isDark ? "text-white" : "text-gray-800"
-                  )}>
-                    <p className="text-xs font-medium mb-2">Deslize para ver mais</p>
-                    <motion.div
-                      animate={{ y: [0, 6, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      className={cn(
-                        "flex items-center justify-center h-8 w-8 rounded-full",
-                        isDark ? "bg-white/10" : "bg-gray-100"
-                      )}
-                    >
-                      <CaretDown weight="bold" className="h-5 w-5" />
-                    </motion.div>
-                  </div>
-                </motion.div>
-              )}
-              
-              <ul className="space-y-6" ref={menuContentRef}>
-                {allNavItems.map((item) => {
+              <ul className="space-y-6 pb-12" ref={menuItemsRef}>
+                {allNavItems.map((item, index) => {
                   const ItemIcon = item.icon
                   const isActive = pathname === item.href
                   
                   return (
                     <motion.li 
                       key={item.href}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * allNavItems.indexOf(item) }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        delay: 0.05 * index,
+                        duration: 0.4,
+                        ease: [0.22, 1, 0.36, 1]  
+                      }}
                     >
                       <Link
                         href={item.href}
                         className={cn(
                           "flex items-center gap-4 py-3 px-4 rounded-xl transition-all relative",
-                          isActive ? "text-primary font-medium" : "hover:bg-primary/5"
+                          isActive 
+                            ? "text-primary font-medium bg-primary/15 dark:bg-primary/20" 
+                            : "text-foreground hover:text-primary hover:bg-primary/5"
                         )}
                       >
-                        {isActive && (
-                          <motion.div 
-                            layoutId="activeMenuBackground"
-                            className="absolute inset-0 bg-primary/10 rounded-xl -z-10"
-                            transition={{
-                              type: "spring",
-                              stiffness: 300,
-                              damping: 30
-                            }}
-                          />
-                        )}
+                        {isActive ? (
+                          <div className="absolute inset-0 bg-gray-800/10 dark:bg-white/10 rounded-xl -z-10" />
+                        ) : null}
                         <div className={cn(
                           "h-10 w-10 rounded-full flex items-center justify-center",
-                          isActive ? "bg-primary/20" : "bg-primary/5"
+                          isActive 
+                            ? "bg-primary/40 text-primary" 
+                            : "bg-primary/5 text-foreground"
                         )}>
                           <ItemIcon 
                             weight={isActive ? "fill" : "regular"} 
-                            className="h-5 w-5" 
+                            className={cn(
+                              "h-5 w-5 transition-all",
+                              isActive ? "text-primary" : "text-muted-foreground"
+                            )}
                           />
                         </div>
-                        <span className="text-lg">{item.label}</span>
+                        <span className={cn(
+                          "text-lg transition-all",
+                          isActive ? "font-medium text-primary" : "text-foreground"
+                        )}>
+                          {item.label}
+                        </span>
                         
                         {isActive && (
-                          <motion.div 
-                            layoutId="activeIndicator"
-                            className="ml-auto h-2 w-2 rounded-full bg-primary" 
-                          />
+                          <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
                         )}
                       </Link>
                     </motion.li>
@@ -426,21 +377,27 @@ export function MobileNav() {
 
               {/* Alternador de tema */}
               <div className={cn(
-                "mt-10 p-6 rounded-xl border",
-                isDark ? "border-white/10" : "border-gray-200"
+                "mt-12 p-6 rounded-2xl border",
+                isDark ? "border-white/10 bg-gray-900/50" : "border-gray-200 bg-gray-50/50"
               )}>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Alternar Tema</span>
+                  <div>
+                    <h3 className="font-medium text-lg">Alternar Tema</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Escolha entre modo claro ou escuro</p>
+                  </div>
                   <Button 
                     onClick={toggleTheme}
                     variant="outline" 
                     size="icon" 
-                    className="rounded-full h-10 w-10"
+                    className={cn(
+                      "rounded-full h-12 w-12",
+                      isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                    )}
                   >
                     {isDark ? (
-                      <SunDim className="h-5 w-5" />
+                      <SunDim className="h-5 w-5 text-yellow-400" />
                     ) : (
-                      <Moon className="h-5 w-5" />
+                      <Moon className="h-5 w-5 text-indigo-600" />
                     )}
                   </Button>
                 </div>
@@ -449,19 +406,72 @@ export function MobileNav() {
 
             {/* Rodapé */}
             <div className={cn(
-              "p-6 border-t",
-              isDark ? "border-white/10" : "border-gray-200"
+              "p-6 border-t sticky bottom-0 backdrop-blur-lg z-20",
+              isDark 
+                ? "bg-black/60 border-white/10" 
+                : "bg-white/60 border-gray-200"
             )}>
+              {/* INDICADOR DE SCROLL - VERSÃO FINAL */}
+              <div className="h-0 relative">
+                <AnimatePresence>
+                  {scrollPosition < 50 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ 
+                        duration: 0.3,
+                        ease: "easeOut"
+                      }}
+                      className="absolute -top-20 left-0 right-0 flex justify-center pointer-events-auto z-50"
+                      onClick={() => {
+                        if (menuContentRef.current) {
+                          menuContentRef.current.scrollTo({
+                            top: 400,
+                            behavior: 'smooth'
+                          });
+                        }
+                      }}
+                    >
+                      <div className={cn(
+                        "px-5 py-3 rounded-full flex items-center gap-3 shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all",
+                        isDark 
+                          ? "bg-black text-white border-2 border-white/20" 
+                          : "bg-white text-black border-2 border-black/20"
+                      )}>
+                        <span className="text-xs font-medium">Deslize para ver mais opções</span>
+                        <motion.div
+                          animate={{ y: [0, 4, 0] }}
+                          transition={{ 
+                            duration: 1.2, 
+                            repeat: Infinity,
+                            repeatType: "loop" 
+                          }}
+                        >
+                          <CaretDown weight="bold" className="h-4 w-4" />
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              
               <div className="flex justify-center space-x-6">
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <InstagramLogo className="h-6 w-6" />
+                <a href="#" className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center transition-all",
+                  isDark ? "bg-white/10 hover:bg-white/20" : "bg-gray-100/80 hover:bg-gray-200/80"
+                )}>
+                  <InstagramLogo className="h-5 w-5 text-muted-foreground" />
                 </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <FacebookLogo className="h-6 w-6" />
+                <a href="#" className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center transition-all",
+                  isDark ? "bg-white/10 hover:bg-white/20" : "bg-gray-100/80 hover:bg-gray-200/80"
+                )}>
+                  <FacebookLogo className="h-5 w-5 text-muted-foreground" />
                 </a>
               </div>
               <p className="text-center text-xs text-muted-foreground mt-4">
-                © 2023 Aqua Vista Monchique. Todos os direitos reservados.
+                © 2025 Aqua Vista Monchique. Todos os direitos reservados.
               </p>
             </div>
           </motion.div>
