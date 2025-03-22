@@ -8,6 +8,8 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
+import { CTASection } from '@/components/cta-section'
+import { Footer } from '@/components/footer'
 
 export default function Sobre() {
   const router = useRouter()
@@ -31,6 +33,7 @@ export default function Sobre() {
   const isDark = theme === 'dark'
 
   return (
+    <>
     <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
       
@@ -44,15 +47,15 @@ export default function Sobre() {
             }}
             className="w-full h-[120%] -mt-10"
           >
-            <div className="w-full h-full relative">
-              <Image
-                src="https://images.unsplash.com/photo-1603822199623-d8b014c2e315?q=80&w=2940"
-                alt="Aqua Vista Monchique - Sobre Nós"
-                fill
-                priority
-                className="object-cover"
-              />
-            </div>
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
+              </video>
           </motion.div>
           <motion.div 
             style={{ opacity }}
@@ -110,7 +113,7 @@ export default function Sobre() {
               <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
                 isDark ? 'text-white/90' : 'text-gray-800'
               }`}>
-                Conheça a história e os valores que fazem do Aqua Vista uma experiência única
+                  Um refúgio rústico com vistas deslumbrantes sobre a serra e o mar
               </p>
             </motion.div>
           </motion.div>
@@ -182,27 +185,36 @@ export default function Sobre() {
                 viewport={{ once: true }}
                 className="text-lg text-white/70 mb-6 leading-relaxed"
               >
-                Fundado em 2010, o Aqua Vista nasceu da paixão de seus proprietários pela Serra de Monchique e seu desejo de criar uma experiência de hospedagem única que celebrasse as belezas naturais da região. 
+                  O Aqua Vista Monchique, uma joia escondida na Serra de Monchique, ganhou um novo capítulo em sua história em julho de 2024, quando o empresário Delmar Santos assumiu sua administração. Com um olhar atento aos detalhes e profundo respeito pela natureza local, o hotel passou por cuidadosas renovações para realçar ainda mais seu charme rústico e autenticidade.
               </motion.p>
               <motion.p 
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
+                  viewport={{ once: true }}
+                  className="text-lg text-white/70 mb-6 leading-relaxed"
+                >
+                  Estrategicamente posicionado a apenas 3 km da pitoresca vila de Monchique e 10 km das famosas Caldas de Monchique, nosso refúgio oferece o equilíbrio perfeito entre isolamento sereno e conveniência. Em menos de 25 minutos de carro, nossos hóspedes podem acessar o Autódromo Internacional do Algarve, diversos campos de golfe e as deslumbrantes praias da Costa Vicentina e de Portimão.
+                </motion.p>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
                 viewport={{ once: true }}
                 className="text-lg text-white/70 mb-8 leading-relaxed"
               >
-                O que começou como uma pequena pousada familiar evoluiu para um hotel boutique premiado, mantendo sempre seu compromisso com a hospitalidade autêntica, o conforto excepcional e o respeito ao meio ambiente natural que nos cerca.
+                  Cada quarto do Aqua Vista foi cuidadosamente projetado para proporcionar tranquilidade absoluta, com terraços mobilados privativos que emolduram vistas panorâmicas da costa e do mar. Nossa espaçosa piscina, de acesso gratuito aos hóspedes, convida a momentos de contemplação enquanto se admira o horizonte. Aqui, a simplicidade encontra o conforto, criando o ambiente perfeito para desconectar da agitação cotidiana e reconectar-se com o que realmente importa.
               </motion.p>
               <motion.div
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
                 viewport={{ once: true }}
                 className="flex flex-col sm:flex-row gap-4"
               >
                 <div className="flex items-center text-white/80 bg-white/5 rounded-full px-4 py-2 border border-white/10">
                   <Building className="h-5 w-5 mr-2 text-primary" />
-                  <span>Premiado por 5 anos consecutivos</span>
+                    <span>Renovado completamente em 2024</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -268,9 +280,9 @@ export default function Sobre() {
       </section>
 
       {/* Nossos Valores Section */}
-      <section className="py-24 bg-gradient-to-b from-black to-black/95 relative overflow-hidden">
+        <section className={`py-24 ${isDark ? 'bg-gradient-to-b from-black to-black/95' : 'bg-gradient-to-b from-gray-100 to-gray-200'} relative overflow-hidden`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+          <div className={`absolute inset-0 bg-gradient-radial ${isDark ? 'from-primary/5' : 'from-primary/10'} via-transparent to-transparent opacity-70`} />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
@@ -279,7 +291,11 @@ export default function Sobre() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
+                className={`text-sm font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary bg-primary/10 border-primary/20' 
+                    : 'text-primary bg-primary/10 border-primary/30'
+                } px-4 py-2 rounded-full border shadow-sm shadow-primary/10`}
             >
               Nossos Princípios
             </motion.span>
@@ -288,7 +304,7 @@ export default function Sobre() {
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true }}
-              className="text-4xl font-bold mt-6 mb-4 text-white"
+                className={`text-4xl font-bold mt-6 mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}
             >
               Valores que nos Guiam
             </motion.h2>
@@ -297,9 +313,9 @@ export default function Sobre() {
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               viewport={{ once: true }}
-              className="text-lg text-white/70 max-w-3xl mx-auto"
+                className={`text-lg max-w-3xl mx-auto ${isDark ? 'text-white/70' : 'text-gray-600'}`}
             >
-              Nosso compromisso com a excelência é guiado por valores que norteiam cada aspecto da experiência Aqua Vista.
+                Nossa proposta é oferecer uma experiência autêntica e acolhedora, guiada por valores que preservam a essência da Serra de Monchique.
             </motion.p>
           </div>
 
@@ -309,14 +325,26 @@ export default function Sobre() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               viewport={{ once: true }}
-              className="bg-black/70 backdrop-blur-sm rounded-3xl p-8 border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/70 border-white/10' 
+                    : 'bg-white/70 border-gray-200'
+                } backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group`}
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
                 <Award className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-primary transition-colors duration-300">Excelência</h3>
-              <p className="text-white/70 group-hover:text-white/90 transition-colors duration-300">
-                Buscamos constantemente superar expectativas, elevando o padrão de qualidade em todos os aspectos da experiência do hóspede.
+                <h3 className={`text-xl font-semibold mb-3 ${
+                  isDark 
+                    ? 'text-white group-hover:text-primary' 
+                    : 'text-gray-900 group-hover:text-primary'
+                } transition-colors duration-300`}>Autenticidade</h3>
+                <p className={`${
+                  isDark 
+                    ? 'text-white/70 group-hover:text-white/90' 
+                    : 'text-gray-600 group-hover:text-gray-900'
+                } transition-colors duration-300`}>
+                  Valorizamos a simplicidade e o charme rústico, oferecendo uma experiência genuína que celebra as tradições locais e a beleza natural da região.
               </p>
             </motion.div>
 
@@ -325,14 +353,26 @@ export default function Sobre() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               viewport={{ once: true }}
-              className="bg-black/70 backdrop-blur-sm rounded-3xl p-8 border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/70 border-white/10' 
+                    : 'bg-white/70 border-gray-200'
+                } backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group`}
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
                 <Users className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-primary transition-colors duration-300">Hospitalidade Genuína</h3>
-              <p className="text-white/70 group-hover:text-white/90 transition-colors duration-300">
-                Acreditamos no poder do acolhimento autêntico, tratando cada hóspede com atenção personalizada e calor humano.
+                <h3 className={`text-xl font-semibold mb-3 ${
+                  isDark 
+                    ? 'text-white group-hover:text-primary' 
+                    : 'text-gray-900 group-hover:text-primary'
+                } transition-colors duration-300`}>Acolhimento Caloroso</h3>
+                <p className={`${
+                  isDark 
+                    ? 'text-white/70 group-hover:text-white/90' 
+                    : 'text-gray-600 group-hover:text-gray-900'
+                } transition-colors duration-300`}>
+                  Acreditamos no poder da hospitalidade simples e genuína, onde cada hóspede é recebido como parte da família, com atenção personalizada e calor humano.
               </p>
             </motion.div>
 
@@ -341,13 +381,25 @@ export default function Sobre() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
               viewport={{ once: true }}
-              className="bg-black/70 backdrop-blur-sm rounded-3xl p-8 border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/70 border-white/10' 
+                    : 'bg-white/70 border-gray-200'
+                } backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group`}
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
                 <MapPin className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-primary transition-colors duration-300">Sustentabilidade</h3>
-              <p className="text-white/70 group-hover:text-white/90 transition-colors duration-300">
+                <h3 className={`text-xl font-semibold mb-3 ${
+                  isDark 
+                    ? 'text-white group-hover:text-primary' 
+                    : 'text-gray-900 group-hover:text-primary'
+                } transition-colors duration-300`}>Sustentabilidade</h3>
+                <p className={`${
+                  isDark 
+                    ? 'text-white/70 group-hover:text-white/90' 
+                    : 'text-gray-600 group-hover:text-gray-900'
+                } transition-colors duration-300`}>
                 Comprometemo-nos a preservar e celebrar a beleza natural de Monchique, adotando práticas sustentáveis em todas as nossas operações.
               </p>
             </motion.div>
@@ -356,9 +408,9 @@ export default function Sobre() {
       </section>
 
       {/* Equipe Section */}
-      <section className="py-24 bg-black relative overflow-hidden">
+        <section className={`py-24 ${isDark ? 'bg-black' : 'bg-gray-100'} relative overflow-hidden`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+          <div className={`absolute inset-0 bg-gradient-radial ${isDark ? 'from-primary/5' : 'from-primary/10'} via-transparent to-transparent opacity-70`} />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
@@ -367,7 +419,11 @@ export default function Sobre() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
+                className={`text-sm font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary bg-primary/10 border-primary/20' 
+                    : 'text-primary bg-primary/10 border-primary/30'
+                } px-4 py-2 rounded-full border shadow-sm shadow-primary/10`}
             >
               Nossa Equipe
             </motion.span>
@@ -376,7 +432,7 @@ export default function Sobre() {
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true }}
-              className="text-4xl font-bold mt-6 mb-4 text-white"
+                className={`text-4xl font-bold mt-6 mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}
             >
               As Pessoas por Trás da Experiência
             </motion.h2>
@@ -385,7 +441,7 @@ export default function Sobre() {
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               viewport={{ once: true }}
-              className="text-lg text-white/70 max-w-3xl mx-auto"
+                className={`text-lg max-w-3xl mx-auto ${isDark ? 'text-white/70' : 'text-gray-600'}`}
             >
               Conheça alguns membros da nossa equipe dedicada que trabalha para tornar sua estadia inesquecível.
             </motion.p>
@@ -397,7 +453,42 @@ export default function Sobre() {
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
-              className="bg-black/50 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-lg group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/50 border-white/20' 
+                    : 'bg-white/90 border-gray-200'
+                } backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group`}
+              >
+                <div className="h-64 relative overflow-hidden">
+                  <Image 
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2070" 
+                    alt="Proprietário do Hotel" 
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${
+                    isDark 
+                      ? 'from-black' 
+                      : 'from-gray-800'
+                  } via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300`}></div>
+                </div>
+                <div className="p-6">
+                  <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Delmar Santos</h3>
+                  <p className="text-primary/80 text-sm mb-3">Proprietário</p>
+                  <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-600'}`}>Assumiu o Aqua Vista em 2024 com a visão de preservar seu charme rústico enquanto introduz renovações cuidadosas para melhorar a experiência dos hóspedes.</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                viewport={{ once: true }}
+                className={`${
+                  isDark 
+                    ? 'bg-black/50 border-white/20' 
+                    : 'bg-white/90 border-gray-200'
+                } backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group`}
             >
               <div className="h-64 relative overflow-hidden">
                 <Image 
@@ -406,21 +497,29 @@ export default function Sobre() {
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300"></div>
+                  <div className={`absolute inset-0 bg-gradient-to-t ${
+                    isDark 
+                      ? 'from-black' 
+                      : 'from-gray-800'
+                  } via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300`}></div>
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-white">Ricardo Almeida</h3>
+                  <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Ricardo Almeida</h3>
                 <p className="text-primary/80 text-sm mb-3">Diretor Geral</p>
-                <p className="text-white/60 text-sm">Com mais de 20 anos de experiência em hotelaria de luxo, Ricardo lidera nossa equipe com paixão e dedicação.</p>
+                  <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-600'}`}>Com mais de 20 anos de experiência em hotelaria, Ricardo lidera nossa equipe com paixão pela hospitalidade autêntica e atenção aos detalhes.</p>
               </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               viewport={{ once: true }}
-              className="bg-black/50 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-lg group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/50 border-white/20' 
+                    : 'bg-white/90 border-gray-200'
+                } backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group`}
             >
               <div className="h-64 relative overflow-hidden">
                 <Image 
@@ -429,21 +528,29 @@ export default function Sobre() {
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300"></div>
+                  <div className={`absolute inset-0 bg-gradient-to-t ${
+                    isDark 
+                      ? 'from-black' 
+                      : 'from-gray-800'
+                  } via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300`}></div>
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-white">Maria Santos</h3>
+                  <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Maria Santos</h3>
                 <p className="text-primary/80 text-sm mb-3">Gerente de Hospitalidade</p>
-                <p className="text-white/60 text-sm">Maria é responsável por garantir que cada hóspede receba um atendimento excepcional e personalizado.</p>
+                  <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-600'}`}>Maria é responsável por garantir que cada hóspede receba um atendimento excepcional e personalizado.</p>
               </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
               viewport={{ once: true }}
-              className="bg-black/50 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-lg group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/50 border-white/20' 
+                    : 'bg-white/90 border-gray-200'
+                } backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group`}
             >
               <div className="h-64 relative overflow-hidden">
                 <Image 
@@ -452,21 +559,29 @@ export default function Sobre() {
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300"></div>
+                  <div className={`absolute inset-0 bg-gradient-to-t ${
+                    isDark 
+                      ? 'from-black' 
+                      : 'from-gray-800'
+                  } via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300`}></div>
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-white">António Ferreira</h3>
+                  <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>António Ferreira</h3>
                 <p className="text-primary/80 text-sm mb-3">Chef Executivo</p>
-                <p className="text-white/60 text-sm">Com formação internacional, António cria experiências gastronômicas únicas inspiradas nos sabores locais.</p>
+                  <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-600'}`}>Com formação internacional, António cria experiências gastronômicas únicas inspiradas nos sabores locais.</p>
               </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
               viewport={{ once: true }}
-              className="bg-black/50 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-lg group"
+                className={`${
+                  isDark 
+                    ? 'bg-black/50 border-white/20' 
+                    : 'bg-white/90 border-gray-200'
+                } backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group`}
             >
               <div className="h-64 relative overflow-hidden">
                 <Image 
@@ -475,78 +590,56 @@ export default function Sobre() {
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300"></div>
+                  <div className={`absolute inset-0 bg-gradient-to-t ${
+                    isDark 
+                      ? 'from-black' 
+                      : 'from-gray-800'
+                  } via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300`}></div>
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-white">Carla Oliveira</h3>
+                  <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Carla Oliveira</h3>
                 <p className="text-primary/80 text-sm mb-3">Gerente de Sustentabilidade</p>
-                <p className="text-white/60 text-sm">Carla lidera nossas iniciativas ambientais, garantindo práticas sustentáveis em todo o hotel.</p>
+                  <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-600'}`}>Carla lidera nossas iniciativas ambientais, garantindo práticas sustentáveis em todo o hotel.</p>
               </div>
             </motion.div>
-          </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-t from-black to-black/95 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        
-        <div className="max-w-5xl mx-auto px-4 text-center relative">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-white/20 to-primary/20 rounded-[2rem] blur-xl opacity-70"></div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-            className="bg-black/50 backdrop-blur-md rounded-3xl p-10 md:p-16 border border-white/20 shadow-2xl relative z-10"
-          >
-            <motion.h2 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-5xl font-bold mb-6 text-white"
-            >
-              Venha Conhecer o Aqua Vista
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               viewport={{ once: true }}
-              className="text-xl text-white/80 mb-10 max-w-2xl mx-auto"
-            >
-              Estamos ansiosos para recebê-lo em nosso refúgio nas montanhas e proporcionar momentos inesquecíveis.
-            </motion.p>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-            >
-              <Button 
-                size="lg" 
-                onClick={() => router.push('/booking')}
-                className="rounded-full bg-white hover:bg-white/90 text-black px-8 py-6 h-auto transition-all duration-300 hover:shadow-lg shadow-white/10 hover:shadow-white/30 hover:scale-105 font-medium"
+                className={`${
+                  isDark 
+                    ? 'bg-black/70 border-white/10' 
+                    : 'bg-white/70 border-gray-200'
+                } backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group`}
               >
-                Reservar Agora
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                onClick={() => router.push('/contato')}
-                className="rounded-full border-white/30 text-white hover:bg-white/10 transition-all duration-300 px-8 py-6 h-auto backdrop-blur-sm hover:border-white/60 hover:scale-105"
-              >
-                Entre em Contato
-              </Button>
-            </motion.div>
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
+                  <Award className="w-6 h-6" />
+                </div>
+                <h3 className={`text-xl font-semibold mb-3 ${
+                  isDark 
+                    ? 'text-white group-hover:text-primary' 
+                    : 'text-gray-900 group-hover:text-primary'
+                } transition-colors duration-300`}>Autenticidade</h3>
+                <p className={`${
+                  isDark 
+                    ? 'text-white/70 group-hover:text-white/90' 
+                    : 'text-gray-600 group-hover:text-gray-900'
+                } transition-colors duration-300`}>
+                  Valorizamos a simplicidade e o charme rústico, oferecendo uma experiência genuína que celebra as tradições locais e a beleza natural da região.
+                </p>
           </motion.div>
+            </div>
         </div>
       </section>
     </main>
+      
+      {/* CTA Section */}
+      <CTASection />
+
+      {/* Footer */}
+      <Footer />
+    </>
   )
 } 

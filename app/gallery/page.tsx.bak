@@ -1,0 +1,493 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { ArrowRight, ArrowUpRight, ChevronDown } from 'lucide-react'
+import { Navbar } from '@/components/navbar'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { useTheme } from 'next-themes'
+
+// Categorias de fotos
+const categories = [
+  { id: 'todas', label: 'Todas' },
+  { id: 'quartos', label: 'Quartos' },
+  { id: 'restaurante', label: 'Restaurante' },
+  { id: 'piscina', label: 'Piscina' },
+  { id: 'spa', label: 'Spa & Bem-estar' },
+  { id: 'eventos', label: 'Eventos' },
+  { id: 'vistas', label: 'Vistas' },
+  { id: 'experiencias', label: 'Experiências' }
+]
+
+// Galeria de fotos
+const galleryItems = [
+  {
+    id: 1,
+    title: 'Vista Panorâmica da Serra',
+    description: 'Desfrute de vistas deslumbrantes da Serra de Monchique diretamente do nosso hotel.',
+    image: 'https://images.unsplash.com/photo-1605537964076-3cb0ea2ff329?q=80&w=2070',
+    category: 'vistas',
+    featured: true
+  },
+  {
+    id: 2,
+    title: 'Suite Premium',
+    description: 'Conforto e elegância em cada detalhe de nossas suítes exclusivas.',
+    image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=2070',
+    category: 'quartos',
+    featured: false
+  },
+  {
+    id: 3,
+    title: 'Gastronomia Local',
+    description: 'Sabores autênticos da região preparados pelos melhores chefs.',
+    image: 'https://images.unsplash.com/photo-1592229505726-ca121723b8ef?q=80&w=1974',
+    category: 'restaurante',
+    featured: false
+  },
+  {
+    id: 4,
+    title: 'Spa & Bem-estar',
+    description: 'Relaxe e renove suas energias com nossos tratamentos exclusivos.',
+    image: 'https://images.unsplash.com/photo-1590856029826-c7a73142bbf1?q=80&w=2073',
+    category: 'spa',
+    featured: false
+  },
+  {
+    id: 5,
+    title: 'Piscina ao Pôr do Sol',
+    description: 'Momentos inesquecíveis na nossa piscina infinita com vista para o horizonte.',
+    image: 'https://images.unsplash.com/photo-1596436889106-be35e843f974?q=80&w=2070',
+    category: 'piscina',
+    featured: true
+  },
+  {
+    id: 6,
+    title: 'Quarto Deluxe',
+    description: 'Espaço amplo e decoração sofisticada para uma estadia perfeita.',
+    image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=2070',
+    category: 'quartos',
+    featured: false
+  },
+  {
+    id: 7,
+    title: 'Salão de Eventos',
+    description: 'Espaço versátil para eventos corporativos e celebrações especiais.',
+    image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=2070',
+    category: 'eventos',
+    featured: false
+  },
+  {
+    id: 8,
+    title: 'Café da Manhã Regional',
+    description: 'Comece o dia com um delicioso café da manhã com produtos locais.',
+    image: 'https://images.unsplash.com/photo-1516016096186-2fb1a8654d4c?q=80&w=2789',
+    category: 'restaurante',
+    featured: false
+  },
+  {
+    id: 9,
+    title: 'Trilha na Serra',
+    description: 'Explore a beleza natural de Monchique com nossas trilhas guiadas.',
+    image: 'https://images.unsplash.com/photo-1465311354905-789ff5f7a457?q=80&w=2942',
+    category: 'experiencias',
+    featured: false
+  },
+  {
+    id: 10,
+    title: 'Bar & Lounge',
+    description: 'Desfrute de coquetéis exclusivos com vista para as montanhas.',
+    image: 'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?q=80&w=2874',
+    category: 'restaurante',
+    featured: false
+  },
+  {
+    id: 11,
+    title: 'Fachada do Hotel',
+    description: 'A arquitetura elegante e moderna do Aqua Vista Monchique.',
+    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070',
+    category: 'vistas',
+    featured: false
+  },
+  {
+    id: 12,
+    title: 'Massagem Terapêutica',
+    description: 'Tratamentos personalizados para revigorar corpo e mente.',
+    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=2940',
+    category: 'spa',
+    featured: false
+  },
+  {
+    id: 13,
+    title: 'Workshop de Culinária',
+    description: 'Aprenda a preparar pratos típicos com nosso chef.',
+    image: 'https://images.unsplash.com/photo-1507048331197-7d4ac70811cf?q=80&w=2874',
+    category: 'experiencias',
+    featured: false
+  },
+  {
+    id: 14,
+    title: 'Casamento ao Ar Livre',
+    description: 'Celebre momentos especiais em nossa área panorâmica.',
+    image: 'https://images.unsplash.com/photo-1519741347686-c1e0aadf4611?q=80&w=2946',
+    category: 'eventos',
+    featured: true
+  },
+  {
+    id: 15,
+    title: 'Hidromassagem',
+    description: 'Relaxe nas nossas banheiras de hidromassagem com vista panorâmica.',
+    image: 'https://images.unsplash.com/photo-1603785608232-49e2a5c54f5d?q=80&w=2872',
+    category: 'spa',
+    featured: false
+  },
+  {
+    id: 16,
+    title: 'Piscina Interior',
+    description: 'Relaxe na nossa piscina aquecida independente do clima.',
+    image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=2070',
+    category: 'piscina',
+    featured: false
+  }
+]
+
+export default function Gallery() {
+  const [mounted, setMounted] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('todas')
+  const [filteredItems, setFilteredItems] = useState(galleryItems)
+  const { theme } = useTheme()
+  
+  // Variáveis para animações de scroll
+  const { scrollY } = useScroll()
+  const headerOpacity = useTransform(scrollY, [0, 200], [1, 0])  // Fade out do cabeçalho
+  const headerY = useTransform(scrollY, [0, 200], [0, -50])      // Movimento para cima do cabeçalho
+  const imageY = useTransform(scrollY, [0, 500], [0, 150])       // Efeito parallax na imagem de fundo
+  const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0]) // Controle de opacidade com base no scroll
+  
+  // After mounting, we can safely show the UI that depends on the theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Filter gallery items when category changes
+  useEffect(() => {
+    if (selectedCategory === 'todas') {
+      setFilteredItems(galleryItems)
+    } else {
+      setFilteredItems(galleryItems.filter(item => item.category === selectedCategory))
+    }
+  }, [selectedCategory])
+
+  // Avoid hydration mismatch
+  if (!mounted) {
+    return null
+  }
+
+  const isDark = theme === 'dark'
+
+  return (
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+      <Navbar />
+      
+      {/* Hero Section */}
+      <section className="relative min-h-[100svh] pb-20 md:pb-0">
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            style={{ 
+              y: imageY,
+              scale: 1.1
+            }}
+            className="w-full h-[120%] -mt-10"
+          >
+            <div className="w-full h-full relative">
+              <Image
+                src="https://images.unsplash.com/photo-1519741347686-c1e0aadf4611?q=80&w=2946"
+                alt="Galeria Aqua Vista Monchique"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          </motion.div>
+          <motion.div 
+            style={{ opacity }}
+            className={`absolute inset-0 backdrop-blur-[2px] ${
+              isDark 
+                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
+                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+            }`} 
+          />
+          
+          {/* Elementos Decorativos */}
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
+          <div className={`absolute inset-x-0 top-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-b from-black/60 to-transparent' 
+              : 'bg-gradient-to-b from-white/60 to-transparent'
+          }`} />
+          <div className={`absolute inset-x-0 bottom-0 h-32 ${
+            isDark 
+              ? 'bg-gradient-to-t from-black/60 to-transparent' 
+              : 'bg-gradient-to-t from-white/60 to-transparent'
+          }`} />
+        </div>
+        
+        <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
+          <motion.div 
+            style={{ opacity }}
+            className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-6 md:space-y-8"
+            >
+              <div className="inline-block">
+                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
+                  isDark 
+                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
+                  Nossa Galeria
+                </span>
+              </div>
+              
+              <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
+                Momentos Inesquecíveis
+                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
+                  isDark ? 'text-white/80' : 'text-gray-700'
+                }`}>Aqua Vista Monchique</span>
+              </h1>
+              
+              <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
+                isDark ? 'text-white/90' : 'text-gray-800'
+              }`}>
+                Conheça um pouco mais do Aqua Vista Monchique através das nossas imagens
+              </p>
+            </motion.div>
+          </motion.div>
+
+          {/* Scroll Indicator Moderno */}
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="mt-12 md:mt-16 flex flex-col items-center"
+            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
+              isDark 
+                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
+                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+            }`}>
+              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
+                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+              }`} />
+            </div>
+            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
+              isDark ? 'text-white/80' : 'text-gray-700'
+            }`}>Explorar</span>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Category Filter */}
+      <section className="py-8 md:py-12 sticky top-0 z-30 backdrop-blur-lg border-b transition-all duration-300 shadow-sm">
+        <div className={`${
+          isDark 
+            ? 'bg-black border-white/10' 
+            : 'bg-white/90 border-gray-200'
+        }`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm md:text-base transition-all duration-300 ${
+                    selectedCategory === category.id
+                      ? isDark
+                        ? 'bg-white text-black font-medium shadow-md'
+                        : 'bg-gray-900 text-white font-medium shadow-lg shadow-gray-900/20'
+                      : isDark
+                        ? 'bg-black text-white/80 hover:bg-white/10 hover:text-white border border-white/10'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Grid */}
+      <section className="py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {filteredItems.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className={`relative group overflow-hidden rounded-3xl ${
+                  item.featured ? 'md:col-span-2 md:row-span-2' : ''
+                } shadow-xl shadow-black/10`}
+              >
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500 z-10"></div>
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover aspect-[4/3] group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-6 z-20">
+                  <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                    <p className="text-white font-medium text-xl">{item.title}</p>
+                    <p className="text-white text-sm mt-2 max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-500">{item.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-24 bg-black relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="backdrop-blur-sm rounded-3xl p-10 md:p-16 border border-white/10 bg-gradient-to-br from-black/80 to-black/60 shadow-2xl overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 rounded-full blur-3xl opacity-70 bg-primary/10" />
+            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 rounded-full blur-3xl opacity-70 bg-primary/10" />
+            
+            <div className="relative z-10 text-center md:text-left md:flex items-center justify-between">
+              <div className="md:max-w-xl mb-8 md:mb-0">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                  Quer viver essa experiência?
+                </h2>
+                <p className="text-lg mb-6 text-white/70">
+                  Reserve sua estadia no Aqua Vista Monchique e transforme suas fotos em lembranças inesquecíveis.
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row md:flex-col gap-4">
+                <Button 
+                  size="lg" 
+                  onClick={() => {}}
+                  className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 h-14 min-w-[200px] shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105"
+                >
+                  Reservar Agora
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => {}}
+                  className="rounded-full transition-all duration-300 h-14 min-w-[200px] hover:scale-105 border-white/20 text-white hover:bg-white/10 hover:border-white/40"
+                >
+                  Ver Disponibilidade
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Instagram Feed */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className={`text-sm font-medium tracking-wider uppercase ${
+              isDark 
+                ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                : 'text-gray-900 bg-gray-200/80 border-gray-300'
+            } px-4 py-2 rounded-full backdrop-blur-sm border inline-block mb-4`}>
+              #AquaVistaMonchique
+            </span>
+            
+            <h2 className={`text-3xl sm:text-4xl font-bold mb-4 ${
+              isDark ? 'text-white' : 'text-gray-900'
+            }`}>
+              Siga-nos no Instagram
+            </h2>
+            
+            <p className={`text-lg max-w-2xl mx-auto ${
+              isDark ? 'text-white/70' : 'text-gray-600'
+            }`}>
+              Compartilhe suas experiências usando nossa hashtag e acompanhe nossos momentos especiais
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((index) => (
+              <a 
+                key={index}
+                href="#"
+                className="relative overflow-hidden rounded-xl group aspect-square"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500 z-10"></div>
+                <img 
+                  src={`https://source.unsplash.com/random/600x600?hotel,luxury&sig=${index}`}
+                  alt={`Instagram post ${index}`}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-center justify-center z-20">
+                  <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 text-center">
+                    <Button className="rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30">
+                      Ver no Instagram
+                      <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
+                    </Button>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+          
+          <div className="flex justify-center mt-10">
+            <Button className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20">
+              Ver mais no Instagram
+              <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
+            </Button>
+          </div>
+        </div>
+      </section>
+      
+      {/* Footer */}
+      <footer className="bg-muted/80 pt-24 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold tracking-tight mb-2">Aqua Vista</h3>
+            <span className="text-sm text-muted-foreground">Monchique</span>
+            <p className="text-muted-foreground text-sm mt-4 max-w-xl mx-auto">
+              Seu refúgio exclusivo na Serra de Monchique, onde o luxo encontra a natureza para proporcionar experiências inesquecíveis.
+            </p>
+          </div>
+          
+          <div className="pt-8 border-t border-border mt-12 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Aqua Vista Monchique. Todos os direitos reservados.
+            </p>
+            <div className="flex gap-6 text-sm">
+              <a href="/privacy" className="text-muted-foreground hover:text-primary transition-colors duration-300">Política de Privacidade</a>
+              <a href="/terms" className="text-muted-foreground hover:text-primary transition-colors duration-300">Termos de Uso</a>
+              <a href="/cookies" className="text-muted-foreground hover:text-primary transition-colors duration-300">Cookies</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+  )
+} 

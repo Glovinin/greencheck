@@ -1,0 +1,2257 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Loader2, Upload, X, Plus, Image as ImageIcon, Edit, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { Card, CardContent } from "@/components/ui/card"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import { Checkbox } from "@/components/ui/checkbox"
+import { uploadMultipleImagesWithProgress, deleteImage } from "@/lib/firebase/storage"
+import { createDocument, updateDocument, getDocuments, deleteDocument } from "@/lib/firebase/firestore"
+import { useTheme } from "next-themes"
+
+// Categorias de imagens de galeria
+const galleryCategories = [
+  { id: 'todas', label: 'Todas' },
+  { id: 'sobre_nos', label: 'Sobre Nós (Home)' },
+  { id: 'quartos', label: 'Quartos' },
+  { id: 'restaurante', label: 'Restaurante' },
+  { id: 'piscina', label: 'Piscina' },
+  { id: 'spa', label: 'Spa & Bem-estar' },
+  { id: 'eventos', label: 'Eventos' },
+  { id: 'vistas', label: 'Vistas' },
+  { id: 'experiencias', label: 'Experiências' }
+]
+
+// Posições das imagens na seção Sobre Nós da home
+const aboutUsPositions = [
+  { id: 1, label: 'Fachada do Hotel (Superior Esquerda)' },
+  { id: 2, label: 'Quarto Luxuoso (Inferior Esquerda)' },
+  { id: 3, label: 'Área de Eventos (Superior Direita)' },
+  { id: 4, label: 'Piscina (Inferior Direita)' }
+]
+
+// Interface para o item de galeria
+interface GalleryItem {
+  id: string
+  title?: string | null
+  description?: string | null
+  image: string
+  category?: string | null
+  featured: boolean
+  displayOrder?: number
+  createdAt: number
+  isHomeAboutImage?: boolean
+  homePosition?: number | null
+}
+
+// Interface para estatísticas de otimização
+interface OptimizationStats {
+  originalSize: number;
+  optimizedSize: number;
+  compressionRatio: number;
+}
+
+// Função para otimizar imagens
+const optimizeImage = async (file: File, maxWidth = 1920, quality = 0.8): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    // Verificar o tamanho do arquivo (se for menor que 200KB, não precisa otimizar)
+    if (file.size < 200 * 1024) {
+      console.log('Imagem já é pequena o suficiente, pulando otimização')
+      return resolve(file)
+    }
+    
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target?.result as string
+      
+      img.onload = () => {
+        // Definir dimensões mantendo a proporção
+        let width = img.width
+        let height = img.height
+        
+        if (width > maxWidth) {
+          const ratio = maxWidth / width
+          width = maxWidth
+          height = height * ratio
+        }
+        
+        // Criar canvas para redimensionamento
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        canvas.width = width
+        canvas.height = height
+        
+        if (!ctx) {
+          return reject(new Error('Não foi possível criar contexto de canvas'))
+        }
+        
+        // Desenhar imagem redimensionada
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Converter para blob
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              return reject(new Error('Falha ao gerar blob'))
+            }
+            
+            // Criar arquivo a partir do blob
+            const optimizedFile = new File(
+              [blob], 
+              file.name, 
+              { 
+                type: 'image/jpeg', 
+                lastModified: Date.now() 
+              }
+            )
+            
+            console.log(`Imagem otimizada: ${(file.size / 1024).toFixed(2)}KB → ${(optimizedFile.size / 1024).toFixed(2)}KB`)
+            resolve(optimizedFile)
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      
+      img.onerror = () => {
+        reject(new Error('Erro ao carregar imagem para otimização'))
+      }
+    }
+    
+    reader.onerror = () => {
+      reject(new Error('Erro ao ler arquivo para otimização'))
+    }
+  })
+}
+
+export default function GalleryManagement() {
+  const router = useRouter()
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+  
+  // Estados para gerenciamento de imagens
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([])
+  const [selectedCategory, setSelectedCategory] = useState('todas')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [activeTab, setActiveTab] = useState("gallery")
+  const [aboutUsImages, setAboutUsImages] = useState<GalleryItem[]>([])
+  
+  // Estados para o formulário de adição/edição
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [currentItem, setCurrentItem] = useState<GalleryItem | null>(null)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("")
+  const [featured, setFeatured] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isHomeAboutImage, setIsHomeAboutImage] = useState(false)
+  const [homePosition, setHomePosition] = useState<number | null>(null)
+  const [simplifiedUpload, setSimplifiedUpload] = useState(false)
+  
+  // Estados para otimização de imagem
+  const [imageQuality, setImageQuality] = useState(0.8)
+  const [maxWidth, setMaxWidth] = useState(1920)
+  const [optimizationStats, setOptimizationStats] = useState<OptimizationStats | null>(null)
+  
+  // Carregar dados da galeria do Firebase
+  useEffect(() => {
+    const fetchGalleryItems = async () => {
+      setIsLoading(true)
+      try {
+        const items = await getDocuments<GalleryItem>('gallery')
+        // Ordenar por destaque e depois por ordem de criação (mais recente primeiro)
+        const sortedItems = items.sort((a: GalleryItem, b: GalleryItem) => {
+          // Primeiro por destaque
+          if (a.featured && !b.featured) return -1
+          if (!a.featured && b.featured) return 1
+          
+          // Depois por ordem personalizada (se existir)
+          if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
+            return a.displayOrder - b.displayOrder
+          }
+          
+          // Por fim, por data de criação (mais recente primeiro)
+          return b.createdAt - a.createdAt
+        })
+        
+        setGalleryItems(sortedItems)
+        
+        // Identificar imagens da seção "Sobre Nós"
+        const aboutImages = sortedItems.filter(item => item.isHomeAboutImage)
+        setAboutUsImages(aboutImages)
+      } catch (error) {
+        console.error('Erro ao carregar itens da galeria:', error)
+        toast.error('Erro ao carregar a galeria')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchGalleryItems()
+  }, [])
+  
+  // Filtrar itens quando a categoria selecionada mudar
+  useEffect(() => {
+    if (selectedCategory === 'todas') {
+      setFilteredItems(galleryItems)
+    } else if (selectedCategory === 'sobre_nos') {
+      setFilteredItems(galleryItems.filter(item => item.isHomeAboutImage))
+    } else {
+      setFilteredItems(galleryItems.filter(item => item.category === selectedCategory))
+    }
+  }, [selectedCategory, galleryItems])
+  
+  // Gerar preview da imagem selecionada
+  useEffect(() => {
+    if (selectedFiles && selectedFiles.length > 0) {
+      const file = selectedFiles[0]
+      const reader = new FileReader()
+      
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string)
+      }
+      
+      reader.readAsDataURL(file)
+    } else if (!isEditMode) {
+      setPreviewUrl(null)
+    }
+  }, [selectedFiles, isEditMode])
+  
+  // Otimizar imagem quando selecionada
+  useEffect(() => {
+    const optimizeSelectedImage = async () => {
+      if (selectedFiles && selectedFiles.length > 0) {
+        const file = selectedFiles[0]
+        
+        // Se a imagem for muito grande, mostrar toast informando que será otimizada
+        if (file.size > 1024 * 1024) { // Maior que 1MB
+          toast.info(`Imagem grande detectada (${(file.size / (1024 * 1024)).toFixed(2)}MB). Será otimizada automaticamente.`)
+        }
+        
+        // Exibir preview normal, mas preparar estatísticas de otimização
+        try {
+          const optimizedFile = await optimizeImage(file, maxWidth, imageQuality)
+          
+          // Calcular estatísticas
+          const originalSizeKB = file.size / 1024
+          const optimizedSizeKB = optimizedFile.size / 1024
+          const compressionRatio = (1 - (optimizedFile.size / file.size)) * 100
+          
+          setOptimizationStats({
+            originalSize: originalSizeKB,
+            optimizedSize: optimizedSizeKB,
+            compressionRatio
+          })
+        } catch (error) {
+          console.error('Erro ao calcular estatísticas de otimização:', error)
+          setOptimizationStats(null)
+        }
+      } else {
+        setOptimizationStats(null)
+      }
+    }
+    
+    optimizeSelectedImage()
+  }, [selectedFiles, maxWidth, imageQuality])
+  
+  // Resetar o formulário
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setCategory("")
+    setFeatured(false)
+    setSelectedFiles(null)
+    setPreviewUrl(null)
+    setCurrentItem(null)
+    setIsEditMode(false)
+    setIsPanelOpen(false)
+    setIsHomeAboutImage(false)
+    setHomePosition(null)
+    setSimplifiedUpload(false)
+  }
+  
+  // Abrir o painel para adicionar novo item
+  const openAddPanel = () => {
+    resetForm()
+    setIsPanelOpen(true)
+  }
+  
+  // Abrir o painel para upload rápido
+  const openQuickUploadPanel = () => {
+    resetForm()
+    setSimplifiedUpload(true)
+    setIsPanelOpen(true)
+  }
+  
+  // Abrir o painel para adicionar imagem para a seção Sobre Nós
+  const openAddAboutUsPanel = (position?: number) => {
+    resetForm()
+    setIsHomeAboutImage(true)
+    if (position) {
+      setHomePosition(position)
+    }
+    setIsPanelOpen(true)
+  }
+  
+  // Abrir o painel para editar um item existente
+  const openEditPanel = (item: GalleryItem) => {
+    setCurrentItem(item)
+    setIsEditMode(true)
+    setTitle(item.title || "")
+    setDescription(item.description || "")
+    setCategory(item.category || "")
+    setFeatured(item.featured)
+    setPreviewUrl(item.image)
+    setIsHomeAboutImage(!!item.isHomeAboutImage)
+    setHomePosition(item.homePosition)
+    setIsPanelOpen(true)
+  }
+  
+  // Lidar com o envio do formulário
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!simplifiedUpload && !title.trim()) {
+      toast.error('O título é obrigatório')
+      return
+    }
+    
+    if (!simplifiedUpload && !category && !isHomeAboutImage) {
+      toast.error('Selecione uma categoria')
+      return
+    }
+    
+    if (isHomeAboutImage && !homePosition) {
+      toast.error('Selecione a posição da imagem na seção Sobre Nós')
+      return
+    }
+    
+    if (!isEditMode && (!selectedFiles || selectedFiles.length === 0)) {
+      toast.error('Selecione uma imagem')
+      return
+    }
+    
+    setIsUploading(true)
+    setUploadProgress(0)
+    
+    try {
+      // Se estiver em modo de edição e não houver nova imagem, apenas atualize os metadados
+      if (isEditMode && (!selectedFiles || selectedFiles.length === 0)) {
+        if (currentItem) {
+          await updateDocument('gallery', currentItem.id, {
+            title: simplifiedUpload ? null : title,
+            description: simplifiedUpload ? null : description,
+            category: isHomeAboutImage ? 'sobre_nos' : category,
+            featured,
+            isHomeAboutImage,
+            homePosition: isHomeAboutImage ? homePosition : null,
+            updatedAt: Date.now()
+          })
+          
+          // Atualizar a lista localmente
+          setGalleryItems(prev => prev.map(item => 
+            item.id === currentItem.id 
+              ? {
+                  ...item,
+                  title: simplifiedUpload ? undefined : title,
+                  description: simplifiedUpload ? undefined : description,
+                  category: isHomeAboutImage ? 'sobre_nos' : category,
+                  featured,
+                  isHomeAboutImage,
+                  homePosition: isHomeAboutImage ? homePosition : null,
+                  updatedAt: Date.now()
+                }
+              : item
+          ))
+          
+          toast.success('Item atualizado com sucesso')
+        }
+      } else {
+        // Caso contrário, faça upload da imagem
+        if (!selectedFiles || selectedFiles.length === 0) return
+        
+        // Converter FileList para Array
+        const filesArray = Array.from(selectedFiles)
+        
+        // Otimizar as imagens antes do upload
+        toast.info('Otimizando imagens...')
+        
+        // Mostrar progresso de otimização 
+        let currentFileIndex = 0
+        const totalFiles = filesArray.length
+        
+        const optimizedFiles = await Promise.all(
+          filesArray.map(async (file) => {
+            try {
+              currentFileIndex++
+              setUploadProgress((currentFileIndex / totalFiles) * 50) // Primeira metade do progresso é para otimização
+              
+              return await optimizeImage(file, maxWidth, imageQuality)
+            } catch (error) {
+              console.error('Erro ao otimizar imagem, usando original:', error)
+              return file
+            }
+          })
+        )
+        
+        // Toast com informações sobre a otimização
+        const originalSize = filesArray.reduce((acc, file) => acc + file.size, 0) / 1024
+        const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0) / 1024
+        const reduction = Math.round((1 - (optimizedSize / originalSize)) * 100)
+        
+        if (reduction > 0) {
+          toast.success(`Imagens otimizadas: ${originalSize.toFixed(0)}KB → ${optimizedSize.toFixed(0)}KB (${reduction}% menor)`)
+        }
+        
+        // Upload da imagem com monitoramento de progresso
+        const imageUrls = await uploadMultipleImagesWithProgress(
+          optimizedFiles,
+          'gallery',
+          (progress) => {
+            // Segunda metade do progresso é para upload
+            setUploadProgress(50 + (progress / 2))
+          }
+        )
+        
+        // Se estiver editando, exclua a imagem antiga primeiro
+        if (isEditMode && currentItem) {
+          try {
+            // Extrair o caminho da URL para excluir
+            const imageUrlPath = new URL(currentItem.image).pathname
+            const imagePath = decodeURIComponent(imageUrlPath.split('/o/')[1].split('?')[0])
+            await deleteImage(imagePath)
+          } catch (error) {
+            console.error('Erro ao excluir imagem antiga:', error)
+          }
+          
+          // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
+          if (isHomeAboutImage && homePosition) {
+            const existingItemInSamePosition = galleryItems.find(
+              item => item.isHomeAboutImage && item.homePosition === homePosition && item.id !== currentItem.id
+            )
+            
+            if (existingItemInSamePosition) {
+              await updateDocument('gallery', existingItemInSamePosition.id, {
+                isHomeAboutImage: false,
+                homePosition: null
+              })
+              
+              // Atualizar a lista localmente
+              setGalleryItems(prev => prev.map(item => 
+                item.id === existingItemInSamePosition.id 
+                  ? {
+                      ...item,
+                      isHomeAboutImage: false,
+                      homePosition: null
+                    }
+                  : item
+              ))
+              
+              toast.info(`A imagem "${existingItemInSamePosition.title || 'Sem título'}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+            }
+          }
+          
+          // Atualizar o documento
+          await updateDocument('gallery', currentItem.id, {
+            title: simplifiedUpload ? null : title,
+            description: simplifiedUpload ? null : description,
+            image: imageUrls[0],
+            category: isHomeAboutImage ? 'sobre_nos' : category,
+            featured,
+            isHomeAboutImage,
+            homePosition: isHomeAboutImage ? homePosition : null,
+            updatedAt: Date.now()
+          })
+          
+          // Atualizar a lista localmente
+          setGalleryItems(prev => prev.map(item => 
+            item.id === currentItem.id 
+              ? {
+                  ...item,
+                  title: simplifiedUpload ? undefined : title,
+                  description: simplifiedUpload ? undefined : description,
+                  image: imageUrls[0],
+                  category: isHomeAboutImage ? 'sobre_nos' : category,
+                  featured,
+                  isHomeAboutImage,
+                  homePosition: isHomeAboutImage ? homePosition : null,
+                  updatedAt: Date.now()
+                }
+              : item
+          ))
+          
+          toast.success('Item atualizado com sucesso')
+        } else {
+          // Adicionar novo documento
+          
+          // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
+          if (isHomeAboutImage && homePosition) {
+            const existingItemInSamePosition = galleryItems.find(
+              item => item.isHomeAboutImage && item.homePosition === homePosition
+            )
+            
+            if (existingItemInSamePosition) {
+              await updateDocument('gallery', existingItemInSamePosition.id, {
+                isHomeAboutImage: false,
+                homePosition: null
+              })
+              
+              // Atualizar a lista localmente
+              setGalleryItems(prev => prev.map(item => 
+                item.id === existingItemInSamePosition.id 
+                  ? {
+                      ...item,
+                      isHomeAboutImage: false,
+                      homePosition: null
+                    }
+                  : item
+              ))
+              
+              toast.info(`A imagem "${existingItemInSamePosition.title || 'Sem título'}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+            }
+          }
+          
+          const newItem: Omit<GalleryItem, 'id'> = {
+            title: simplifiedUpload ? null : title,
+            description: simplifiedUpload ? null : description,
+            image: imageUrls[0],
+            category: isHomeAboutImage ? 'sobre_nos' : (simplifiedUpload && !category ? null : category || ''),
+            featured,
+            isHomeAboutImage,
+            homePosition: isHomeAboutImage ? homePosition : null,
+            createdAt: Date.now(),
+            displayOrder: galleryItems.length + 1
+          }
+          
+          const docId = await createDocument('gallery', simplifiedUpload 
+            ? {
+                ...newItem,
+                title: null,
+                description: null,
+                category: category || null
+              }
+            : newItem
+          )
+          
+          // Adicionar à lista local
+          if (docId) {
+            setGalleryItems(prev => [
+              { ...newItem, id: docId, homePosition: isHomeAboutImage ? homePosition : null },
+              ...prev
+            ])
+          }
+          
+          toast.success('Item adicionado com sucesso')
+        }
+      }
+      
+      // Atualizar lista de imagens da seção "Sobre Nós"
+      if (isHomeAboutImage) {
+        setAboutUsImages(prev => {
+          const updated = [...galleryItems.filter(item => item.isHomeAboutImage)]
+          return updated
+        })
+      }
+      
+      resetForm()
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error('Ocorreu um erro ao salvar o item')
+    } finally {
+      setIsUploading(false)
+      setUploadProgress(0)
+    }
+  }
+  
+  // Excluir um item
+  const handleDeleteItem = async (item: GalleryItem) => {
+    try {
+      // Excluir do Firestore
+      await deleteDocument('gallery', item.id)
+      
+      // Excluir a imagem do Storage
+      try {
+        const imageUrlPath = new URL(item.image).pathname
+        const imagePath = decodeURIComponent(imageUrlPath.split('/o/')[1].split('?')[0])
+        await deleteImage(imagePath)
+      } catch (error) {
+        console.error('Erro ao excluir imagem:', error)
+      }
+      
+      // Atualizar a lista local
+      setGalleryItems(prev => prev.filter(i => i.id !== item.id))
+      
+      toast.success('Item excluído com sucesso')
+    } catch (error) {
+      console.error('Erro ao excluir item:', error)
+      toast.error('Erro ao excluir o item')
+    }
+  }
+  
+  return (
+    <div className="container py-6 space-y-6 max-w-[1400px]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => router.back()}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Gerenciamento da Galeria</h1>
+            <p className="text-muted-foreground">Gerencie as imagens que aparecem na seção de galeria do site</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            onClick={openAddPanel}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Imagem
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={openQuickUploadPanel}
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Rápido
+          </Button>
+        </div>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 w-[400px] mb-6">
+          <TabsTrigger value="gallery">Galeria</TabsTrigger>
+          <TabsTrigger value="about">Seção "Sobre Nós"</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="gallery">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Filtros */}
+            <div className="col-span-12 md:col-span-3 lg:col-span-2">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-900' : 'bg-gray-50'} border`}>
+                <h3 className="font-medium mb-3">Filtrar por categoria</h3>
+                <div className="space-y-2">
+                  {galleryCategories.map((category) => (
+                    <div
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`px-3 py-2 rounded-md cursor-pointer transition-colors flex items-center gap-2 ${
+                        selectedCategory === category.id
+                        ? isDark 
+                          ? 'bg-primary/20 text-primary' 
+                          : 'bg-primary/10 text-primary-foreground'
+                        : 'hover:bg-muted'
+                      }`}
+                    >
+                      {category.id === 'todas' ? (
+                        <ImageIcon className="h-4 w-4" />
+                      ) : (
+                        <div 
+                          className={`w-2 h-2 rounded-full ${
+                            selectedCategory === category.id
+                            ? 'bg-primary' 
+                            : 'bg-muted-foreground'
+                          }`} 
+                        />
+                      )}
+                      <span>{category.label}</span>
+                      {selectedCategory === category.id && (
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {selectedCategory === 'todas' 
+                            ? galleryItems.length 
+                            : galleryItems.filter(i => 
+                                selectedCategory === 'sobre_nos' 
+                                  ? i.isHomeAboutImage 
+                                  : i.category === selectedCategory
+                              ).length}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Galeria */}
+            <div className="col-span-12 md:col-span-9 lg:col-span-10 space-y-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg bg-muted/40">
+                  <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">Nenhuma imagem encontrada</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {selectedCategory === 'todas' 
+                      ? 'Você ainda não adicionou nenhuma imagem à galeria'
+                      : selectedCategory === 'sobre_nos'
+                        ? 'Não há imagens na seção "Sobre Nós"'
+                        : 'Não há imagens nesta categoria'}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={openAddPanel}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Imagem
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={openQuickUploadPanel}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Rápido
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredItems.map((item) => (
+                    <Card key={item.id} className="overflow-hidden group h-full flex flex-col">
+                      <div className="relative aspect-[4/3]">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex items-center justify-center gap-2">
+                          <Button 
+                            size="icon" 
+                            variant="secondary"
+                            onClick={() => openEditPanel(item)}
+                            className="rounded-full"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                size="icon" 
+                                variant="destructive"
+                                className="rounded-full"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir imagem</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeleteItem(item)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                        
+                        {/* Badge de destaque */}
+                        {item.featured && (
+                          <div className="absolute top-2 left-2 z-20 bg-primary text-primary-foreground text-xs py-1 px-2 rounded-full">
+                            Destaque
+                          </div>
+                        )}
+                        
+                        {/* Badge de Sobre Nós */}
+                        {item.isHomeAboutImage && (
+                          <div className="absolute top-2 right-2 z-20 bg-amber-500 text-white text-xs py-1 px-2 rounded-full">
+                            Sobre Nós #{item.homePosition}
+                          </div>
+                        )}
+                        
+                        <img 
+                          src={item.image} 
+                          alt={item.title || "Imagem da galeria"}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                      
+                      <CardContent className="p-4 flex-grow flex flex-col">
+                        {item.title ? (
+                          <h3 className="font-medium truncate">{item.title}</h3>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">Sem título</p>
+                        )}
+                        {item.description ? (
+                          <p className="text-muted-foreground text-sm line-clamp-2 flex-grow">
+                            {item.description}
+                          </p>
+                        ) : (
+                          <p className="text-muted-foreground text-sm italic flex-grow">
+                            Sem descrição
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted">
+                            {item.isHomeAboutImage 
+                              ? 'Sobre Nós' 
+                              : item.category 
+                                ? galleryCategories.find(c => c.id === item.category)?.label || item.category
+                                : 'Sem categoria'}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="about">
+          <div className="bg-muted/30 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-2">Imagens da Seção "Sobre Nós" na Página Inicial</h2>
+            <p className="text-muted-foreground mb-4">
+              Gerencie as quatro imagens que aparecem na seção "Sobre Nós" da página inicial do site.
+              Cada posição só pode conter uma imagem. Se você adicionar uma nova imagem para uma posição que já está ocupada,
+              a imagem anterior será automaticamente removida da seção.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {aboutUsPositions.map((position) => {
+              const image = aboutUsImages.find(img => img.homePosition === position.id);
+              
+              return (
+                <Card key={position.id} className="overflow-hidden">
+                  <div className="p-4 border-b bg-muted/20">
+                    <h3 className="font-medium">{position.label}</h3>
+                  </div>
+                  
+                  <div className="p-4">
+                    {image ? (
+                      <div className="relative aspect-[4/3] rounded-md overflow-hidden group">
+                        <img 
+                          src={image.image} 
+                          alt={image.title} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            className="rounded-full"
+                            onClick={() => openEditPanel(image)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="rounded-full"
+                            onClick={async () => {
+                              // Remover apenas da seção Sobre Nós, não excluir a imagem
+                              try {
+                                await updateDocument('gallery', image.id, {
+                                  isHomeAboutImage: false,
+                                  homePosition: null
+                                })
+                                
+                                // Atualizar a lista localmente
+                                setGalleryItems(prev => prev.map(item => 
+                                  item.id === image.id 
+                                    ? {
+                                        ...item,
+                                        isHomeAboutImage: false,
+                                        homePosition: null
+                                      }
+                                    : item
+                                ))
+                                
+                                // Atualizar a lista de imagens da seção "Sobre Nós"
+                                setAboutUsImages(prev => prev.filter(item => item.id !== image.id))
+                                
+                                toast.success('Imagem removida da seção "Sobre Nós"')
+                              } catch (error) {
+                                console.error('Erro ao remover imagem da seção "Sobre Nós":', error)
+                                toast.error('Erro ao remover imagem')
+                              }
+                            }}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => openAddAboutUsPanel(position.id)}
+                      >
+                        <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="text-muted-foreground text-sm font-medium">Clique para adicionar imagem</p>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-end mt-3">
+                      {!image && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => openAddAboutUsPanel(position.id)}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar Imagem
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Painel de adicionar/editar */}
+      <Dialog open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditMode 
+                ? 'Editar Imagem' 
+                : isHomeAboutImage
+                  ? 'Adicionar Imagem à Seção "Sobre Nós"'
+                  : simplifiedUpload
+                    ? 'Upload Rápido de Imagem'
+                    : 'Adicionar Nova Imagem'
+              }
+            </DialogTitle>
+            <DialogDescription>
+              {simplifiedUpload 
+                ? 'Faça o upload de imagens sem precisar adicionar título ou descrição.' 
+                : `Preencha os campos abaixo para ${isEditMode ? 'atualizar a' : 'adicionar uma nova'} imagem 
+                  ${isHomeAboutImage ? ' à seção "Sobre Nós" da página inicial.' : ' à galeria.'}`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox 
+                    id="simplified-upload"
+                    checked={simplifiedUpload}
+                    onCheckedChange={(checked) => setSimplifiedUpload(checked === true)}
+                    disabled={isHomeAboutImage}
+                  />
+                  <Label 
+                    htmlFor="simplified-upload" 
+                    className="cursor-pointer font-medium text-amber-500 dark:text-amber-400"
+                  >
+                    Upload simplificado (sem título e descrição)
+                  </Label>
+                </div>
+                
+                {simplifiedUpload && (
+                  <div className="p-3 bg-muted/40 rounded-md text-sm text-muted-foreground mb-2">
+                    <p className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      <span>Modo de upload rápido ativado.</span>
+                    </p>
+                    <p className="mt-1 pl-6">As imagens serão postadas sem título e descrição e você poderá editá-las mais tarde se necessário.</p>
+                  </div>
+                )}
+                
+                {!simplifiedUpload && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título<span className="text-destructive">*</span></Label>
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Loader2, Upload, X, Plus, Image as ImageIcon, Edit, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { Card, CardContent } from "@/components/ui/card"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import { Checkbox } from "@/components/ui/checkbox"
+import { uploadMultipleImagesWithProgress, deleteImage } from "@/lib/firebase/storage"
+import { createDocument, updateDocument, getDocuments, deleteDocument } from "@/lib/firebase/firestore"
+import { useTheme } from "next-themes"
+
+// Categorias de imagens de galeria
+const galleryCategories = [
+  { id: 'todas', label: 'Todas' },
+  { id: 'sobre_nos', label: 'Sobre Nós (Home)' },
+  { id: 'quartos', label: 'Quartos' },
+  { id: 'restaurante', label: 'Restaurante' },
+  { id: 'piscina', label: 'Piscina' },
+  { id: 'spa', label: 'Spa & Bem-estar' },
+  { id: 'eventos', label: 'Eventos' },
+  { id: 'vistas', label: 'Vistas' },
+  { id: 'experiencias', label: 'Experiências' }
+]
+
+// Posições das imagens na seção Sobre Nós da home
+const aboutUsPositions = [
+  { id: 1, label: 'Fachada do Hotel (Superior Esquerda)' },
+  { id: 2, label: 'Quarto Luxuoso (Inferior Esquerda)' },
+  { id: 3, label: 'Área de Eventos (Superior Direita)' },
+  { id: 4, label: 'Piscina (Inferior Direita)' }
+]
+
+// Interface para o item de galeria
+interface GalleryItem {
+  id: string
+  title?: string
+  description?: string
+  image: string
+  category?: string
+  featured: boolean
+  displayOrder?: number
+  createdAt: number
+  isHomeAboutImage?: boolean
+  homePosition?: number
+}
+
+// Interface para estatísticas de otimização
+interface OptimizationStats {
+  originalSize: number;
+  optimizedSize: number;
+  compressionRatio: number;
+}
+
+// Função para otimizar imagens
+const optimizeImage = async (file: File, maxWidth = 1920, quality = 0.8): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    // Verificar o tamanho do arquivo (se for menor que 200KB, não precisa otimizar)
+    if (file.size < 200 * 1024) {
+      console.log('Imagem já é pequena o suficiente, pulando otimização')
+      return resolve(file)
+    }
+    
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target?.result as string
+      
+      img.onload = () => {
+        // Definir dimensões mantendo a proporção
+        let width = img.width
+        let height = img.height
+        
+        if (width > maxWidth) {
+          const ratio = maxWidth / width
+          width = maxWidth
+          height = height * ratio
+        }
+        
+        // Criar canvas para redimensionamento
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        canvas.width = width
+        canvas.height = height
+        
+        if (!ctx) {
+          return reject(new Error('Não foi possível criar contexto de canvas'))
+        }
+        
+        // Desenhar imagem redimensionada
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Converter para blob
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              return reject(new Error('Falha ao gerar blob'))
+            }
+            
+            // Criar arquivo a partir do blob
+            const optimizedFile = new File(
+              [blob], 
+              file.name, 
+              { 
+                type: 'image/jpeg', 
+                lastModified: Date.now() 
+              }
+            )
+            
+            console.log(`Imagem otimizada: ${(file.size / 1024).toFixed(2)}KB → ${(optimizedFile.size / 1024).toFixed(2)}KB`)
+            resolve(optimizedFile)
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      
+      img.onerror = () => {
+        reject(new Error('Erro ao carregar imagem para otimização'))
+      }
+    }
+    
+    reader.onerror = () => {
+      reject(new Error('Erro ao ler arquivo para otimização'))
+    }
+  })
+}
+
+export default function GalleryManagement() {
+  const router = useRouter()
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+  
+  // Estados para gerenciamento de imagens
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([])
+  const [selectedCategory, setSelectedCategory] = useState('todas')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [activeTab, setActiveTab] = useState("gallery")
+  const [aboutUsImages, setAboutUsImages] = useState<GalleryItem[]>([])
+  
+  // Estados para o formulário de adição/edição
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [currentItem, setCurrentItem] = useState<GalleryItem | null>(null)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("")
+  const [featured, setFeatured] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isHomeAboutImage, setIsHomeAboutImage] = useState(false)
+  const [homePosition, setHomePosition] = useState<number | undefined>(undefined)
+  const [simplifiedUpload, setSimplifiedUpload] = useState(false)
+  
+  // Estados para otimização de imagem
+  const [imageQuality, setImageQuality] = useState(0.8)
+  const [maxWidth, setMaxWidth] = useState(1920)
+  const [optimizationStats, setOptimizationStats] = useState<OptimizationStats | null>(null)
+  
+  // Carregar dados da galeria do Firebase
+  useEffect(() => {
+    const fetchGalleryItems = async () => {
+      setIsLoading(true)
+      try {
+        const items = await getDocuments<GalleryItem>('gallery')
+        // Ordenar por destaque e depois por ordem de criação (mais recente primeiro)
+        const sortedItems = items.sort((a: GalleryItem, b: GalleryItem) => {
+          // Primeiro por destaque
+          if (a.featured && !b.featured) return -1
+          if (!a.featured && b.featured) return 1
+          
+          // Depois por ordem personalizada (se existir)
+          if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
+            return a.displayOrder - b.displayOrder
+          }
+          
+          // Por fim, por data de criação (mais recente primeiro)
+          return b.createdAt - a.createdAt
+        })
+        
+        setGalleryItems(sortedItems)
+        
+        // Identificar imagens da seção "Sobre Nós"
+        const aboutImages = sortedItems.filter(item => item.isHomeAboutImage)
+        setAboutUsImages(aboutImages)
+      } catch (error) {
+        console.error('Erro ao carregar itens da galeria:', error)
+        toast.error('Erro ao carregar a galeria')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchGalleryItems()
+  }, [])
+  
+  // Filtrar itens quando a categoria selecionada mudar
+  useEffect(() => {
+    if (selectedCategory === 'todas') {
+      setFilteredItems(galleryItems)
+    } else if (selectedCategory === 'sobre_nos') {
+      setFilteredItems(galleryItems.filter(item => item.isHomeAboutImage))
+    } else {
+      setFilteredItems(galleryItems.filter(item => item.category === selectedCategory))
+    }
+  }, [selectedCategory, galleryItems])
+  
+  // Gerar preview da imagem selecionada
+  useEffect(() => {
+    if (selectedFiles && selectedFiles.length > 0) {
+      const file = selectedFiles[0]
+      const reader = new FileReader()
+      
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string)
+      }
+      
+      reader.readAsDataURL(file)
+    } else if (!isEditMode) {
+      setPreviewUrl(null)
+    }
+  }, [selectedFiles, isEditMode])
+  
+  // Otimizar imagem quando selecionada
+  useEffect(() => {
+    const optimizeSelectedImage = async () => {
+      if (selectedFiles && selectedFiles.length > 0) {
+        const file = selectedFiles[0]
+        
+        // Se a imagem for muito grande, mostrar toast informando que será otimizada
+        if (file.size > 1024 * 1024) { // Maior que 1MB
+          toast.info(`Imagem grande detectada (${(file.size / (1024 * 1024)).toFixed(2)}MB). Será otimizada automaticamente.`)
+        }
+        
+        // Exibir preview normal, mas preparar estatísticas de otimização
+        try {
+          const optimizedFile = await optimizeImage(file, maxWidth, imageQuality)
+          
+          // Calcular estatísticas
+          const originalSizeKB = file.size / 1024
+          const optimizedSizeKB = optimizedFile.size / 1024
+          const compressionRatio = (1 - (optimizedFile.size / file.size)) * 100
+          
+          setOptimizationStats({
+            originalSize: originalSizeKB,
+            optimizedSize: optimizedSizeKB,
+            compressionRatio
+          })
+        } catch (error) {
+          console.error('Erro ao calcular estatísticas de otimização:', error)
+          setOptimizationStats(null)
+        }
+      } else {
+        setOptimizationStats(null)
+      }
+    }
+    
+    optimizeSelectedImage()
+  }, [selectedFiles, maxWidth, imageQuality])
+  
+  // Resetar o formulário
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setCategory("")
+    setFeatured(false)
+    setSelectedFiles(null)
+    setPreviewUrl(null)
+    setCurrentItem(null)
+    setIsEditMode(false)
+    setIsPanelOpen(false)
+    setIsHomeAboutImage(false)
+    setHomePosition(undefined)
+    setSimplifiedUpload(false)
+  }
+  
+  // Abrir o painel para adicionar novo item
+  const openAddPanel = () => {
+    resetForm()
+    setIsPanelOpen(true)
+  }
+  
+  // Abrir o painel para upload rápido
+  const openQuickUploadPanel = () => {
+    resetForm()
+    setSimplifiedUpload(true)
+    setIsPanelOpen(true)
+  }
+  
+  // Abrir o painel para adicionar imagem para a seção Sobre Nós
+  const openAddAboutUsPanel = (position?: number) => {
+    resetForm()
+    setIsHomeAboutImage(true)
+    if (position) {
+      setHomePosition(position)
+    }
+    setIsPanelOpen(true)
+  }
+  
+  // Abrir o painel para editar um item existente
+  const openEditPanel = (item: GalleryItem) => {
+    setCurrentItem(item)
+    setIsEditMode(true)
+    setTitle(item.title || "")
+    setDescription(item.description || "")
+    setCategory(item.category || "")
+    setFeatured(item.featured)
+    setPreviewUrl(item.image)
+    setIsHomeAboutImage(!!item.isHomeAboutImage)
+    setHomePosition(item.homePosition)
+    setIsPanelOpen(true)
+  }
+  
+  // Lidar com o envio do formulário
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!simplifiedUpload && !title.trim()) {
+      toast.error('O título é obrigatório')
+      return
+    }
+    
+    if (!simplifiedUpload && !category && !isHomeAboutImage) {
+      toast.error('Selecione uma categoria')
+      return
+    }
+    
+    if (isHomeAboutImage && !homePosition) {
+      toast.error('Selecione a posição da imagem na seção Sobre Nós')
+      return
+    }
+    
+    if (!isEditMode && (!selectedFiles || selectedFiles.length === 0)) {
+      toast.error('Selecione uma imagem')
+      return
+    }
+    
+    setIsUploading(true)
+    setUploadProgress(0)
+    
+    try {
+      // Se estiver em modo de edição e não houver nova imagem, apenas atualize os metadados
+      if (isEditMode && (!selectedFiles || selectedFiles.length === 0)) {
+        if (currentItem) {
+          await updateDocument('gallery', currentItem.id, {
+            title: simplifiedUpload ? null : title,
+            description: simplifiedUpload ? null : description,
+            category: isHomeAboutImage ? 'sobre_nos' : category,
+            featured,
+            isHomeAboutImage,
+            homePosition: isHomeAboutImage ? homePosition : null,
+            updatedAt: Date.now()
+          })
+          
+          // Atualizar a lista localmente
+          setGalleryItems(prev => prev.map(item => 
+            item.id === currentItem.id 
+              ? {
+                  ...item,
+                  title: simplifiedUpload ? undefined : title,
+                  description: simplifiedUpload ? undefined : description,
+                  category: isHomeAboutImage ? 'sobre_nos' : category,
+                  featured,
+                  isHomeAboutImage,
+                  homePosition: isHomeAboutImage ? homePosition : null,
+                  updatedAt: Date.now()
+                }
+              : item
+          ))
+          
+          toast.success('Item atualizado com sucesso')
+        }
+      } else {
+        // Caso contrário, faça upload da imagem
+        if (!selectedFiles || selectedFiles.length === 0) return
+        
+        // Converter FileList para Array
+        const filesArray = Array.from(selectedFiles)
+        
+        // Otimizar as imagens antes do upload
+        toast.info('Otimizando imagens...')
+        
+        // Mostrar progresso de otimização 
+        let currentFileIndex = 0
+        const totalFiles = filesArray.length
+        
+        const optimizedFiles = await Promise.all(
+          filesArray.map(async (file) => {
+            try {
+              currentFileIndex++
+              setUploadProgress((currentFileIndex / totalFiles) * 50) // Primeira metade do progresso é para otimização
+              
+              return await optimizeImage(file, maxWidth, imageQuality)
+            } catch (error) {
+              console.error('Erro ao otimizar imagem, usando original:', error)
+              return file
+            }
+          })
+        )
+        
+        // Toast com informações sobre a otimização
+        const originalSize = filesArray.reduce((acc, file) => acc + file.size, 0) / 1024
+        const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0) / 1024
+        const reduction = Math.round((1 - (optimizedSize / originalSize)) * 100)
+        
+        if (reduction > 0) {
+          toast.success(`Imagens otimizadas: ${originalSize.toFixed(0)}KB → ${optimizedSize.toFixed(0)}KB (${reduction}% menor)`)
+        }
+        
+        // Upload da imagem com monitoramento de progresso
+        const imageUrls = await uploadMultipleImagesWithProgress(
+          optimizedFiles,
+          'gallery',
+          (progress) => {
+            // Segunda metade do progresso é para upload
+            setUploadProgress(50 + (progress / 2))
+          }
+        )
+        
+        // Se estiver editando, exclua a imagem antiga primeiro
+        if (isEditMode && currentItem) {
+          try {
+            // Extrair o caminho da URL para excluir
+            const imageUrlPath = new URL(currentItem.image).pathname
+            const imagePath = decodeURIComponent(imageUrlPath.split('/o/')[1].split('?')[0])
+            await deleteImage(imagePath)
+          } catch (error) {
+            console.error('Erro ao excluir imagem antiga:', error)
+          }
+          
+          // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
+          if (isHomeAboutImage && homePosition) {
+            const existingItemInSamePosition = galleryItems.find(
+              item => item.isHomeAboutImage && item.homePosition === homePosition && item.id !== currentItem.id
+            )
+            
+            if (existingItemInSamePosition) {
+              await updateDocument('gallery', existingItemInSamePosition.id, {
+                isHomeAboutImage: false,
+                homePosition: null
+              })
+              
+              // Atualizar a lista localmente
+              setGalleryItems(prev => prev.map(item => 
+                item.id === existingItemInSamePosition.id 
+                  ? {
+                      ...item,
+                      isHomeAboutImage: false,
+                      homePosition: null
+                    }
+                  : item
+              ))
+              
+              toast.info(`A imagem "${existingItemInSamePosition.title || 'Sem título'}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+            }
+          }
+          
+          // Atualizar o documento
+          await updateDocument('gallery', currentItem.id, {
+            title: simplifiedUpload ? null : title,
+            description: simplifiedUpload ? null : description,
+            image: imageUrls[0],
+            category: isHomeAboutImage ? 'sobre_nos' : category,
+            featured,
+            isHomeAboutImage,
+            homePosition: isHomeAboutImage ? homePosition : null,
+            updatedAt: Date.now()
+          })
+          
+          // Atualizar a lista localmente
+          setGalleryItems(prev => prev.map(item => 
+            item.id === currentItem.id 
+              ? {
+                  ...item,
+                  title: simplifiedUpload ? undefined : title,
+                  description: simplifiedUpload ? undefined : description,
+                  image: imageUrls[0],
+                  category: isHomeAboutImage ? 'sobre_nos' : category,
+                  featured,
+                  isHomeAboutImage,
+                  homePosition: isHomeAboutImage ? homePosition : null,
+                  updatedAt: Date.now()
+                }
+              : item
+          ))
+          
+          toast.success('Item atualizado com sucesso')
+        } else {
+          // Adicionar novo documento
+          
+          // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
+          if (isHomeAboutImage && homePosition) {
+            const existingItemInSamePosition = galleryItems.find(
+              item => item.isHomeAboutImage && item.homePosition === homePosition
+            )
+            
+            if (existingItemInSamePosition) {
+              await updateDocument('gallery', existingItemInSamePosition.id, {
+                isHomeAboutImage: false,
+                homePosition: null
+              })
+              
+              // Atualizar a lista localmente
+              setGalleryItems(prev => prev.map(item => 
+                item.id === existingItemInSamePosition.id 
+                  ? {
+                      ...item,
+                      isHomeAboutImage: false,
+                      homePosition: null
+                    }
+                  : item
+              ))
+              
+              toast.info(`A imagem "${existingItemInSamePosition.title || 'Sem título'}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+            }
+          }
+          
+          const newItem: Omit<GalleryItem, 'id'> = {
+            title: simplifiedUpload ? null : title,
+            description: simplifiedUpload ? null : description,
+            image: imageUrls[0],
+            category: isHomeAboutImage ? 'sobre_nos' : (simplifiedUpload && !category ? null : category || ''),
+            featured,
+            isHomeAboutImage,
+            homePosition: isHomeAboutImage ? homePosition : null,
+            createdAt: Date.now(),
+            displayOrder: galleryItems.length + 1
+          }
+          
+          const docId = await createDocument('gallery', simplifiedUpload 
+            ? {
+                ...newItem,
+                title: null,
+                description: null,
+                category: category || null
+              }
+            : newItem
+          )
+          
+          // Adicionar à lista local
+          if (docId) {
+            setGalleryItems(prev => [
+              { ...newItem, id: docId, homePosition: isHomeAboutImage ? homePosition : null },
+              ...prev
+            ])
+          }
+          
+          toast.success('Item adicionado com sucesso')
+        }
+      }
+      
+      // Atualizar lista de imagens da seção "Sobre Nós"
+      if (isHomeAboutImage) {
+        setAboutUsImages(prev => {
+          const updated = [...galleryItems.filter(item => item.isHomeAboutImage)]
+          return updated
+        })
+      }
+      
+      resetForm()
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error('Ocorreu um erro ao salvar o item')
+    } finally {
+      setIsUploading(false)
+      setUploadProgress(0)
+    }
+  }
+  
+  // Excluir um item
+  const handleDeleteItem = async (item: GalleryItem) => {
+    try {
+      // Excluir do Firestore
+      await deleteDocument('gallery', item.id)
+      
+      // Excluir a imagem do Storage
+      try {
+        const imageUrlPath = new URL(item.image).pathname
+        const imagePath = decodeURIComponent(imageUrlPath.split('/o/')[1].split('?')[0])
+        await deleteImage(imagePath)
+      } catch (error) {
+        console.error('Erro ao excluir imagem:', error)
+      }
+      
+      // Atualizar a lista local
+      setGalleryItems(prev => prev.filter(i => i.id !== item.id))
+      
+      toast.success('Item excluído com sucesso')
+    } catch (error) {
+      console.error('Erro ao excluir item:', error)
+      toast.error('Erro ao excluir o item')
+    }
+  }
+  
+  return (
+    <div className="container py-6 space-y-6 max-w-[1400px]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => router.back()}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Gerenciamento da Galeria</h1>
+            <p className="text-muted-foreground">Gerencie as imagens que aparecem na seção de galeria do site</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            onClick={openAddPanel}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Imagem
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={openQuickUploadPanel}
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Rápido
+          </Button>
+        </div>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 w-[400px] mb-6">
+          <TabsTrigger value="gallery">Galeria</TabsTrigger>
+          <TabsTrigger value="about">Seção "Sobre Nós"</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="gallery">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Filtros */}
+            <div className="col-span-12 md:col-span-3 lg:col-span-2">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-900' : 'bg-gray-50'} border`}>
+                <h3 className="font-medium mb-3">Filtrar por categoria</h3>
+                <div className="space-y-2">
+                  {galleryCategories.map((category) => (
+                    <div
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`px-3 py-2 rounded-md cursor-pointer transition-colors flex items-center gap-2 ${
+                        selectedCategory === category.id
+                        ? isDark 
+                          ? 'bg-primary/20 text-primary' 
+                          : 'bg-primary/10 text-primary-foreground'
+                        : 'hover:bg-muted'
+                      }`}
+                    >
+                      {category.id === 'todas' ? (
+                        <ImageIcon className="h-4 w-4" />
+                      ) : (
+                        <div 
+                          className={`w-2 h-2 rounded-full ${
+                            selectedCategory === category.id
+                            ? 'bg-primary' 
+                            : 'bg-muted-foreground'
+                          }`} 
+                        />
+                      )}
+                      <span>{category.label}</span>
+                      {selectedCategory === category.id && (
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {selectedCategory === 'todas' 
+                            ? galleryItems.length 
+                            : galleryItems.filter(i => 
+                                selectedCategory === 'sobre_nos' 
+                                  ? i.isHomeAboutImage 
+                                  : i.category === selectedCategory
+                              ).length}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Galeria */}
+            <div className="col-span-12 md:col-span-9 lg:col-span-10 space-y-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg bg-muted/40">
+                  <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">Nenhuma imagem encontrada</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {selectedCategory === 'todas' 
+                      ? 'Você ainda não adicionou nenhuma imagem à galeria'
+                      : selectedCategory === 'sobre_nos'
+                        ? 'Não há imagens na seção "Sobre Nós"'
+                        : 'Não há imagens nesta categoria'}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={openAddPanel}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Imagem
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={openQuickUploadPanel}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Rápido
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredItems.map((item) => (
+                    <Card key={item.id} className="overflow-hidden group h-full flex flex-col">
+                      <div className="relative aspect-[4/3]">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 flex items-center justify-center gap-2">
+                          <Button 
+                            size="icon" 
+                            variant="secondary"
+                            onClick={() => openEditPanel(item)}
+                            className="rounded-full"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                size="icon" 
+                                variant="destructive"
+                                className="rounded-full"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir imagem</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeleteItem(item)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                        
+                        {/* Badge de destaque */}
+                        {item.featured && (
+                          <div className="absolute top-2 left-2 z-20 bg-primary text-primary-foreground text-xs py-1 px-2 rounded-full">
+                            Destaque
+                          </div>
+                        )}
+                        
+                        {/* Badge de Sobre Nós */}
+                        {item.isHomeAboutImage && (
+                          <div className="absolute top-2 right-2 z-20 bg-amber-500 text-white text-xs py-1 px-2 rounded-full">
+                            Sobre Nós #{item.homePosition}
+                          </div>
+                        )}
+                        
+                        <img 
+                          src={item.image} 
+                          alt={item.title || "Imagem da galeria"}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                      
+                      <CardContent className="p-4 flex-grow flex flex-col">
+                        {item.title ? (
+                          <h3 className="font-medium truncate">{item.title}</h3>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">Sem título</p>
+                        )}
+                        {item.description ? (
+                          <p className="text-muted-foreground text-sm line-clamp-2 flex-grow">
+                            {item.description}
+                          </p>
+                        ) : (
+                          <p className="text-muted-foreground text-sm italic flex-grow">
+                            Sem descrição
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted">
+                            {item.isHomeAboutImage 
+                              ? 'Sobre Nós' 
+                              : item.category 
+                                ? galleryCategories.find(c => c.id === item.category)?.label || item.category
+                                : 'Sem categoria'}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="about">
+          <div className="bg-muted/30 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-2">Imagens da Seção "Sobre Nós" na Página Inicial</h2>
+            <p className="text-muted-foreground mb-4">
+              Gerencie as quatro imagens que aparecem na seção "Sobre Nós" da página inicial do site.
+              Cada posição só pode conter uma imagem. Se você adicionar uma nova imagem para uma posição que já está ocupada,
+              a imagem anterior será automaticamente removida da seção.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {aboutUsPositions.map((position) => {
+              const image = aboutUsImages.find(img => img.homePosition === position.id);
+              
+              return (
+                <Card key={position.id} className="overflow-hidden">
+                  <div className="p-4 border-b bg-muted/20">
+                    <h3 className="font-medium">{position.label}</h3>
+                  </div>
+                  
+                  <div className="p-4">
+                    {image ? (
+                      <div className="relative aspect-[4/3] rounded-md overflow-hidden group">
+                        <img 
+                          src={image.image} 
+                          alt={image.title} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            className="rounded-full"
+                            onClick={() => openEditPanel(image)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="rounded-full"
+                            onClick={async () => {
+                              // Remover apenas da seção Sobre Nós, não excluir a imagem
+                              try {
+                                await updateDocument('gallery', image.id, {
+                                  isHomeAboutImage: false,
+                                  homePosition: null
+                                })
+                                
+                                // Atualizar a lista localmente
+                                setGalleryItems(prev => prev.map(item => 
+                                  item.id === image.id 
+                                    ? {
+                                        ...item,
+                                        isHomeAboutImage: false,
+                                        homePosition: null
+                                      }
+                                    : item
+                                ))
+                                
+                                // Atualizar a lista de imagens da seção "Sobre Nós"
+                                setAboutUsImages(prev => prev.filter(item => item.id !== image.id))
+                                
+                                toast.success('Imagem removida da seção "Sobre Nós"')
+                              } catch (error) {
+                                console.error('Erro ao remover imagem da seção "Sobre Nós":', error)
+                                toast.error('Erro ao remover imagem')
+                              }
+                            }}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => openAddAboutUsPanel(position.id)}
+                      >
+                        <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="text-muted-foreground text-sm font-medium">Clique para adicionar imagem</p>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-end mt-3">
+                      {!image && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => openAddAboutUsPanel(position.id)}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar Imagem
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Painel de adicionar/editar */}
+      <Dialog open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditMode 
+                ? 'Editar Imagem' 
+                : isHomeAboutImage
+                  ? 'Adicionar Imagem à Seção "Sobre Nós"'
+                  : simplifiedUpload
+                    ? 'Upload Rápido de Imagem'
+                    : 'Adicionar Nova Imagem'
+              }
+            </DialogTitle>
+            <DialogDescription>
+              {simplifiedUpload 
+                ? 'Faça o upload de imagens sem precisar adicionar título ou descrição.' 
+                : `Preencha os campos abaixo para ${isEditMode ? 'atualizar a' : 'adicionar uma nova'} imagem 
+                  ${isHomeAboutImage ? ' à seção "Sobre Nós" da página inicial.' : ' à galeria.'}`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox 
+                    id="simplified-upload"
+                    checked={simplifiedUpload}
+                    onCheckedChange={(checked) => setSimplifiedUpload(checked === true)}
+                    disabled={isHomeAboutImage}
+                  />
+                  <Label 
+                    htmlFor="simplified-upload" 
+                    className="cursor-pointer font-medium text-amber-500 dark:text-amber-400"
+                  >
+                    Upload simplificado (sem título e descrição)
+                  </Label>
+                </div>
+                
+                {simplifiedUpload && (
+                  <div className="p-3 bg-muted/40 rounded-md text-sm text-muted-foreground mb-2">
+                    <p className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      <span>Modo de upload rápido ativado.</span>
+                    </p>
+                    <p className="mt-1 pl-6">As imagens serão postadas sem título e descrição e você poderá editá-las mais tarde se necessário.</p>
+                  </div>
+                )}
+                
+                {!simplifiedUpload && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título<span className="text-destructive">*</span></Label>
+                      <Input 
+                        id="title" 
+                        value={title} 
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Ex: Vista Panorâmica da Serra"
+                        maxLength={60}
+                        required={!simplifiedUpload}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Descrição</Label>
+                      <Textarea 
+                        id="description" 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Breve descrição da imagem"
+                        maxLength={150}
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                )}
+                
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="is-home-about"
+                      checked={isHomeAboutImage}
+                      onCheckedChange={(checked) => {
+                        setIsHomeAboutImage(checked === true)
+                        // Se marcado, desativar upload simplificado
+                        if (checked === true) {
+                          setSimplifiedUpload(false)
+                        }
+                        // Se desmarcado, limpar posição
+                        if (!checked) {
+                          setHomePosition(undefined)
+                        }
+                      }}
+                    />
+                    <Label htmlFor="is-home-about" className="cursor-pointer">
+                      Usar na seção "Sobre Nós" da página inicial
+                    </Label>
+                  </div>
+                  
+                  {isHomeAboutImage && (
+                    <div className="space-y-2 pl-6">
+                      <Label htmlFor="home-position">Posição na seção<span className="text-destructive">*</span></Label>
+                      <Select
+                        value={homePosition?.toString()}
+                        onValueChange={(value) => setHomePosition(parseInt(value))}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a posição" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {aboutUsPositions.map((pos) => (
+                            <SelectItem key={pos.id} value={pos.id.toString()}>
+                              {pos.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                
+                {!isHomeAboutImage && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoria{simplifiedUpload ? "" : <span className="text-destructive">*</span>}</Label>
+                      <Select
+                        value={category}
+                        onValueChange={setCategory}
+                        required={!isHomeAboutImage && !simplifiedUpload}
+                        disabled={isHomeAboutImage}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {galleryCategories
+                            .filter(cat => cat.id !== 'todas' && cat.id !== 'sobre_nos')
+                            .map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.label}
+                              </SelectItem>
+                            ))
+                          }
+                        </SelectContent>
+                      </Select>
+                      {simplifiedUpload && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          No upload simplificado, a categoria é opcional.
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="featured" className="cursor-pointer">Destaque</Label>
+                      <Switch 
+                        id="featured" 
+                        checked={featured} 
+                        onCheckedChange={setFeatured}
+                      />
+                      {featured && (
+                        <span className="text-xs text-muted-foreground">
+                          (Irá aparecer em tamanho maior na galeria)
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Imagem{!isEditMode && <span className="text-destructive">*</span>}</Label>
+                  <div className="border border-dashed rounded-lg overflow-hidden">
+                    <label
+                      htmlFor="image-upload"
+                      className="relative block cursor-pointer"
+                    >
+                      {previewUrl ? (
+                        <div className="relative aspect-[4/3]">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 z-10 rounded-full h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              setSelectedFiles(null)
+                              setOptimizationStats(null)
+                              if (!isEditMode) setPreviewUrl(null)
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover aspect-[4/3]"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-6 px-4 bg-muted/40 aspect-[4/3]">
+                          <Upload className="h-10 w-10 mb-2 text-muted-foreground" />
+                          <p className="text-sm text-center text-muted-foreground mb-1">
+                            Clique para selecionar uma imagem
+                          </p>
+                          <p className="text-xs text-center text-muted-foreground">
+                            JPG, PNG ou WebP (Serão otimizadas automaticamente)
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      className="hidden"
+                      onChange={(e) => setSelectedFiles(e.target.files)}
+                    />
+                  </div>
+                </div>
+                
+                {/* Estatísticas de otimização */}
+                {optimizationStats && (
+                  <div className="space-y-2 bg-muted p-3 rounded-md">
+                    <h4 className="text-sm font-medium flex items-center">
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Otimização de Imagem
+                    </h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div className="text-muted-foreground">Tamanho original:</div>
+                      <div className="font-medium">{optimizationStats.originalSize.toFixed(2)} KB</div>
+                      
+                      <div className="text-muted-foreground">Após otimização:</div>
+                      <div className="font-medium">{optimizationStats.optimizedSize.toFixed(2)} KB</div>
+                      
+                      <div className="text-muted-foreground">Redução:</div>
+                      <div className={`font-medium ${optimizationStats.compressionRatio > 50 ? 'text-green-500' : optimizationStats.compressionRatio > 20 ? 'text-amber-500' : 'text-rose-500'}`}>
+                        {optimizationStats.compressionRatio.toFixed(1)}%
+                      </div>
+                    </div>
+                    
+                    {/* Controles de otimização */}
+                    <div className="pt-2 space-y-2">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <Label htmlFor="quality" className="text-xs">Qualidade:</Label>
+                          <span className="text-muted-foreground">{Math.round(imageQuality * 100)}%</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          id="quality"
+                          min={0.5} 
+                          max={1} 
+                          step={0.05} 
+                          value={imageQuality} 
+                          onChange={(e) => setImageQuality(parseFloat(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <Label htmlFor="width" className="text-xs">Largura máxima:</Label>
+                          <span className="text-muted-foreground">{maxWidth}px</span>
+                        </div>
+                        <select
+                          id="width"
+                          value={maxWidth}
+                          onChange={(e) => setMaxWidth(parseInt(e.target.value))}
+                          className="w-full h-8 rounded-md text-xs border-input bg-background px-3"
+                        >
+                          <option value={1280}>1280px (HD)</option>
+                          <option value={1920}>1920px (Full HD)</option>
+                          <option value={2560}>2560px (2K)</option>
+                          <option value={3840}>3840px (4K)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {isUploading && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Progresso do Upload</Label>
+                  <span className="text-sm text-muted-foreground">{Math.round(uploadProgress)}%</span>
+                </div>
+                <Progress value={uploadProgress} />
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetForm}
+                disabled={isUploading}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isUploading}
+                className="gap-2"
+              >
+                {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isUploading 
+                  ? 'Enviando...' 
+                  : isEditMode 
+                    ? 'Salvar Alterações' 
+                    : 'Adicionar Imagem'
+                }
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+} 

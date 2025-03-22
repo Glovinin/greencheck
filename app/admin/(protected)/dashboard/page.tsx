@@ -20,7 +20,9 @@ import {
   Download,
   Globe,
   Home,
-  Heart
+  Heart,
+  Info,
+  RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,59 +30,70 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getRecentBookings } from "@/lib/firebase/firestore"
+import { getRecentBookings, getDashboardStats } from "@/lib/firebase/firestore"
 import { Booking } from "@/lib/firebase/firestore"
 import { useAuth } from "@/lib/context/auth-context"
 import Header from "@/components/admin/header"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-// Dados simulados para o gráfico
-const revenueData = [
-  { month: "Jan", value: 18500 },
-  { month: "Fev", value: 19200 },
-  { month: "Mar", value: 21000 },
-  { month: "Abr", value: 20300 },
-  { month: "Mai", value: 22800 },
-  { month: "Jun", value: 25600 },
-  { month: "Jul", value: 28900 },
-  { month: "Ago", value: 30200 },
-  { month: "Set", value: 26700 },
-  { month: "Out", value: 24500 },
-  { month: "Nov", value: 22100 },
-  { month: "Dez", value: 23400 }
-]
+// Componente de carregamento para os cards
+const StatCardSkeleton = () => (
+  <Card className="overflow-hidden border-none shadow-md">
+    <CardContent className="p-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="w-40 h-4 bg-muted rounded mb-2"></div>
+          <Skeleton className="h-8 w-24" />
+        </div>
+        <Skeleton className="h-10 w-10 rounded-full" />
+      </div>
+      <div className="mt-4 flex items-center">
+        <Skeleton className="h-5 w-16 rounded" />
+        <div className="ml-2 h-4 w-24 bg-muted rounded"></div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
-// Dados simulados para reservas de diferentes plataformas
-const bookingsByPlatform = [
-  { 
-    platform: "Booking.com", 
-    color: "#003580", 
-    icon: <Globe className="h-4 w-4" />,
-    bookings: [
-      { id: "B12345", guestName: "Maria Silva", roomName: "Suite Premium", checkIn: "15/11/2023", checkOut: "18/11/2023", status: "confirmed", value: "€750" },
-      { id: "B12346", guestName: "João Pereira", roomName: "Quarto Deluxe", checkIn: "20/11/2023", checkOut: "25/11/2023", status: "confirmed", value: "€1250" },
-      { id: "B12347", guestName: "Ana Costa", roomName: "Suite Familiar", checkIn: "01/12/2023", checkOut: "05/12/2023", status: "pending", value: "€980" }
-    ]
-  },
-  { 
-    platform: "Airbnb", 
-    color: "#FF5A5F", 
-    icon: <Heart className="h-4 w-4" />,
-    bookings: [
-      { id: "A78901", guestName: "Pedro Santos", roomName: "Suite Premium", checkIn: "10/11/2023", checkOut: "15/11/2023", status: "completed", value: "€1200" },
-      { id: "A78902", guestName: "Sofia Martins", roomName: "Quarto Vista Serra", checkIn: "22/11/2023", checkOut: "26/11/2023", status: "confirmed", value: "€840" }
-    ]
-  },
-  { 
-    platform: "Direto", 
-    color: "#4CAF50", 
-    icon: <Home className="h-4 w-4" />,
-    bookings: [
-      { id: "D45678", guestName: "Carlos Oliveira", roomName: "Suite Presidencial", checkIn: "05/11/2023", checkOut: "10/11/2023", status: "confirmed", value: "€1800" },
-      { id: "D45679", guestName: "Mariana Ferreira", roomName: "Suite Premium", checkIn: "18/11/2023", checkOut: "20/11/2023", status: "cancelled", value: "€500" },
-      { id: "D45680", guestName: "Ricardo Almeida", roomName: "Quarto Deluxe", checkIn: "28/11/2023", checkOut: "02/12/2023", status: "pending", value: "€950" }
-    ]
+// Função para renderizar o ícone da plataforma
+const renderPlatformIcon = (iconName: string) => {
+  switch (iconName) {
+    case 'Globe':
+      return <Globe className="h-4 w-4" />;
+    case 'Heart':
+      return <Heart className="h-4 w-4" />;
+    case 'Home':
+      return <Home className="h-4 w-4" />;
+    default:
+      return <Globe className="h-4 w-4" />;
   }
-]
+};
+
+// Interface para tipagem de dados
+interface RevenueDataItem {
+  month: string;
+  value: number;
+}
+
+interface PlatformData {
+  platform: string;
+  color: string;
+  icon: string;
+  bookings: any[];
+}
+
+interface DashboardStats {
+  totalBookings: { total: number; growth: number };
+  occupancyRate: { rate: number; growth: number };
+  totalRevenue: { 
+    monthly: number; 
+    total: number; 
+    growth: number; 
+    revenueData: RevenueDataItem[] 
+  };
+  bookingsByPlatform: PlatformData[];
+}
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -90,6 +103,19 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState("month")
   const [activePlatformTab, setActivePlatformTab] = useState("all")
+  
+  // Estados para as estatísticas
+  const [stats, setStats] = useState<DashboardStats>({
+    totalBookings: { total: 0, growth: 0 },
+    occupancyRate: { rate: 0, growth: 0 },
+    totalRevenue: { 
+      monthly: 0, 
+      total: 0,
+      growth: 0, 
+      revenueData: [] 
+    },
+    bookingsByPlatform: []
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -99,6 +125,18 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
+      
+      // Carregar dados para o dashboard
+      const dashboardStats = await getDashboardStats()
+      
+      // Atualizar estados com dados reais
+      setStats({
+        totalBookings: dashboardStats.totalBookings,
+        occupancyRate: dashboardStats.occupancyRate,
+        totalRevenue: dashboardStats.totalRevenue,
+        bookingsByPlatform: dashboardStats.bookingsByPlatform
+      })
+      
       // Carregar reservas recentes
       const bookings = await getRecentBookings(4)
       setRecentBookings(bookings)
@@ -111,13 +149,32 @@ export default function AdminDashboard() {
 
   // Função para renderizar o gráfico de barras
   const renderRevenueChart = () => {
+    const revenueData = stats.totalRevenue.revenueData
+    
+    if (!revenueData || revenueData.length === 0) {
+      return (
+        <div className="flex flex-col justify-center items-center h-64 gap-4">
+          <p className="text-muted-foreground text-center">Não há dados de receita disponíveis ainda</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={loadDashboardData}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Atualizar dados
+          </Button>
+        </div>
+      )
+    }
+    
     const maxValue = Math.max(...revenueData.map(item => item.value))
     
     return (
       <div className="mt-6 h-64">
         <div className="flex h-full items-end gap-2">
           {revenueData.map((item, index) => {
-            const height = (item.value / maxValue) * 100
+            const height = maxValue > 0 ? (item.value / maxValue) * 100 : 0
             
             return (
               <div key={index} className="flex flex-col items-center flex-1">
@@ -125,7 +182,8 @@ export default function AdminDashboard() {
                   initial={{ height: 0 }}
                   animate={{ height: `${height}%` }}
                   transition={{ duration: 0.5, delay: index * 0.05 }}
-                  className="w-full bg-primary/80 hover:bg-primary rounded-t-md relative group"
+                  className={`w-full ${height > 0 ? 'bg-primary/80 hover:bg-primary' : 'bg-muted/30'} rounded-t-md relative group`}
+                  style={{ minHeight: height > 0 ? '4px' : '0' }}
                 >
                   <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                     €{item.value.toLocaleString()}
@@ -142,12 +200,26 @@ export default function AdminDashboard() {
 
   // Função para filtrar reservas por plataforma
   const getFilteredBookings = () => {
-    if (activePlatformTab === "all") {
-      return bookingsByPlatform.flatMap(platform => platform.bookings)
+    if (!stats.bookingsByPlatform || stats.bookingsByPlatform.length === 0) {
+      return []
     }
     
-    const platformData = bookingsByPlatform.find(p => p.platform.toLowerCase() === activePlatformTab)
+    if (activePlatformTab === "all") {
+      return stats.bookingsByPlatform.flatMap(platform => platform.bookings)
+    }
+    
+    const platformData = stats.bookingsByPlatform.find(p => 
+      p.platform.toLowerCase() === activePlatformTab
+    )
     return platformData ? platformData.bookings : []
+  }
+
+  // Formatar moeda (EUR)
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-PT', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value)
   }
 
   if (!mounted) {
@@ -155,14 +227,23 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-8 bg-black/[0.01] min-h-screen">
+    <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-black/[0.01] min-h-screen">
       <Header 
         title="Dashboard" 
         subtitle={`Bem-vindo de volta, ${user?.email?.split('@')[0] || 'Administrador'}`} 
       />
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {loading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -173,15 +254,19 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Total de Reservas</p>
-                  <h3 className="text-3xl font-bold">128</h3>
+                      <h3 className="text-3xl font-bold">{stats.totalBookings.total}</h3>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
                   <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800">
-                  +12%
+                    <Badge variant="outline" className={`${
+                      stats.totalBookings.growth > 0 
+                        ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+                        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
+                    }`}>
+                      {stats.totalBookings.growth > 0 ? "+" : ""}{stats.totalBookings.growth}%
                 </Badge>
                 <span className="ml-2 text-muted-foreground">vs. mês anterior</span>
               </div>
@@ -199,15 +284,19 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Taxa de Ocupação</p>
-                  <h3 className="text-3xl font-bold">76%</h3>
+                      <h3 className="text-3xl font-bold">{stats.occupancyRate.rate}%</h3>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
                   <BedDouble className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800">
-                  +5%
+                    <Badge variant="outline" className={`${
+                      stats.occupancyRate.growth > 0 
+                        ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+                        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
+                    }`}>
+                      {stats.occupancyRate.growth > 0 ? "+" : ""}{stats.occupancyRate.growth}%
                 </Badge>
                 <span className="ml-2 text-muted-foreground">vs. mês anterior</span>
               </div>
@@ -225,15 +314,19 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Receita Mensal</p>
-                  <h3 className="text-3xl font-bold">€24.500</h3>
+                      <h3 className="text-3xl font-bold">{formatCurrency(stats.totalRevenue.monthly)}</h3>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
                   <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800">
-                  +18%
+                    <Badge variant="outline" className={`${
+                      stats.totalRevenue.growth > 0 
+                        ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+                        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
+                    }`}>
+                      {stats.totalRevenue.growth > 0 ? "+" : ""}{stats.totalRevenue.growth}%
                 </Badge>
                 <span className="ml-2 text-muted-foreground">vs. mês anterior</span>
               </div>
@@ -266,6 +359,8 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </motion.div>
+          </>
+        )}
       </div>
       
       {/* Revenue Chart */}
@@ -275,14 +370,14 @@ export default function AdminDashboard() {
         transition={{ duration: 0.3, delay: 0.5 }}
       >
         <Card className="border-none shadow-lg">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardHeader className="pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-xl">Faturamento</CardTitle>
               <CardDescription>Análise de receita ao longo do tempo</CardDescription>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap w-full sm:w-auto">
               <Select defaultValue={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs">
                   <SelectValue placeholder="Selecionar período" />
                 </SelectTrigger>
                 <SelectContent>
@@ -299,9 +394,15 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {renderRevenueChart()}
-            <div className="mt-4 pt-4 border-t flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            {loading ? (
+              <div className="h-64 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              renderRevenueChart()
+            )}
+            <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-1">
                   <div className="h-3 w-3 rounded-full bg-primary"></div>
                   <span className="text-xs text-muted-foreground">Receita</span>
@@ -313,7 +414,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Total Anual:</span>
-                <span className="text-sm font-bold">€283.200</span>
+                <span className="text-sm font-bold">{formatCurrency(stats.totalRevenue.total)}</span>
               </div>
             </div>
           </CardContent>
@@ -338,23 +439,56 @@ export default function AdminDashboard() {
                 <span className="text-xs">Filtrar</span>
               </Button>
             </div>
+            
+            {/* Aviso de integração sendo desenvolvida */}
+            <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-sm font-medium">Integração em desenvolvimento</AlertTitle>
+              <AlertDescription className="text-xs text-muted-foreground mt-1">
+                A ArcadeSoft está desenvolvendo um sistema de integração com Booking.com e Airbnb para o Aqua Vista, evitando overbooking e proporcionando uma gestão centralizada de reservas.
+              </AlertDescription>
+            </Alert>
+            
             <Tabs value={activePlatformTab} onValueChange={setActivePlatformTab} className="mt-4">
               <TabsList className="grid grid-cols-4 h-9">
                 <TabsTrigger value="all" className="text-xs">Todas</TabsTrigger>
-                {bookingsByPlatform.map((platform, index) => (
+                {stats.bookingsByPlatform && stats.bookingsByPlatform.map((platform, index) => (
                   <TabsTrigger key={index} value={platform.platform.toLowerCase()} className="text-xs flex items-center gap-1">
                     <span className="flex items-center justify-center h-4 w-4" style={{ color: platform.color }}>
-                      {platform.icon}
+                      {renderPlatformIcon(platform.icon)}
                     </span>
-                    <span>{platform.platform}</span>
+                    <span className="hidden md:inline">{platform.platform}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
           </CardHeader>
           <CardContent>
+            {loading ? (
+              <div className="space-y-4 mt-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-9 w-9 rounded-full" />
+                      <div>
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24 mt-1" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="space-y-1 mt-2">
-              {getFilteredBookings().map((booking, index) => (
+                {getFilteredBookings().length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Nenhuma reserva encontrada para esta plataforma
+                  </div>
+                ) : (
+                  getFilteredBookings().map((booking, index) => (
                 <motion.div 
                   key={index}
                   initial={{ opacity: 0, y: 10 }}
@@ -365,7 +499,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                        {booking.guestName.split(' ').map(n => n[0]).join('')}
+                            {booking.guestName.split(' ').map((n: string) => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -373,10 +507,10 @@ export default function AdminDashboard() {
                       <p className="text-xs text-muted-foreground">{booking.roomName}</p>
                     </div>
                   </div>
-                  <div className="text-xs">
+                      <div className="text-xs hidden sm:block">
                     <span className="text-muted-foreground">{booking.checkIn} - {booking.checkOut}</span>
                   </div>
-                  <div className="text-sm font-medium">
+                      <div className="text-sm font-medium hidden md:block">
                     {booking.value}
                   </div>
                   <div className="flex items-center gap-2">
@@ -395,14 +529,28 @@ export default function AdminDashboard() {
                     </Button>
                   </div>
                 </motion.div>
-              ))}
+                  ))
+                )}
             </div>
+            )}
           </CardContent>
-          <CardFooter className="border-t pt-4 flex justify-between">
+          <CardFooter className="border-t pt-4 flex justify-between flex-col sm:flex-row gap-4">
             <div className="text-sm text-muted-foreground">
-              Mostrando {getFilteredBookings().length} de {bookingsByPlatform.flatMap(p => p.bookings).length} reservas
+              {loading ? (
+                <Skeleton className="h-4 w-40" />
+              ) : (
+                <span>Mostrando {getFilteredBookings().length} de {
+                  stats.bookingsByPlatform && 
+                  stats.bookingsByPlatform.flatMap(p => p.bookings).length
+                } reservas</span>
+              )}
             </div>
-            <Button variant="outline" size="sm" className="gap-1 group">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1 group w-full sm:w-auto"
+              onClick={() => router.push('/admin/bookings')}
+            >
               <span>Ver Todas</span>
               <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </Button>

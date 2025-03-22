@@ -72,9 +72,9 @@ export const Navbar = () => {
         transition-all duration-300 ease-in-out
         ${isScrolled 
           ? isDark
-            ? 'bg-black/70 backdrop-blur-lg border border-white/10 md:w-[76%] w-[94%]'
-            : 'bg-white/70 backdrop-blur-lg border border-black/10 md:w-[76%] w-[94%]'
-          : 'bg-transparent md:w-[95%] w-[98%]'
+            ? 'bg-black/70 backdrop-blur-lg border border-white/10 lg:w-[76%] w-[94%]'
+            : 'bg-white/70 backdrop-blur-lg border border-black/10 lg:w-[76%] w-[94%]'
+          : 'bg-transparent lg:w-[95%] w-[98%]'
         }
       `}>
         {/* Logo - Visível em todas as telas */}
@@ -84,8 +84,8 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6">
+        {/* Desktop Navigation - Visível apenas em telas grandes (lg:) */}
+        <div className="hidden lg:flex items-center space-x-6">
           <Link 
             href="/" 
             className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
@@ -111,6 +111,12 @@ export const Navbar = () => {
             Eventos
           </Link>
           <Link 
+            href="/gallery" 
+            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
+          >
+            Galeria
+          </Link>
+          <Link 
             href="/sobre" 
             className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
           >
@@ -125,16 +131,16 @@ export const Navbar = () => {
         </div>
 
         {/* Right Side - Adaptado para Mobile e Desktop */}
-        <div className="flex items-center space-x-2 md:space-x-4">
+        <div className="flex items-center space-x-2 lg:space-x-4">
           <Button 
             variant="ghost" 
-            className={`${isDark ? 'text-white hover:text-white/90' : 'text-gray-900 hover:text-gray-900/90'} text-[13px] font-medium h-8 px-2 md:px-3`}
+            className={`${isDark ? 'text-white hover:text-white/90' : 'text-gray-900 hover:text-gray-900/90'} text-[13px] font-medium h-8 px-2 lg:px-3`}
             onClick={handleReservar}
           >
             Reservar
           </Button>
           {/* Linha divisória - visível em Desktop e Mobile */}
-          <div className={`mx-1.5 md:mx-2 w-px h-3 md:h-3.5 ${isDark ? 'bg-white/20' : 'bg-gray-400/20'}`} />
+          <div className={`mx-1.5 lg:mx-2 w-px h-3 lg:h-3.5 ${isDark ? 'bg-white/20' : 'bg-gray-400/20'}`} />
           
           {/* Botão de Tema */}
           <Button 

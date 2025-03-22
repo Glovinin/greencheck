@@ -17,7 +17,8 @@ import {
   serverTimestamp
 } from 'firebase/firestore'
 import { db } from './config'
-import { Room } from '@/lib/types'
+import { Room, SeasonalPrice } from '@/lib/types'
+import { differenceInDays } from 'date-fns'
 
 // Tipos de dados
 export interface Booking {
@@ -601,4 +602,393 @@ export const getNewContactMessages = async (): Promise<Contact[]> => {
     where('status', '==', 'new'),
     orderBy('createdAt', 'desc')
   ])
+}
+
+// Funções para Dashboard com dados reais
+
+export const getDashboardStats = async () => {
+  try {
+    const [totalBookings, totalRevenue, occupancyRate, bookingsByPlatform] = await Promise.all([
+      getTotalBookings(),
+      getMonthlyRevenue(),
+      getOccupancyRate(),
+      getBookingsByPlatform()
+    ]);
+
+    return {
+      totalBookings,
+      totalRevenue,
+      occupancyRate,
+      bookingsByPlatform
+    };
+  } catch (error) {
+    console.error('Erro ao obter estatísticas do dashboard:', error);
+    throw error;
+  }
+};
+
+// Obter total de reservas
+export const getTotalBookings = async () => {
+  try {
+    // Obter todas as reservas
+    const bookings = await getDocuments<Booking>('bookings');
+    
+    // Contar reservas por status
+    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+    const pending = bookings.filter(b => b.status === 'pending').length;
+    const cancelled = bookings.filter(b => b.status === 'cancelled').length;
+    const completed = bookings.filter(b => b.status === 'completed').length;
+    
+    // Calcular crescimento em relação ao mês anterior (simulado por enquanto)
+    // Em uma implementação real, você compararia com dados do mês anterior
+    const growth = ((confirmed + completed) / (bookings.length || 1) * 100) - 50;
+    
+    return {
+      total: bookings.length,
+      confirmed,
+      pending,
+      cancelled,
+      completed,
+      growth: Math.round(growth) // Arredonda para número inteiro
+    };
+  } catch (error) {
+    console.error('Erro ao obter total de reservas:', error);
+    return {
+      total: 0,
+      confirmed: 0,
+      pending: 0, 
+      cancelled: 0,
+      completed: 0,
+      growth: 0
+    };
+  }
+};
+
+// Obter receita mensal
+export const getMonthlyRevenue = async () => {
+  try {
+    const bookings = await getDocuments<Booking>('bookings');
+    
+    // Filtrar reservas confirmadas e concluídas
+    const validBookings = bookings.filter(b => 
+      b.status === 'confirmed' || b.status === 'completed'
+    );
+    
+    // Calcular receita total
+    const totalRevenue = validBookings.reduce((acc, booking) => acc + booking.totalPrice, 0);
+    
+    // Agrupar receita por mês
+    const revenueByMonth = validBookings.reduce((acc, booking) => {
+      const date = booking.checkIn.toDate();
+      const month = date.getMonth(); // 0-11
+      const year = date.getFullYear();
+      const key = `${year}-${month}`;
+      
+      if (!acc[key]) {
+        acc[key] = 0;
+      }
+      acc[key] += booking.totalPrice;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Converter para formato de array para gráfico
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    const revenueData = [];
+    
+    // Gerar dados dos últimos 12 meses
+    for (let i = 0; i < 12; i++) {
+      const month = (currentMonth - i + 12) % 12;
+      const year = currentMonth - i < 0 ? currentYear - 1 : currentYear;
+      const key = `${year}-${month}`;
+      
+      revenueData.unshift({
+        month: monthNames[month],
+        value: revenueByMonth[key] || 0
+      });
+    }
+    
+    // Calcular crescimento em relação ao mês anterior
+    const lastMonthRevenue = revenueData[revenueData.length - 2]?.value || 0;
+    const currentMonthRevenue = revenueData[revenueData.length - 1]?.value || 0;
+    
+    const growth = lastMonthRevenue ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
+    
+    return {
+      monthly: currentMonthRevenue,
+      total: totalRevenue,
+      growth: Math.round(growth),
+      revenueData
+    };
+  } catch (error) {
+    console.error('Erro ao obter receita mensal:', error);
+    return {
+      monthly: 0,
+      total: 0,
+      growth: 0,
+      revenueData: []
+    };
+  }
+};
+
+// Calcular taxa de ocupação
+export const getOccupancyRate = async () => {
+  try {
+    // Obter todos os quartos
+    const rooms = await getDocuments<Room>('rooms');
+    const totalRooms = rooms.length;
+    
+    if (totalRooms === 0) {
+      return { rate: 0, growth: 0 };
+    }
+    
+    // Obter todas as reservas
+    const bookings = await getDocuments<Booking>('bookings');
+    
+    // Filtrar reservas confirmadas e concluídas para o mês atual
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    const currentMonthBookings = bookings.filter(booking => {
+      const checkInDate = booking.checkIn.toDate();
+      return (
+        (booking.status === 'confirmed' || booking.status === 'completed') &&
+        checkInDate.getMonth() === currentMonth &&
+        checkInDate.getFullYear() === currentYear
+      );
+    });
+    
+    // Calcular dias ocupados por quarto
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const totalPossibleRoomDays = totalRooms * daysInMonth;
+    
+    // Contar dias ocupados (simplificado - em produção seria mais complexo)
+    let occupiedDays = 0;
+    
+    currentMonthBookings.forEach(booking => {
+      const checkIn = booking.checkIn.toDate();
+      const checkOut = booking.checkOut.toDate();
+      
+      // Ajustar datas para considerar apenas o mês atual
+      const startDate = new Date(Math.max(
+        checkIn.getTime(),
+        new Date(currentYear, currentMonth, 1).getTime()
+      ));
+      const endDate = new Date(Math.min(
+        checkOut.getTime(),
+        new Date(currentYear, currentMonth + 1, 0).getTime()
+      ));
+      
+      // Calcular dias entre datas (incluindo check-in, excluindo check-out)
+      const days = Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+      occupiedDays += days;
+    });
+    
+    const occupancyRate = (occupiedDays / totalPossibleRoomDays) * 100;
+    
+    // Simulação de crescimento (em produção, compararia com mês anterior)
+    const growth = occupancyRate > 50 ? 5 : -3;
+    
+    return {
+      rate: Math.round(occupancyRate),
+      growth: Math.round(growth)
+    };
+  } catch (error) {
+    console.error('Erro ao calcular taxa de ocupação:', error);
+    return { rate: 0, growth: 0 };
+  }
+};
+
+// Obter reservas agrupadas por plataforma
+export const getBookingsByPlatform = async () => {
+  try {
+    const bookings = await getDocuments<Booking>('bookings');
+    
+    // Categorizar reservas por origem
+    const platforms = [
+      { 
+        platform: "Booking.com", 
+        color: "#003580", 
+        icon: "Globe",
+        bookings: []
+      },
+      { 
+        platform: "Airbnb", 
+        color: "#FF5A5F", 
+        icon: "Heart",
+        bookings: []
+      },
+      { 
+        platform: "Direto", 
+        color: "#4CAF50", 
+        icon: "Home",
+        bookings: []
+      }
+    ];
+    
+    // Para fins de demonstração, colocar todas as reservas como "Direto" por enquanto
+    // Em produção, usaria um campo "platformOrigin" ou similar na tabela de reservas
+    const platformIndex = 2; // Índice da plataforma "Direto"
+    
+    bookings.forEach(booking => {
+      // Transformar para o formato esperado pelo componente
+      const transformedBooking = {
+        id: booking.id || '',
+        guestName: booking.guestName,
+        roomName: booking.roomName,
+        checkIn: booking.checkIn.toDate().toLocaleDateString('pt-PT'),
+        checkOut: booking.checkOut.toDate().toLocaleDateString('pt-PT'),
+        status: booking.status,
+        value: new Intl.NumberFormat('pt-PT', {
+          style: 'currency',
+          currency: 'EUR'
+        }).format(booking.totalPrice)
+      };
+      
+      // Adicionar à plataforma "Direto"
+      (platforms[platformIndex] as any).bookings.push(transformedBooking);
+    });
+    
+    return platforms;
+  } catch (error) {
+    console.error('Erro ao obter reservas por plataforma:', error);
+    return [];
+  }
+};
+
+// Função para obter o preço de um quarto para uma data específica
+export const getRoomPriceForDate = async (roomId: string, date: Date): Promise<number> => {
+  try {
+    const roomDoc = await getDoc(doc(db, "rooms", roomId));
+    
+    if (!roomDoc.exists()) {
+      throw new Error("Quarto não encontrado");
+    }
+    
+    const roomData = roomDoc.data() as Room;
+    const basePrice = roomData.price;
+    
+    if (!roomData.seasonalPrices || roomData.seasonalPrices.length === 0) {
+      return basePrice;
+    }
+    
+    // Verificar se a data está dentro de algum período sazonal
+    for (const seasonalPrice of roomData.seasonalPrices) {
+      const startDate = new Date(seasonalPrice.startDate);
+      const endDate = new Date(seasonalPrice.endDate);
+      
+      if (date >= startDate && date <= endDate) {
+        return seasonalPrice.price;
+      }
+    }
+    
+    // Se não cair em nenhum período sazonal, retorna o preço base
+    return basePrice;
+  } catch (error) {
+    console.error("Erro ao obter preço do quarto:", error);
+    throw error;
+  }
+}
+
+// Função para calcular o preço total de uma estadia
+export const calculateStayPrice = async (
+  roomId: string, 
+  checkIn: Date, 
+  checkOut: Date
+): Promise<{
+  totalPrice: number;
+  nightlyPrices: { date: string; price: number }[];
+  serviceFee: number;
+  totalWithFee: number;
+}> => {
+  try {
+    console.log(`🔍 Iniciando cálculo de preço para estadia: ${checkIn.toISOString().split('T')[0]} até ${checkOut.toISOString().split('T')[0]}`);
+    
+    const roomDoc = await getDoc(doc(db, "rooms", roomId));
+    
+    if (!roomDoc.exists()) {
+      throw new Error("Quarto não encontrado");
+    }
+    
+    const roomData = roomDoc.data() as Room;
+    console.log(`📝 Dados do quarto ${roomId}:`, {
+      nome: roomData.name,
+      precoBase: roomData.price,
+      taxaServico: roomData.serviceFeePct || 0,
+      temPrecosSazonais: !!roomData.seasonalPrices?.length
+    });
+    
+    const nightlyPrices: { date: string; price: number }[] = [];
+    let totalPrice = 0;
+    
+    // Calcular o número de noites - corrigido para usar o método correto de cálculo
+    // O número de noites é a diferença em dias (estadia = checkout - checkin)
+    const noites = differenceInDays(checkOut, checkIn);
+    console.log(`🗓️ Número de noites calculado: ${noites}`);
+    
+    if (noites <= 0) {
+      console.error(`⚠️ Erro: número de noites inválido (${noites})`);
+      throw new Error("Data de check-out deve ser posterior à data de check-in");
+    }
+    
+    // Para cada noite, verificar o preço aplicável (preço base ou sazonal)
+    // Começamos exatamente do dia de check-in
+    const currentDate = new Date(checkIn);
+    currentDate.setHours(0, 0, 0, 0); // Normalizar para meia-noite
+    
+    // Processamos cada dia de estadia (noite)
+    console.log(`📊 Calculando preços por noite:`);
+    for (let i = 0; i < noites; i++) {
+      // Obtemos o preço para esta data
+      const dateCopy = new Date(currentDate);
+      const priceForDate = await getRoomPriceForDate(roomId, dateCopy);
+      const dateString = dateCopy.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      console.log(`   - ${dateString}: €${priceForDate}`);
+      
+      nightlyPrices.push({
+        date: dateString,
+        price: priceForDate
+      });
+      
+      totalPrice += priceForDate;
+      
+      // Avançamos para o próximo dia
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Verificação de segurança para o cálculo do totalPrice
+    const manualTotal = nightlyPrices.reduce((sum, night) => sum + night.price, 0);
+    if (Math.abs(totalPrice - manualTotal) > 1) {
+      console.error(`⚠️ Discrepância detectada no cálculo do preço total!`);
+      console.error(`   - Total calculado iterativamente: €${totalPrice}`);
+      console.error(`   - Total calculado via reduce: €${manualTotal}`);
+      console.error(`   - Usando o valor recalculado para segurança!`);
+      totalPrice = manualTotal;
+    }
+    
+    // Calcular taxa de serviço
+    const serviceFee = (totalPrice * (roomData.serviceFeePct || 0)) / 100;
+    const totalWithFee = totalPrice + serviceFee;
+    
+    console.log(`💰 Resumo do cálculo:`);
+    console.log(`   - Total das diárias: €${totalPrice}`);
+    console.log(`   - Taxa de serviço (${roomData.serviceFeePct || 0}%): €${serviceFee}`);
+    console.log(`   - Total com taxas: €${totalWithFee}`);
+    
+    return {
+      totalPrice,
+      nightlyPrices,
+      serviceFee,
+      totalWithFee
+    };
+  } catch (error) {
+    console.error("❌ Erro ao calcular preço da estadia:", error);
+    throw error;
+  }
 } 

@@ -7,13 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Navbar } from '@/components/navbar'
 import { Calendar } from '@/components/ui/calendar'
-import { format, addDays, differenceInDays, isSameDay, isAfter, isBefore, isSameMonth, subDays, startOfDay } from 'date-fns'
+import { format, addDays, differenceInDays, isSameDay, isAfter, isBefore, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CalendarIcon, Users, Bed, CreditCard, Clock, ArrowRight, Check, Calendar as CalendarIcon2, ArrowLeft, AlertCircle, Loader2, Search, Info, Home, ChevronDown, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Star, Square, MessageSquare } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 import { useTheme } from 'next-themes'
-import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Popover,
   PopoverContent,
@@ -66,6 +65,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import { getRoomById, getRoomBookings, getDatesInRange } from '@/lib/firebase/firestore'
+import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import axios from 'axios'
 import StripeProvider from '@/components/StripeProvider'
@@ -78,8 +78,8 @@ import { CTASection, CTABookingSection } from '@/components/cta-section'
 import { Footer } from '@/components/footer'
 import { formatCurrency, calcStayDays } from "@/lib/utils"
 import { getIconNameForAmenity } from "@/lib/functions"
-import { getUserBookings } from "@/lib/firebase/firestore"
-import { calculateStayPrice, getRoomPriceForDate } from "@/lib/firebase/firestore"
+import { getUserBookings, checkAvailability, getRoom } from "@/lib/firebase/firestore"
+import { calculateStayPrice } from "@/lib/firebase/firestore"
 
 // Logo após a seção de imports 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
@@ -303,7 +303,6 @@ export default function Booking() {
   // Obter parâmetros da URL
   const searchParams = useSearchParams()
   const roomIdFromUrl = searchParams.get('roomId')
-  const router = useRouter()
   
   // Hook de scroll para efeito de parallax
   const { scrollY } = useScroll()
@@ -325,7 +324,7 @@ export default function Booking() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [precoTotal, setPrecoTotal] = useState(0)
   const [date, setDate] = useState<DateRange>({
-    from: undefined,
+    from: new Date(),
     to: undefined,
   })
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date())
@@ -353,11 +352,6 @@ export default function Booking() {
   const [serviceFee, setServiceFee] = useState(0)
   const [totalWithFee, setTotalWithFee] = useState(0)
   const [nightlyPrices, setNightlyPrices] = useState<{ date: string; price: number }[]>([])
-  const [checkIn, setCheckIn] = useState<string | null>(null)
-  const [checkOut, setCheckOut] = useState<string | null>(null)
-  const [room, setRoom] = useState<any>(null)
-  const [roomId, setRoomId] = useState<string | null>(roomIdFromUrl)
-  const [dayPrices, setDayPrices] = useState<Record<string, number>>({})
   
   // Variável para controlar visibilidade sem early return
   const shouldRender = mounted;
@@ -368,207 +362,6 @@ export default function Booking() {
   useEffect(() => {
     setMounted(true)
   }, [])
-  
-  // Função para carregar preços diários para o calendário
-  const loadDailyPrices = async (roomId: string, month: Date) => {
-    if (!roomId) return;
-    
-    try {
-      setLoadingDatas(true);
-      console.log("INICIANDO CARREGAMENTO DE PREÇOS DIÁRIOS - FORÇANDO PERÍODO 17-20/06");
-      
-      // Obter primeiro e último dia do mês
-      const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
-      const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-      
-      console.log(`🔄 Carregando preços diários para quarto ${roomId} - Mês: ${month.toLocaleDateString()}`);
-      
-      // Buscar dados do quarto
-      const roomData = await getRoomById(roomId);
-      if (!roomData) {
-        console.error("Dados do quarto não encontrados");
-        setLoadingDatas(false);
-        return;
-      }
-      
-      // Criar mapa de preços para o mês
-      const pricesMap: Record<string, number> = {};
-      
-      // Primeiro passo: definir o preço base para todos os dias do mês
-      let currentDate = new Date(firstDay);
-      while (currentDate <= lastDay) {
-        const dateStr = formatDateToString(currentDate);
-        pricesMap[dateStr] = roomData.price; // Preço base
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      // FORÇAR PREÇOS PARA JUNHO 2025
-      if (month.getMonth() === 5 && month.getFullYear() === 2025) { // Junho é mês 5 (0-indexed)
-        const diasJunhoEspeciais = ['2025-06-17', '2025-06-18', '2025-06-19', '2025-06-20'];
-        
-        diasJunhoEspeciais.forEach(dia => {
-          if (dia in pricesMap) {
-            console.log(`🔴 FORÇANDO PREÇO DE €${pricesMap[dia]} PARA €200 NO DIA ${dia}`);
-            pricesMap[dia] = 200;
-          }
-        });
-      }
-      
-      // Depois de forçar, aplicar preços sazonais regulares para outras datas
-      if (roomData.seasonalPrices && roomData.seasonalPrices.length > 0) {
-        console.log("📊 Períodos sazonais encontrados:");
-        
-        roomData.seasonalPrices.forEach((season) => {
-          // Extrair apenas a parte YYYY-MM-DD das datas
-          const startDateStr = season.startDate.split('T')[0];
-          const endDateStr = season.endDate.split('T')[0];
-          
-          console.log(`  - ${season.name}: ${startDateStr} a ${endDateStr} - €${season.price}`);
-          
-          // Converter para objetos Date para comparação
-          const startDate = new Date(startDateStr);
-          const endDate = new Date(endDateStr);
-          
-          // Percorrer cada dia do período sazonal
-          const dateIterator = new Date(startDate);
-          while (dateIterator <= endDate) {
-            const currentDateStr = formatDateToString(dateIterator);
-            
-            // Verificar se este dia está no mês atual sendo processado
-            if (currentDateStr in pricesMap) {
-              pricesMap[currentDateStr] = season.price;
-              console.log(`    ✓ Aplicando preço sazonal para ${currentDateStr}: €${season.price}`);
-            }
-            
-            // Avançar para o próximo dia
-            dateIterator.setDate(dateIterator.getDate() + 1);
-          }
-        });
-      } else {
-        console.log("ℹ️ Nenhum período sazonal encontrado. Usando preço base para todos os dias.");
-      }
-      
-      // GARANTIR QUE OS PREÇOS JUNHO SEJAM CORRETOS - REDUNDÂNCIA
-      if (month.getMonth() === 5 && month.getFullYear() === 2025) {
-        if ('2025-06-17' in pricesMap) pricesMap['2025-06-17'] = 200;
-        if ('2025-06-18' in pricesMap) pricesMap['2025-06-18'] = 200;
-        if ('2025-06-19' in pricesMap) pricesMap['2025-06-19'] = 200;
-        if ('2025-06-20' in pricesMap) pricesMap['2025-06-20'] = 200;
-      }
-      
-      // DIAGNÓSTICO: Verificar dias específicos
-      const diasTeste = ['2025-06-15', '2025-06-16', '2025-06-17', '2025-06-18', '2025-06-19', '2025-06-20', '2025-06-21'];
-      console.log("🔍 VERIFICAÇÃO FINAL DOS PREÇOS:");
-      diasTeste.forEach(dia => {
-        if (dia in pricesMap) {
-          console.log(`  ${dia}: €${pricesMap[dia]}`);
-        }
-      });
-      
-      console.log(`✅ Carregamento concluído: ${Object.keys(pricesMap).length} dias processados.`);
-      
-      // Atualizar estado com os novos preços
-      setDayPrices({...pricesMap});
-      setLoadingDatas(false);
-    } catch (error) {
-      console.error("Erro ao carregar preços diários:", error);
-      setLoadingDatas(false);
-    }
-  };
-
-  // Função utilitária para formatar data como string YYYY-MM-DD
-  const formatDateToString = (date: Date): string => {
-    // Usar o mesmo padrão de formatação do componente Calendar
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  // Função para obter preço para uma data específica
-  const getPriceForDate = (dateStr: string): number => {
-    // FORÇAR PREÇOS PARA O PERÍODO DE 17-20 DE JUNHO
-    if (dateStr === '2025-06-17' || dateStr === '2025-06-18' || 
-        dateStr === '2025-06-19' || dateStr === '2025-06-20') {
-      console.log(`💰 FORÇA BRUTA: Data ${dateStr} forçada para €200`);
-      return 200; // Preço fixo
-    }
-    
-    // Se temos preço no calendário, usar esse preço
-    if (dayPrices && dateStr in dayPrices) {
-      return dayPrices[dateStr];
-    }
-    
-    // Se temos o quarto selecionado, tentar encontrar preço sazonal
-    if (quartoSelecionado && quartoSelecionado.seasonalPrices && quartoSelecionado.seasonalPrices.length > 0) {
-      const date = new Date(dateStr);
-      
-      // Verificar se a data está em algum período sazonal
-      for (const period of quartoSelecionado.seasonalPrices) {
-        const startDate = new Date(period.startDate.split('T')[0]);
-        const endDate = new Date(period.endDate.split('T')[0]);
-        
-        // Verificar usando o método >= e <= para comparação de data
-        if (date >= startDate && date <= endDate) {
-          console.log(`💰 Data ${dateStr} está no período sazonal: €${period.price}`);
-          return period.price;
-        }
-      }
-    }
-    
-    // Caso contrário, retornar o preço base do quarto
-    return quartoSelecionado ? quartoSelecionado.price : 0;
-  };
-  
-  // Função para filtrar noites válidas do período selecionado
-  const getFilteredNightlyPrices = () => {
-    if (!date.from || !date.to || !quartoSelecionado) return [];
-    
-    // Gerar array de datas entre check-in e check-out (exclusive)
-    const dateStrings: string[] = [];
-    const startDate = new Date(date.from);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date.to);
-    endDate.setHours(0, 0, 0, 0);
-    
-    const currentDate = new Date(startDate);
-    
-    while (currentDate < endDate) {
-      dateStrings.push(formatDateToString(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    console.log("📅 Datas da estadia:", dateStrings);
-    
-    // Criar array de objetos com data e preço para cada noite
-    const nightlyPrices = dateStrings.map(dateStr => {
-      const price = getPriceForDate(dateStr);
-      return { date: dateStr, price };
-    });
-    
-    console.log("💰 Preços por noite calculados:", nightlyPrices);
-    
-    return nightlyPrices;
-  };
-  
-  // Forçar recarregar preços quando o mês atual é junho de 2025
-  useEffect(() => {
-    if (calendarMonth && 
-        calendarMonth.getMonth() === 5 && // Junho (0-indexado)
-        calendarMonth.getFullYear() === 2025 && 
-        quartoSelecionado?.id) {
-      console.log("🔄 Forçando recarga de preços para junho 2025");
-      loadDailyPrices(quartoSelecionado.id, calendarMonth);
-    }
-  }, [calendarMonth?.getMonth(), calendarMonth?.getFullYear(), quartoSelecionado?.id]);
-  
-  // Atualizar preços quando o mês ou o quarto mudar
-  useEffect(() => {
-    if (quartoSelecionado?.id && calendarMonth) {
-      loadDailyPrices(quartoSelecionado.id, calendarMonth);
-    }
-  }, [quartoSelecionado?.id, calendarMonth]);
   
   // Carregar todos os quartos quando o componente montar
   useEffect(() => {
@@ -727,344 +520,161 @@ export default function Booking() {
   // Os hooks devem ser declarados ANTES de qualquer condicional
   // Criando uma variável para controlar a visibilidade em vez de return null
   
-  // Handler para mudança de datas
+  // Função segura para atualizar as datas
   const handleDateChange = (range: DateRange | undefined) => {
-    if (range) {
-      console.log("📅 Datas selecionadas:", range);
-      
-      // Limpar seleção quando clicar duas vezes na mesma data
-      if (range.from && range.to && isSameDay(range.from, range.to)) {
-        // Se from e to são o mesmo dia, verificar se já estavam selecionados
-        if (date.from && date.to && isSameDay(date.from, range.from) && isSameDay(date.to, range.to)) {
-          console.log("Limpando seleção de datas (mesmo dia clicado duas vezes)");
-          setDate({ from: undefined, to: undefined });
-          return;
-        }
-      }
-      
-      // Auto-selecionar check-out para o dia seguinte se apenas o check-in estiver definido
-      if (range.from && !range.to) {
-        console.log("Definindo automaticamente check-out para o dia seguinte");
-        const nextDay = new Date(range.from);
-        nextDay.setDate(nextDay.getDate() + 1);
-        range.to = nextDay;
-      }
-      
-      // Se as datas são iguais, ajustar o check-out para o dia seguinte
-      if (range.from && range.to && isSameDay(range.from, range.to)) {
-        console.log("Datas iguais, ajustando check-out");
-        const nextDay = new Date(range.from);
-        nextDay.setDate(nextDay.getDate() + 1);
-        range.to = nextDay;
-      }
-      
-      // Verificar disponibilidade
-      if (range.from && range.to && quartoSelecionado) {
-        // Verificar se o check-in está disponível
-        if (utilsDatas.isDateUnavailable(range.from, datasIndisponiveis)) {
-          toast.error("A data de check-in selecionada não está disponível para reserva.", {
-            duration: 3000,
-          });
-          return;
-        }
-        
-        // Verifica dias indisponíveis ENTRE check-in e check-out (exclusive)
-        // Isso permite que o check-out seja em um dia bloqueado, já que o cliente sai pela manhã
-        const diasIntermediarios = [] as Date[];
-        const checkInDay = new Date(range.from);
-        const checkOutDay = new Date(range.to);
-        
-        // Criar array com todos os dias ENTRE check-in e check-out (exclusive)
-        const currentDay = new Date(checkInDay);
-        currentDay.setDate(currentDay.getDate() + 1); // Começar do dia seguinte ao check-in
-        
-        while (isBefore(currentDay, checkOutDay)) {
-          diasIntermediarios.push(new Date(currentDay));
-          currentDay.setDate(currentDay.getDate() + 1);
-        }
-        
-        // Verificar se algum dos dias intermediários está indisponível
-        const temDiaBloqueado = diasIntermediarios.some(dia => 
-          utilsDatas.isDateUnavailable(dia, datasIndisponiveis)
-        );
-        
-        if (temDiaBloqueado) {
-          toast.error("Existem datas bloqueadas no período selecionado. Por favor, escolha outro período.", {
-            duration: 3000,
-          });
-          return;
-        }
-        
-        // Verificar se o check-out está em um dia bloqueado e se não é adjacente ao check-in
-        const isCheckoutUnavailable = utilsDatas.isDateUnavailable(range.to, datasIndisponiveis);
-        const isNextDayAfterCheckIn = differenceInDays(range.to, range.from) === 1;
-        
-        // Se o checkout está indisponível, mas não é o dia seguinte ao check-in, bloquear
-        if (isCheckoutUnavailable && !isNextDayAfterCheckIn) {
-          toast.error("A data de check-out selecionada não está disponível para reserva. Tente um período mais curto.", {
-            duration: 3000,
-          });
-          return;
-        }
-        
-        console.log("✅ Período válido para reserva");
-      }
-      
-      // Normalizar as datas para o início do dia
-      if (range.from) {
-        range.from.setHours(0, 0, 0, 0);
-      }
-      if (range.to) {
-        range.to.setHours(0, 0, 0, 0);
-      }
-      
-      // Atualizar o estado com as datas selecionadas
+    // Se não houver range, limpa a seleção
+    if (!range) {
+      setDate({
+        from: undefined,
+        to: undefined
+      });
+      return;
+    }
+    
+    // Se o usuário clicar na mesma data duas vezes, limpa a seleção
+    if (date.from && range.from && isSameDay(date.from, range.from) && !range.to) {
+      setDate({
+        from: undefined,
+        to: undefined
+      });
+      return;
+    }
+    
+    // Se já temos um intervalo completo e o usuário clica em uma nova data,
+    // começamos um novo intervalo com essa data
+    if (date.from && date.to && range.from && !range.to) {
       setDate({
         from: range.from,
-        to: range.to
+        to: undefined
+      });
+      return;
+    }
+    
+    // Se o usuário selecionou apenas uma data (check-in), automaticamente definimos
+    // o check-out para o dia seguinte, mesmo que o dia seguinte esteja marcado como indisponível
+    // já que o check-out ocorre pela manhã e o check-in à tarde
+    if (range.from && !range.to) {
+      const nextDay = new Date(range.from);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      // Sempre definimos o check-out para o dia seguinte, independente de disponibilidade
+      // porque o check-out é de manhã e o check-in é à tarde
+      range.to = nextDay;
+    }
+    
+    // Se o usuário selecionou check-in e check-out no mesmo dia, ajustamos para o dia seguinte
+    // mesmo que o dia seguinte esteja marcado como indisponível
+    if (range.from && range.to && isSameDay(range.from, range.to)) {
+      const nextDay = new Date(range.from);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      // Sempre definimos o check-out para o dia seguinte, independente de disponibilidade
+      range.to = nextDay;
+    }
+    
+    // Sempre atualiza o estado com a seleção do usuário
+    setDate(range);
+    
+    // Se temos data de início e fim, verificamos se há datas indisponíveis no intervalo
+    if (range.from && range.to) {
+      // Verificar se a data de check-in está indisponível
+      if (utilsDatas.isDateUnavailable(range.from, datasIndisponiveis)) {
+        toast.error("A data de check-in selecionada está indisponível. Por favor, escolha outra data.", {
+          duration: 5000,
+          icon: <AlertCircle className="h-5 w-5 text-red-500" />
+        });
+        
+        // Resetar a seleção
+        setDate({
+          from: undefined,
+          to: undefined
+        });
+        return;
+      }
+      
+      // Verificar se existem datas indisponíveis no intervalo selecionado
+      // Excluindo o dia de check-out da verificação, já que é permitido fazer check-out
+      // em um dia que está marcado como indisponível (o check-out é de manhã)
+      const temDatasIndisponiveisNoIntervalo = datasIndisponiveis.some(dataIndisponivel => {
+        return isAfter(dataIndisponivel, range.from!) && 
+               isBefore(dataIndisponivel, range.to!) && 
+               !isSameDay(dataIndisponivel, range.to!);
       });
       
-      // Se tiver check-in e check-out definidos, calcular preço total
-      if (range.from && range.to && quartoSelecionado) {
-        console.log("📊 Recalculando preço total após mudança de datas");
+      if (temDatasIndisponiveisNoIntervalo) {
+        toast.error("Não é possível reservar períodos que incluam datas indisponíveis no meio do intervalo. Por favor, escolha outro período.", {
+          duration: 5000,
+          icon: <AlertCircle className="h-5 w-5 text-red-500" />
+        });
         
-        // Verificar se a estadia tem pelo menos uma noite
-        const noites = differenceInDays(range.to, range.from);
-        if (noites <= 0) {
-          console.error("⚠️ Período inválido: Check-out deve ser posterior ao Check-in");
-          return;
-        }
-        
-        console.log(`🏨 Estadia selecionada: ${noites} noite(s)`);
-        
-        // Armazenar temporariamente os preços diários para garantir que eles estejam disponíveis 
-        // mesmo se a API não retornar dados atualizados
-        const tempNightlyPrices = [];
-        
-        // Gerar preços temporários baseados nos preços diários já carregados
-        const startDate = new Date(range.from);
-        for (let i = 0; i < noites; i++) {
-          const currentDate = new Date(startDate);
-          currentDate.setDate(startDate.getDate() + i);
-          const dateStr = format(currentDate, "yyyy-MM-dd");
-          
-          // Usar preço do calendário ou preço base
-          const price = dayPrices[dateStr] || quartoSelecionado.price || 80;
-          
-          tempNightlyPrices.push({
-            date: dateStr,
-            price: price
-          });
-        }
-        
-        // Usar preços temporários apenas se nightlyPrices estiver vazio
-        if (nightlyPrices.length === 0) {
-          setNightlyPrices(tempNightlyPrices);
-        }
-        
-        // Usar setTimeout para garantir que a atualização do estado aconteça primeiro
-        setTimeout(() => {
-          calcularPrecoTotal();
-        }, 100);
+        // Resetar a seleção para apenas a data inicial
+        setDate({
+          from: range.from,
+          to: undefined
+        });
+        return;
       }
+      
+      // Calcular o preço total
+      if (quartoSelecionado) {
+        calcularPrecoTotal();
+      }
+      
+      // Se chegou até aqui, o período é válido
+      toast.success("Período selecionado com sucesso!", {
+        icon: <Check className="h-5 w-5 text-green-500" />
+      });
     }
-  }
+  };
 
   // Calcular preço total
-  const calcularPrecoTotal = async () => {
-    if (!date.from || !date.to || !quartoSelecionado) return;
+  const calcularPrecoTotal = () => {
+    if (!date.from || !date.to || !quartoSelecionado) return
     
     console.log("💰 INÍCIO DO CÁLCULO DE PREÇO TOTAL");
     console.log("Dados do quarto:", {
       id: quartoSelecionado.id,
       nome: quartoSelecionado.name,
       serviceFeePct: quartoSelecionado.serviceFeePct,
+      rawValue: quartoSelecionado.serviceFeePct,
+      typeofServiceFee: typeof quartoSelecionado.serviceFeePct,
       price: quartoSelecionado.price
     });
-    console.log("Datas selecionadas:", {
-      from: date.from.toISOString(),
-      to: date.to.toISOString(),
-      noites: differenceInDays(date.to, date.from)
+    
+    // Calcular a diferença em dias entre check-in e check-out
+    const dias = differenceInDays(date.to, date.from);
+    
+    // Se a diferença for 0 (mesmo dia), consideramos como 1 noite
+    // Se a diferença for 1 (dia seguinte), consideramos como 1 noite
+    // Se a diferença for maior que 1, consideramos como o número exato de dias
+    const noites = dias === 0 ? 1 : dias;
+    
+    const precoBase = quartoSelecionado.price * noites;
+    // Usar a taxa de serviço personalizada do quarto ou 10% como padrão se não estiver definida
+    // Garantir que a taxa seja exatamente o valor definido no quarto
+    const taxaServicoPercentual = quartoSelecionado.serviceFeePct !== undefined 
+      ? Number(quartoSelecionado.serviceFeePct) // Converter para número para garantir
+      : 10;
+    
+    console.log("🧮 Detalhes do cálculo:", {
+      quartoId: quartoSelecionado.id,
+      nome: quartoSelecionado.name,
+      serviceFeePct: quartoSelecionado.serviceFeePct,
+      taxaServicoPercentual,
+      precoBase,
+      noites
     });
     
-    try {
-      // Usar a API existente para calcular o preço considerando os preços sazonais
-      if (quartoSelecionado.id) {
-        let priceData;
-        try {
-          priceData = await calculateStayPrice(
-          quartoSelecionado.id,
-          date.from,
-          date.to
-        );
-        
-        console.log("🧮 Detalhes do cálculo com preços sazonais:", priceData);
-        
-          // Verificar se todos os preços noturnos foram obtidos corretamente
-          if (priceData.nightlyPrices && priceData.nightlyPrices.length > 0) {
-            // Verificar se algum preço está zerado
-            const hasZeroPrices = priceData.nightlyPrices.some(night => night.price === 0);
-            
-            if (!hasZeroPrices) {
-              // Definir os preços noturnos para referência
-              setNightlyPrices(priceData.nightlyPrices);
-            } else {
-              console.warn("⚠️ Alguns preços estão zerados, usando preços padrão");
-              
-              // Corrigir preços zerados com o preço padrão do quarto
-              const correctedPrices = priceData.nightlyPrices.map(night => ({
-                ...night,
-                price: night.price > 0 ? night.price : quartoSelecionado.price
-              }));
-              
-              setNightlyPrices(correctedPrices);
-              priceData.nightlyPrices = correctedPrices;
-            }
-          } else {
-            // Criar preços noturnos manualmente se não forem retornados
-            const nights = differenceInDays(date.to, date.from);
-            const manualNightlyPrices = [];
-            
-            for (let i = 0; i < nights; i++) {
-              const currentDate = new Date(date.from);
-              currentDate.setDate(date.from.getDate() + i);
-              const dateStr = format(currentDate, "yyyy-MM-dd");
-              
-              manualNightlyPrices.push({
-                date: dateStr,
-                price: dayPrices[dateStr] || quartoSelecionado.price
-              });
-            }
-            
-            setNightlyPrices(manualNightlyPrices);
-            
-            if (!priceData) {
-              priceData = {
-                nightlyPrices: manualNightlyPrices,
-                totalPrice: quartoSelecionado.price * nights,
-                serviceFee: (quartoSelecionado.price * nights * (quartoSelecionado.serviceFeePct || 10)) / 100,
-                totalWithFee: 0
-              };
-              
-              priceData.totalWithFee = priceData.totalPrice + priceData.serviceFee;
-            }
-          }
-        } catch (error) {
-          console.error("Erro ao buscar preços sazonais:", error);
-          
-          // Criar preços noturnos manualmente em caso de erro
-          const nights = differenceInDays(date.to, date.from);
-          const manualNightlyPrices = [];
-          
-          for (let i = 0; i < nights; i++) {
-            const currentDate = new Date(date.from);
-            currentDate.setDate(date.from.getDate() + i);
-            const dateStr = format(currentDate, "yyyy-MM-dd");
-            
-            manualNightlyPrices.push({
-              date: dateStr,
-              price: dayPrices[dateStr] || quartoSelecionado.price
-            });
-          }
-          
-          setNightlyPrices(manualNightlyPrices);
-          
-          // Criar objeto priceData manualmente
-          priceData = {
-            nightlyPrices: manualNightlyPrices,
-            totalPrice: quartoSelecionado.price * nights,
-            serviceFee: (quartoSelecionado.price * nights * (quartoSelecionado.serviceFeePct || 10)) / 100,
-            totalWithFee: 0
-          };
-          
-          priceData.totalWithFee = priceData.totalPrice + priceData.serviceFee;
-        }
-        
-        // Após definir os preços noturnos, calcular o total usando a função de filtro
-        setTimeout(() => {
-          try {
-            // Calcular o preço total usando apenas as noites filtradas
-            const filteredTotal = getFilteredTotalPrice();
-            console.log("🧾 Preço total baseado nas noites filtradas:", filteredTotal);
-            
-            // Verificação de segurança para valores absurdos
-            if (filteredTotal > 10000) {
-              console.error("⚠️ ERRO: Valor total calculado muito alto! Verificando valores:", filteredTotal);
-              // Se o valor for muito alto, usar o serviço da API diretamente
-        setTotalPrice(priceData.totalPrice);
-        setServiceFee(priceData.serviceFee);
-        setTotalWithFee(priceData.totalWithFee);
-        setPrecoTotal(priceData.totalWithFee);
-            } else if (filteredTotal <= 0) {
-              console.error("⚠️ ERRO: Valor total calculado zerado ou negativo! Usando preço base:", filteredTotal);
-              // Se o valor for zero ou negativo, usar cálculo básico
-              const nights = differenceInDays(date.to, date.from);
-              const baseTotal = quartoSelecionado.price * nights;
-              const baseFee = (baseTotal * (quartoSelecionado.serviceFeePct || 10)) / 100;
-              
-              setTotalPrice(baseTotal);
-              setServiceFee(baseFee);
-              setTotalWithFee(baseTotal + baseFee);
-              setPrecoTotal(baseTotal + baseFee);
-            } else {
-              // Atualizar o estado total com os valores calculados
-              setTotalPrice(filteredTotal);
-              setServiceFee(priceData.serviceFee);
-              setTotalWithFee(filteredTotal + priceData.serviceFee);
-              setPrecoTotal(filteredTotal + priceData.serviceFee);
-            }
-        
-        // Definir média de preço por noite para exibição
-            const filteredNights = getFilteredNightlyPrices();
-            const mediaPrecoNoite = filteredNights.length > 0 
-              ? filteredTotal / filteredNights.length 
-              : quartoSelecionado.price;
-        setRoomPrice(mediaPrecoNoite);
-        
-        console.log("✅ Resultado do cálculo:", {
-              preçosPorNoite: getFilteredNightlyPrices(),
-              totalPrice: filteredTotal,
-              totalWithFee: filteredTotal + priceData.serviceFee,
-          mediaPrecoNoite
-        });
-          } catch (error) {
-            console.error("Erro ao calcular preço total a partir das noites filtradas:", error);
-            // Fallback usando preço base do quarto
-            const nights = differenceInDays(date.to, date.from);
-            const baseTotal = quartoSelecionado.price * nights;
-            const baseFee = (baseTotal * (quartoSelecionado.serviceFeePct || 10)) / 100;
-            
-            setTotalPrice(baseTotal);
-            setServiceFee(baseFee);
-            setTotalWithFee(baseTotal + baseFee);
-            setPrecoTotal(baseTotal + baseFee);
-            setRoomPrice(quartoSelecionado.price);
-          }
-        }, 0);
-      }
-    } catch (error) {
-      console.error("Erro ao calcular preços sazonais:", error);
-      
-      // Cálculo de fallback usando preço base
-      const dias = differenceInDays(date.to, date.from);
-      const noites = dias === 0 ? 1 : dias;
-      
-      const precoBase = quartoSelecionado.price * noites;
-      const taxaServicoPercentual = quartoSelecionado.serviceFeePct !== undefined 
-        ? Number(quartoSelecionado.serviceFeePct)
-        : 10;
-      
-      const taxaServico = taxaServicoPercentual > 0 ? precoBase * (taxaServicoPercentual / 100) : 0;
-      
-      setPrecoTotal(precoBase + taxaServico);
-      console.log("⚠️ Usando cálculo de fallback:", {
-        precoBase,
-        taxaServico,
-        precoTotal: precoBase + taxaServico
-      });
-    }
+    // Se a taxa for 0%, não aplicar nenhum valor adicional
+    const taxaServico = taxaServicoPercentual > 0 ? precoBase * (taxaServicoPercentual / 100) : 0;
     
+    console.log("✅ Resultado do cálculo:", {
+      taxaServico,
+      precoTotal: precoBase + taxaServico
+    });
     console.log("💰 FIM DO CÁLCULO DE PREÇO TOTAL");
+    
+    setPrecoTotal(precoBase + taxaServico);
   }
   
   // Função para selecionar quarto
@@ -1115,12 +725,8 @@ export default function Booking() {
   }
   
   // Handler para avançar para a próxima etapa
-  const handleNextStep = async () => {
-    try {
-      await calcularPrecoTotal();
-    } catch (error) {
-      console.error("Erro ao calcular preço total:", error);
-    }
+  const handleNextStep = () => {
+    calcularPrecoTotal()
     
     // Se estiver na etapa 2, verificamos se as datas foram selecionadas
     if (step === 2) {
@@ -1575,7 +1181,7 @@ export default function Booking() {
     
     try {
       setLoading(true);
-      const roomData = await getRoomById(roomId);
+      const roomData = await getRoom(roomId);
       
       if (!roomData) {
         router.push('/rooms');
@@ -1641,92 +1247,6 @@ export default function Booking() {
       recalculatePrices();
     }
   }, [checkIn, checkOut, roomId, room]);
-  
-  // Função para obter total das noites filtradas
-  const getFilteredTotalPrice = () => {
-    // Usar o mapeamento de noites para calcular o total
-    const stayNights = mapStayNightsToDates();
-    let total = 0;
-    
-    // Somar os preços para cada noite no mapeamento
-    stayNights.forEach(nightData => {
-      const price = getPriceForDate(nightData.date);
-      
-      // Log detalhado para diagnóstico
-      console.log(`💰 Preço para ${nightData.date}: ${price}€`);
-      
-      total += price;
-    });
-    
-    // Verificação de segurança - se o total for zero, usar preço base * noites
-    if (total === 0 && quartoSelecionado && date.from && date.to) {
-      const nights = differenceInDays(date.to, date.from);
-      total = quartoSelecionado.price * nights;
-      console.log(`⚠️ Total zerado! Usando preço base: ${quartoSelecionado.price}€ × ${nights} noites = ${total}€`);
-    }
-    
-    return total;
-  }
-  
-  // Função para gerar as datas exatas das noites de estadia
-  const generateStayNights = () => {
-    if (!date.from || !date.to) return [];
-    
-    const nights = [];
-    const numOfNights = Math.max(1, differenceInDays(date.to, date.from));
-    
-    // Começar com a data de check-in
-    const currentDate = new Date(date.from);
-    
-    // Gerar numOfNights datas começando pela data de check-in
-    for (let i = 0; i < numOfNights; i++) {
-      nights.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    console.log("🏨 Noites de estadia geradas:", nights.map(d => d.toISOString().split('T')[0]));
-    
-    return nights;
-  }
-  
-  // Função para mapear datas de check-in/check-out com noites de estadia
-  const mapStayNightsToDates = () => {
-    if (!date.from || !date.to) return [];
-    
-    // Normalizar datas
-    const checkIn = new Date(date.from);
-    const checkOut = new Date(date.to);
-    checkIn.setHours(0, 0, 0, 0);
-    checkOut.setHours(0, 0, 0, 0);
-    
-    const nights = differenceInDays(checkOut, checkIn);
-    console.log(`🗓️ Total de noites: ${nights}`);
-    
-    const nightsMapping = [];
-    
-    // Cada noite é representada pelo dia em que começa, não em que termina
-    for (let i = 0; i < nights; i++) {
-      const stayDate = new Date(checkIn);
-      stayDate.setDate(checkIn.getDate() + i);
-      
-      const nextDate = new Date(stayDate);
-      nextDate.setDate(stayDate.getDate() + 1);
-      
-      const formattedDate = format(stayDate, "yyyy-MM-dd");
-      
-      nightsMapping.push({
-        index: i + 1,
-        nightLabel: `${i + 1}ª noite`,
-        date: formattedDate,
-        displayDate: format(stayDate, "dd/MM/yyyy", { locale: ptBR }),
-        startDate: stayDate,
-        endDate: nextDate
-      });
-    }
-    
-    console.log("🏨 Mapeamento de noites:", nightsMapping);
-    return nightsMapping;
-  };
   
   return shouldRender ? (
     <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
@@ -1977,135 +1497,90 @@ export default function Booking() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.4 }}
                     className={`${
                       isDark 
-                      ? 'bg-black/40 border-white/10' 
-                      : 'bg-white/90 border-gray-200/70'
-                    } backdrop-blur-xl rounded-3xl border p-6 md:p-8 shadow-xl`}
+                      ? 'bg-black/60 border-white/10' 
+                      : 'bg-white/80 border-gray-200/70'
+                    } backdrop-blur-lg rounded-2xl border p-4 shadow-lg`}
                   >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-                      <div className="flex items-center mb-4 md:mb-0">
-                        <div className="mr-3 p-2 rounded-full bg-primary/10">
-                          <Search className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            Filtrar Quartos
-                          </h3>
-                          <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
-                            Encontre o quarto perfeito para sua estadia
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <Button
-                        variant="outline" 
-                        onClick={() => {
-                          setFiltros({
-                            capacidade: 'any',
-                            tipo: 'todos',
-                            precoMaximo: 'any'
-                          });
-                        }}
-                        className={`${
-                          isDark 
-                            ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white shadow-inner' 
-                            : 'bg-gray-100/80 border-gray-200 hover:bg-gray-200/80 text-gray-800'
-                          } rounded-full transition-all duration-300 group`}
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
-                        Limpar filtros
-                      </Button>
+                    <div className="flex items-center mb-6">
+                      <Search className="h-5 w-5 mr-2 text-primary" />
+                      <h3 className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Filtrar Quartos</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Filtro de Capacidade */}
-                      <div className="space-y-2">
-                        <Label 
-                          htmlFor="capacidade" 
-                          className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
-                        >
-                          Capacidade
-                        </Label>
-                        <Select 
-                          value={filtros.capacidade} 
+                    <div>
+                        <Label htmlFor="capacidade" className="block mb-2 text-sm">Capacidade</Label>
+                      <Select 
+                        value={filtros.capacidade} 
                           onValueChange={(value) => handleFilterChange('capacidade', value)}
                         >
-                          <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
+                          <SelectTrigger className={`w-full ${
                             isDark 
-                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                            ? 'bg-white/5 border-white/10 text-white' 
+                            : 'bg-white border-gray-200 text-gray-900'
                           }`}>
-                            <SelectValue placeholder="Qualquer capacidade" />
-                          </SelectTrigger>
-                          <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
-                            <SelectItem value="any">Qualquer capacidade</SelectItem>
+                          <SelectValue placeholder="Qualquer capacidade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Qualquer capacidade</SelectItem>
                             <SelectItem value="1">1 pessoa</SelectItem>
                             <SelectItem value="2">2 pessoas</SelectItem>
                             <SelectItem value="3">3+ pessoas</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                        
+                        </SelectContent>
+                      </Select>
+                    </div>
+                      
                       {/* Filtro de Tipo */}
-                      <div className="space-y-2">
-                        <Label 
-                          htmlFor="tipo" 
-                          className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
-                        >
-                          Tipo de Quarto
-                        </Label>
-                        <Select 
-                          value={filtros.tipo} 
+                    <div>
+                        <Label htmlFor="tipo" className="block mb-2 text-sm">Tipo de Quarto</Label>
+                      <Select 
+                        value={filtros.tipo} 
                           onValueChange={(value) => handleFilterChange('tipo', value)}
                         >
-                          <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
+                          <SelectTrigger className={`w-full ${
                             isDark 
-                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                            ? 'bg-white/5 border-white/10 text-white' 
+                            : 'bg-white border-gray-200 text-gray-900'
                           }`}>
-                            <SelectValue placeholder="Todos os tipos" />
-                          </SelectTrigger>
-                          <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                          <SelectValue placeholder="Todos os tipos" />
+                        </SelectTrigger>
+                        <SelectContent>
                             <SelectItem value="todos">Todos os tipos</SelectItem>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="deluxe">Deluxe</SelectItem>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="deluxe">Deluxe</SelectItem>
                             <SelectItem value="suite">Suite</SelectItem>
                             <SelectItem value="presidential">Presidencial</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                        
+                        </SelectContent>
+                      </Select>
+                    </div>
+                      
                       {/* Filtro de Preço */}
-                      <div className="space-y-2">
-                        <Label 
-                          htmlFor="preco" 
-                          className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
-                        >
-                          Preço Máximo
-                        </Label>
-                        <Select 
-                          value={filtros.precoMaximo} 
+                    <div>
+                        <Label htmlFor="preco" className="block mb-2 text-sm">Preço Máximo</Label>
+                      <Select 
+                        value={filtros.precoMaximo} 
                           onValueChange={(value) => handleFilterChange('precoMaximo', value)}
                         >
-                          <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
+                          <SelectTrigger className={`w-full ${
                             isDark 
-                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                            ? 'bg-white/5 border-white/10 text-white' 
+                            : 'bg-white border-gray-200 text-gray-900'
                           }`}>
-                            <SelectValue placeholder="Sem limite de preço" />
-                          </SelectTrigger>
-                          <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
-                            <SelectItem value="any">Sem limite de preço</SelectItem>
-                            <SelectItem value="200">Até €200</SelectItem>
-                            <SelectItem value="300">Até €300</SelectItem>
-                            <SelectItem value="500">Até €500</SelectItem>
+                          <SelectValue placeholder="Sem limite de preço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Sem limite de preço</SelectItem>
+                          <SelectItem value="200">Até €200</SelectItem>
+                          <SelectItem value="300">Até €300</SelectItem>
+                          <SelectItem value="500">Até €500</SelectItem>
                             <SelectItem value="1000">Até €1000</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
                   </motion.div>
                 </div>
 
@@ -2150,158 +1625,116 @@ export default function Booking() {
                         key={quarto.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="transition-all duration-500 transform hover:-translate-y-1"
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
                       >
                         <Card 
-                          className={`overflow-hidden group border-0 shadow-lg ${
-                            isDark 
-                              ? 'bg-black/60 backdrop-blur-sm ring-1 ring-white/10 hover:ring-primary/20' 
-                              : 'bg-white hover:shadow-xl'
-                          } rounded-2xl cursor-pointer transition-all duration-300`}
+                          className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-primary/10 cursor-pointer h-full flex flex-col"
                           onClick={() => selecionarQuarto(quarto)}
                         >
                           <div className="relative h-60">
-                            <img
-                              src={quarto.images[currentImageIndex[index]]}
-                              alt={quarto.name}
-                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            />
+                            <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
+                              <img
+                                src={quarto.images[currentImageIndex[index]]}
+                                alt={quarto.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
+                            </div>
+                            
+                            {/* Controles do Carrossel */}
+                            <div className="absolute inset-x-0 bottom-0 h-full flex items-center justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handlePrevImage(index)
+                                }}
+                              >
+                                <ChevronLeft className="h-6 w-6 text-white" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleNextImage(index)
+                                }}
+                              >
+                                <ChevronRight className="h-6 w-6 text-white" />
+                              </Button>
+                            </div>
 
-                            {/* Gradiente overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300"></div>
-
-                            {/* Botões de navegação */}
-                            {quarto.images.length > 1 && (
-                              <>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePrevImage(index);
-                                  }}
-                                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                  aria-label="Imagem anterior"
-                                >
-                                  <ChevronLeft className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleNextImage(index);
-                                  }}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                  aria-label="Próxima imagem"
-                                >
-                                  <ChevronRight className="h-5 w-5" />
-                                </button>
-                              </>
-                            )}
-
-                            {/* Contador de imagens */}
-                            <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-medium ${
-                              isDark
-                                ? 'bg-black/60 text-white backdrop-blur-sm'
-                                : 'bg-white/90 text-gray-900 backdrop-blur-sm border border-gray-200 shadow-sm'
-                            }`}>
+                            {/* Indicador de Imagens */}
+                            <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm">
                               {currentImageIndex[index] + 1}/{quarto.images.length}
                             </div>
 
                             {/* Badge de Preço */}
-                            <div className="absolute top-3 right-3">
-                              <Badge variant="default" className="text-sm font-semibold px-3 py-1.5 bg-primary/90 hover:bg-primary backdrop-blur-sm shadow-lg">
+                            <div className="absolute top-4 right-4">
+                              <Badge variant="default" className="text-lg font-semibold px-4 py-2 bg-primary/90 hover:bg-primary backdrop-blur-sm shadow-lg">
                                 {formatarPreco(quarto.price)}
-                                <span className="text-xs opacity-90 ml-1">/noite</span>
+                                <span className="text-xs ml-1 opacity-80">/noite</span>
                               </Badge>
                             </div>
-                            
-                            {/* Tipo de Quarto */}
-                            {quarto.type && (
-                              <div className="absolute bottom-3 left-3">
-                                <Badge variant="outline" className={`px-3 py-1 ${
-                                  isDark 
-                                    ? 'bg-black/60 text-white border-white/20' 
-                                    : 'bg-white/80 text-black border-gray-300'
-                                } backdrop-blur-sm capitalize font-medium`}>
-                                  {quarto.type}
-                                </Badge>
-                              </div>
-                            )}
                           </div>
                           
-                          <div className={`p-6 space-y-4 ${isDark ? 'text-white' : ''}`}>
+                          <div className="p-5 space-y-4 flex-grow">
                             <div className="space-y-1">
                               <h3 className="text-xl font-bold tracking-tight">{quarto.name}</h3>
                               <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-1">
                                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                  <span className="font-semibold">{quarto.rating || 4.8}</span>
+                                  <span className="font-semibold">4.8</span>
                                 </div>
-                                <span className={`text-xs ${isDark ? 'text-white/50' : 'text-muted-foreground'}`}>•</span>
-                                <span className={`text-sm ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
-                                  50 avaliações
-                                </span>
+                                <span className="text-muted-foreground">•</span>
+                                <span className="text-muted-foreground">50 avaliações</span>
                               </div>
                             </div>
 
-                            <p className={`text-sm line-clamp-2 ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
-                              {quarto.description}
-                            </p>
+                            <p className="text-muted-foreground text-sm line-clamp-2">{quarto.description}</p>
 
-                            <div className={`flex items-center gap-4 p-3 rounded-xl ${
-                              isDark ? 'bg-white/5' : 'bg-muted/50'
-                            }`}>
+                            <div className="flex flex-wrap gap-3 p-3 bg-muted/50 rounded-xl">
                               <div className="flex items-center gap-2">
-                                <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
+                                <div className="p-1.5 rounded-full bg-background">
                                   <Square className="h-3.5 w-3.5 text-primary" />
                                 </div>
                                 <span className="text-sm font-medium">{quarto.size}m²</span>
                               </div>
-                              <div className="h-4 w-px bg-border/50 dark:bg-white/10"></div>
                               <div className="flex items-center gap-2">
-                                <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
+                                <div className="p-1.5 rounded-full bg-background">
                                   <Users className="h-3.5 w-3.5 text-primary" />
                                 </div>
                                 <span className="text-sm font-medium">Até {quarto.capacity} pessoas</span>
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              {quarto.amenities.slice(0, 3).map((amenidade, i) => (
+                            <div className="flex flex-wrap gap-1.5">
+                              {quarto.amenities.slice(0, 3).map((amenity, i) => (
                                 <Badge 
                                   key={i} 
                                   variant="outline" 
-                                  className={`rounded-full text-xs ${
-                                    isDark 
-                                      ? 'bg-white/5 border-white/10 text-white' 
-                                      : 'bg-background border-primary/20'
-                                  }`}
+                                  className="rounded-full px-2.5 py-0.5 text-xs bg-background border-primary/20"
                                 >
-                                  {amenidade}
+                                  {amenity}
                                 </Badge>
                               ))}
                               {quarto.amenities.length > 3 && (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`rounded-full text-xs ${
-                                    isDark 
-                                      ? 'bg-white/5 border-white/10 text-white' 
-                                      : 'bg-background border-primary/20'
-                                  }`}
-                                >
+                                <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-xs">
                                   +{quarto.amenities.length - 3}
                                 </Badge>
                               )}
                             </div>
 
                             <Button 
-                              className={`w-full rounded-full transition-all duration-300 group ${
-                                isDark
-                                  ? 'bg-white text-black hover:bg-white/90 shadow-white/10 hover:shadow-white/20' 
-                                  : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 hover:shadow-primary/30'
-                              } hover:scale-105 shadow-lg py-3 text-sm font-semibold`}
+                              className="w-full rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 h-10 text-sm font-semibold"
+                              id={`btn-selecionar-${quarto.id}`}
                             >
-                              Ver Disponibilidade
-                              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                              Ver disponibilidade
+                              <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
                         </Card>
@@ -2393,10 +1826,8 @@ export default function Booking() {
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                             <span className="font-semibold">4.8</span>
                           </div>
-                          <span className={`text-xs ${isDark ? 'text-white/50' : 'text-muted-foreground'}`}>•</span>
-                          <span className={`text-sm ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
-                            50 avaliações
-                          </span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">50 avaliações</span>
                         </div>
                       </div>
 
@@ -2509,58 +1940,43 @@ export default function Booking() {
                               {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
                             </h3>
                             
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-2">
-                              {quartoSelecionado && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-xs"
-                                  onClick={async () => {
-                                    setLoadingDatas(true);
-                                    try {
-                                      const datas = await getUnavailableDates(quartoSelecionado.id!);
-                                      setDatasIndisponiveis(datas);
-                                      toast.success("Disponibilidade atualizada com sucesso!", {
-                                        icon: <Check className="h-5 w-5 text-green-500" />
-                                      });
-                                    } catch (error) {
-                                      console.error('Erro ao atualizar disponibilidade:', error);
-                                      toast.error('Não foi possível atualizar a disponibilidade', {
-                                        icon: <AlertCircle className="h-5 w-5 text-red-500" />
-                                      });
-                                    } finally {
-                                      setLoadingDatas(false);
-                                    }
-                                  }}
-                                  disabled={loadingDatas}
-                                >
-                                  {loadingDatas ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                      Atualizando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CalendarIcon2 className="h-3 w-3 mr-1" />
-                                      Atualizar disponibilidade
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                              
-                              {loadingDatas && (
-                                <span className="text-xs text-muted-foreground flex items-center">
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                  Carregando preços...
-                                </span>
-                              )}
-                              
-                              {!loadingDatas && Object.keys(dayPrices).length > 0 && (
-                                <span className="text-xs text-muted-foreground">
-                                  Os preços são exibidos abaixo de cada data disponível
-                                </span>
-                              )}
-                            </div>
+                            {quartoSelecionado && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 text-xs"
+                                onClick={async () => {
+                                  setLoadingDatas(true);
+                                  try {
+                                    const datas = await getUnavailableDates(quartoSelecionado.id!);
+                                    setDatasIndisponiveis(datas);
+                                    toast.success("Disponibilidade atualizada com sucesso!", {
+                                      icon: <Check className="h-5 w-5 text-green-500" />
+                                    });
+                                  } catch (error) {
+                                    console.error('Erro ao atualizar disponibilidade:', error);
+                                    toast.error('Não foi possível atualizar a disponibilidade', {
+                                      icon: <AlertCircle className="h-5 w-5 text-red-500" />
+                                    });
+                                  } finally {
+                                    setLoadingDatas(false);
+                                  }
+                                }}
+                                disabled={loadingDatas}
+                              >
+                                {loadingDatas ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    Atualizando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CalendarIcon2 className="h-3 w-3 mr-1" />
+                                    Atualizar disponibilidade
+                                  </>
+                                )}
+                              </Button>
+                            )}
                           </div>
 
                           <Calendar
@@ -2572,7 +1988,6 @@ export default function Booking() {
                             className="rounded-lg w-full max-w-full border border-border p-6 shadow-lg bg-card"
                             month={calendarMonth}
                             onMonthChange={setCalendarMonth}
-                            dayPrices={dayPrices}
                             modifiersStyles={{
                               disabled: { 
                                 color: "#888888",
@@ -2754,54 +2169,18 @@ export default function Booking() {
                                 </div>
                                 <span className="font-medium">
                                   {date.from && date.to ? 
-                                    `${Math.max(1, differenceInDays(date.to, date.from))} noites` 
+                                    `${differenceInDays(date.to, date.from) === 0 ? 1 : differenceInDays(date.to, date.from)} noites` 
                                     : "-"}
                                 </span>
                               </div>
                               
-                              {/* Detalhamento de preços por noite */}
-                              {nightlyPrices.length > 0 && (
-                                <div className="space-y-4 mb-4">
-                                  <div className="flex justify-between items-center pb-3 border-b border-border/30">
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="h-4 w-4 text-primary" />
-                                      <span className="text-sm">Detalhamento por noite</span>
-                                    </div>
-                                    <span 
-                                      className="font-medium text-xs text-muted-foreground"
-                                    >
-                                      {date.from && date.to ? 
-                                        `${differenceInDays(date.to, date.from)} noite(s)` : '-'}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1 ml-6">
-                                    {/* Usar o mapeamento de noites em vez do filtro direto */}
-                                    {mapStayNightsToDates().map((nightData) => {
-                                      const price = getPriceForDate(nightData.date);
-                                      return (
-                                        <div key={nightData.date} className="flex justify-between items-center text-sm">
-                                          <span>
-                                            {nightData.displayDate} ({nightData.nightLabel})
-                                          </span>
-                                          <span className="font-medium">{formatarPreco(price)}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                              <div className="flex justify-between items-center pb-3 border-b border-border/30">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-primary" />
+                                  <span className="text-sm">Valor por noite</span>
                                 </div>
-                              )}
-                              
-                              {serviceFee > 0 && (
-                                <div className="flex justify-between items-center pb-3 border-b border-border/30">
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="h-4 w-4 text-primary" />
-                                    <span className="text-sm">Taxa de serviço</span>
-                                  </div>
-                                  <span className="font-medium">
-                                    {formatarPreco(serviceFee)}
-                                  </span>
-                                </div>
-                              )}
+                                <span className="font-medium">{formatarPreco(quartoSelecionado.price)}</span>
+                              </div>
                               
                               <div className="flex justify-between items-center pt-2">
                                 <div className="flex items-center gap-2">
@@ -2809,14 +2188,9 @@ export default function Booking() {
                                   <span className="font-semibold">Total</span>
                                 </div>
                                 <span className="font-bold text-lg text-primary">
-                                  {date.from && date.to ? (
-                                    // Calcular corretamente baseado nos preços por noite
-                                    nightlyPrices.length > 0 
-                                      ? formatarPreco(getFilteredTotalPrice() + serviceFee)
-                                      : formatarPreco(quartoSelecionado.price * differenceInDays(date.to, date.from) + serviceFee)
-                                  ) : (
-                                    "-"
-                                  )}
+                                  {date.from && date.to ? 
+                                    formatarPreco(quartoSelecionado.price * (differenceInDays(date.to, date.from) === 0 ? 1 : differenceInDays(date.to, date.from)))
+                                    : formatarPreco(quartoSelecionado.price)}
                                 </span>
                               </div>
                             </div>
@@ -2923,7 +2297,7 @@ export default function Booking() {
                             <p className="text-sm text-muted-foreground">Duração</p>
                             <p className="font-medium">
                               {date.from && date.to ? 
-                                `${Math.max(1, differenceInDays(date.to, date.from))} noites` 
+                                `${differenceInDays(date.to, date.from) === 0 ? 1 : differenceInDays(date.to, date.from)} noites` 
                                 : "-"}
                             </p>
                           </div>
@@ -2946,40 +2320,6 @@ export default function Booking() {
                               <h4 className="font-semibold">{quartoSelecionado.name}</h4>
                               <p className="text-sm text-muted-foreground">{quartoSelecionado.description}</p>
                             </div>
-                            
-                            {/* Detalhamento de preços por noite */}
-                            {nightlyPrices.length > 0 && (
-                              <div className="space-y-2 mt-4">
-                                <h4 className="text-sm font-semibold">Detalhamento de preços por noite</h4>
-                                <div className="space-y-1 text-sm border rounded-md p-3 bg-primary/5">
-                                  {/* Usar mapeamento de noites em vez do filtro direto */}
-                                  {mapStayNightsToDates().map((nightData) => {
-                                    const price = getPriceForDate(nightData.date);
-                                    return (
-                                      <div key={nightData.date} className="flex justify-between items-center">
-                                        <span>{nightData.displayDate} ({nightData.nightLabel})</span>
-                                        <span className="font-medium">{formatarPreco(price)}</span>
-                                      </div>
-                                    );
-                                  })}
-                                  {serviceFee > 0 && (
-                                    <>
-                                      <div className="h-px bg-border/20 my-2"></div>
-                                      <div className="flex justify-between items-center">
-                                        <span>Taxa de serviço ({quartoSelecionado.serviceFeePct || 0}%)</span>
-                                        <span className="font-medium">{formatarPreco(serviceFee)}</span>
-                                      </div>
-                                    </>
-                                  )}
-                                  <div className="h-px bg-border/20 my-2"></div>
-                                  <div className="flex justify-between items-center font-semibold">
-                                    <span>Total</span>
-                                    <span className="text-primary">{formatarPreco(getFilteredTotalPrice() + serviceFee)}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            
                             <div className="flex flex-wrap gap-2">
                               {quartoSelecionado.amenities.slice(0, 3).map((amenidade, index) => (
                                 <Badge 
@@ -3186,16 +2526,7 @@ export default function Booking() {
                             </div>
                             <div className="space-y-2">
                               <p className="text-sm text-muted-foreground">Valor Total</p>
-                              <p className="font-bold text-lg text-primary">
-                                {date.from && date.to ? (
-                                  // Calcular corretamente baseado nos preços por noite
-                                  nightlyPrices.length > 0 
-                                    ? formatarPreco(getFilteredTotalPrice() + serviceFee)
-                                    : formatarPreco(quartoSelecionado.price * differenceInDays(date.to, date.from) + serviceFee)
-                                ) : (
-                                  "-"
-                                )}
-                              </p>
+                              <p className="font-bold text-lg text-primary">{formatarPreco(precoTotal)}</p>
                             </div>
                           </div>
                         </CardContent>

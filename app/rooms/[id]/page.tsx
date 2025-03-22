@@ -6,10 +6,12 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/navbar'
-import { ArrowLeft, Star, Square, Users, Check, ArrowRight, Loader2, Wifi, Wind, Coffee, Utensils } from 'lucide-react'
+import { ArrowLeft, Star, Square, Users, Check, ArrowRight, Loader2, Wifi, Wind, Coffee, Utensils, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getRoomById } from '@/lib/firebase/firestore'
 import { Room } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
+import { CTASection } from '@/components/cta-section'
+import { Footer } from '@/components/footer'
 
 // Interface para o formato de quarto usado na interface
 interface QuartoUI {
@@ -96,7 +98,10 @@ export default function RoomDetails() {
   }
 
   const handleReservar = () => {
-    router.push(`/booking?room=${params.id}`)
+    if (!quarto) return;
+    
+    // Redirecionar para a página de booking com o ID do quarto
+    router.push(`/booking?roomId=${quarto.id}`)
   }
 
   if (loading) {
@@ -129,234 +134,286 @@ export default function RoomDetails() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/40">
-        <Navbar />
-      </div>
-      
-      {/* Botão de Voltar */}
-      <div className="pt-20 px-4 max-w-7xl mx-auto">
-        <Button
-          variant="ghost"
-          className="mb-4 hover:bg-background"
-          onClick={() => router.push('/rooms')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar
-        </Button>
-      </div>
-      
-      {/* Conteúdo Principal */}
-      <div className="max-w-7xl mx-auto px-4 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Coluna da Esquerda - Informações do Quarto */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Cabeçalho */}
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{quarto.nome}</h1>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{quarto.avaliacao}</span>
+    <>
+      <main className="min-h-screen bg-background dark:bg-black relative">
+        {/* Efeitos decorativos para o modo escuro */}
+        <div className="absolute inset-0 dark:bg-[url('/noise.png')] dark:opacity-[0.03] dark:mix-blend-overlay" />
+        <div className="absolute inset-0 dark:bg-gradient-radial dark:from-primary/5 dark:via-transparent dark:to-transparent dark:opacity-70" />
+        <div className="absolute top-0 right-0 dark:w-96 dark:h-96 dark:bg-primary/5 dark:rounded-full dark:blur-[100px] dark:opacity-50" />
+        <div className="absolute bottom-0 left-0 dark:w-96 dark:h-96 dark:bg-primary/5 dark:rounded-full dark:blur-[100px] dark:opacity-50" />
+        
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 dark:bg-black/95 backdrop-blur-lg border-b border-border/40 dark:border-white/10">
+          <Navbar />
+        </div>
+        
+        {/* Botão de Voltar */}
+        <div className="pt-20 px-4 max-w-7xl mx-auto relative z-10">
+          <Button
+            variant="outline"
+            className="mb-4 hover:bg-background dark:hover:bg-white/5 rounded-full dark:border-white/20 dark:text-white"
+            onClick={() => router.push('/rooms')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+        </div>
+        
+        {/* Conteúdo Principal */}
+        <div className="max-w-7xl mx-auto px-4 pb-16 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Coluna da Esquerda - Informações do Quarto */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Cabeçalho */}
+              <div>
+                <h1 className="text-3xl font-bold mb-2">{quarto.nome}</h1>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-medium">{quarto.avaliacao}</span>
+                  </div>
+                  <span>•</span>
+                  <span>{quarto.numeroAvaliacoes} avaliações</span>
+                  <span>•</span>
+                  <span>{quarto.metros}m²</span>
+                  <span>•</span>
+                  <span>Até {quarto.capacidade} pessoas</span>
                 </div>
-                <span>•</span>
-                <span>{quarto.numeroAvaliacoes} avaliações</span>
-                <span>•</span>
-                <span>{quarto.metros}m²</span>
-                <span>•</span>
-                <span>Até {quarto.capacidade} pessoas</span>
               </div>
-            </div>
-            
-            {/* Galeria de Imagens */}
-            <div className="relative rounded-2xl overflow-hidden aspect-[16/9] bg-muted">
-              <motion.div 
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                key={imagemAtiva}
-              >
-                <img
-                  src={quarto.imagens[imagemAtiva]}
-                  alt={`${quarto.nome} - Imagem ${imagemAtiva + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </motion.div>
               
-              {/* Controles da Galeria */}
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                {quarto.imagens.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setImagemAtiva(index)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      index === imagemAtiva 
-                        ? 'bg-white scale-125' 
-                        : 'bg-white/50 hover:bg-white/80'
-                    }`}
-                    aria-label={`Ver imagem ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </div>
-            
-            {/* Miniaturas */}
-            <div className="grid grid-cols-5 gap-2">
-              {quarto.imagens.slice(0, 5).map((img, i) => (
-                <button
-                  key={i}
-                  className={`relative rounded-lg overflow-hidden aspect-square ${
-                    i === imagemAtiva ? 'ring-2 ring-primary ring-offset-2' : ''
-                  }`}
-                  onClick={() => setImagemAtiva(i)}
+              {/* Galeria de Imagens */}
+              <div className="relative rounded-2xl overflow-hidden aspect-[16/9] bg-muted shadow-md">
+                <motion.div 
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  key={imagemAtiva}
                 >
                   <img
-                    src={img}
-                    alt={`${quarto.nome} - Miniatura ${i + 1}`}
+                    src={quarto.imagens[imagemAtiva]}
+                    alt={`${quarto.nome} - Imagem ${imagemAtiva + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </button>
-              ))}
-            </div>
-            
-            {/* Descrição */}
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">Sobre o Quarto</h2>
-              <p className="text-muted-foreground leading-relaxed">{quarto.descricaoLonga}</p>
-            </div>
-            
-            {/* Características */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-xl">
-                <Square className="h-6 w-6 text-primary mb-2" />
-                <span className="font-medium">{quarto.metros}m²</span>
-                <span className="text-xs text-muted-foreground">Área</span>
+                </motion.div>
+                
+                {/* Controles da Galeria */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                  {quarto.imagens.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setImagemAtiva(index)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all ${
+                        index === imagemAtiva 
+                          ? 'bg-white scale-125' 
+                          : 'bg-white/50 hover:bg-white/80'
+                      }`}
+                      aria-label={`Ver imagem ${index + 1}`}
+                    />
+                  ))}
+                </div>
+                
+                {/* Botões de navegação da galeria */}
+                {quarto.imagens.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full h-10 w-10"
+                      onClick={() => setImagemAtiva((prev) => (prev - 1 + quarto.imagens.length) % quarto.imagens.length)}
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full h-10 w-10"
+                      onClick={() => setImagemAtiva((prev) => (prev + 1) % quarto.imagens.length)}
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  </>
+                )}
               </div>
-              <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-xl">
-                <Users className="h-6 w-6 text-primary mb-2" />
-                <span className="font-medium">{quarto.capacidade}</span>
-                <span className="text-xs text-muted-foreground">Pessoas</span>
+              
+              {/* Miniaturas */}
+              <div className="grid grid-cols-5 gap-2">
+                {quarto.imagens.slice(0, 5).map((img, i) => (
+                  <button
+                    key={i}
+                    className={`relative rounded-lg overflow-hidden aspect-square ${
+                      i === imagemAtiva ? 'ring-2 ring-primary ring-offset-2' : ''
+                    }`}
+                    onClick={() => setImagemAtiva(i)}
+                  >
+                    <img
+                      src={img}
+                      alt={`${quarto.nome} - Miniatura ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
-              {quarto.destaques.slice(0, 2).map((destaque, i) => {
-                const IconComponent = amenidadeIcons[destaque] || Check;
-                return (
-                  <div key={i} className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-xl">
-                    <IconComponent className="h-6 w-6 text-primary mb-2" />
-                    <span className="font-medium text-center">{destaque}</span>
-                    <span className="text-xs text-muted-foreground">Incluído</span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* Amenidades */}
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">Amenidades</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {quarto.amenidades.map((amenidade, i) => {
-                  const IconComponent = amenidadeIcons[amenidade] || Check;
+              
+              {/* Descrição */}
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold dark:text-white">Sobre o Quarto</h2>
+                <p className="text-muted-foreground dark:text-white/70 leading-relaxed">{quarto.descricaoLonga}</p>
+              </div>
+              
+              {/* Características */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col items-center justify-center p-4 bg-muted/30 dark:bg-white/5 rounded-xl dark:backdrop-blur-sm">
+                  <Square className="h-6 w-6 text-primary mb-2" />
+                  <span className="font-medium dark:text-white">{quarto.metros}m²</span>
+                  <span className="text-xs text-muted-foreground dark:text-white/60">Área</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-4 bg-muted/30 dark:bg-white/5 rounded-xl dark:backdrop-blur-sm">
+                  <Users className="h-6 w-6 text-primary mb-2" />
+                  <span className="font-medium dark:text-white">{quarto.capacidade}</span>
+                  <span className="text-xs text-muted-foreground dark:text-white/60">Pessoas</span>
+                </div>
+                {quarto.destaques.slice(0, 2).map((destaque, i) => {
+                  const IconComponent = amenidadeIcons[destaque] || Check;
                   return (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted/30 transition-colors">
-                      <div className="p-1.5 rounded-full bg-primary/10">
-                        <IconComponent className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="text-sm font-medium">{amenidade}</span>
+                    <div key={i} className="flex flex-col items-center justify-center p-4 bg-muted/30 dark:bg-white/5 rounded-xl dark:backdrop-blur-sm">
+                      <IconComponent className="h-6 w-6 text-primary mb-2" />
+                      <span className="font-medium text-center dark:text-white">{destaque}</span>
+                      <span className="text-xs text-muted-foreground dark:text-white/60">Incluído</span>
                     </div>
                   );
                 })}
               </div>
-            </div>
-            
-            {/* Serviços Adicionais */}
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">Serviços Adicionais</h2>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {quarto.servicosAdicionais.map((servico, i) => (
-                  <div 
-                    key={i} 
-                    className="flex items-center gap-3 p-4 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/5 transition-all cursor-pointer"
-                  >
-                    <div className="flex-1">
-                      <span className="font-medium">{servico}</span>
+              
+              {/* Amenidades */}
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold dark:text-white">Amenidades</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {quarto.amenidades.map((amenidade, i) => {
+                    const IconComponent = amenidadeIcons[amenidade] || Check;
+                    return (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 dark:bg-white/5 hover:bg-muted/30 dark:hover:bg-white/10 transition-colors dark:backdrop-blur-sm">
+                        <div className="p-1.5 rounded-full bg-primary/10 dark:bg-primary/20">
+                          <IconComponent className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm font-medium dark:text-white">{amenidade}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Serviços Adicionais */}
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold dark:text-white">Serviços Adicionais</h2>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {quarto.servicosAdicionais.map((servico, i) => (
+                    <div 
+                      key={i} 
+                      className="flex items-center gap-3 p-4 rounded-xl border border-border/50 dark:border-white/10 hover:border-primary/30 dark:hover:border-primary/20 hover:bg-muted/5 dark:hover:bg-white/5 transition-all cursor-pointer dark:backdrop-blur-sm"
+                    >
+                      <div className="flex-1">
+                        <span className="font-medium dark:text-white">{servico}</span>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-primary" />
                     </div>
-                    <ArrowRight className="h-5 w-5 text-primary" />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* Coluna da Direita - Card de Reserva */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 bg-card rounded-2xl p-6 border shadow-lg">
-              <div className="space-y-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="text-3xl font-bold">{formatarPreco(quarto.preco)}</div>
-                    <div className="text-muted-foreground">por noite</div>
-                  </div>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    Disponível
-                  </Badge>
-                </div>
+            
+            {/* Coluna da Direita - Reserva */}
+            <div className="lg:sticky lg:top-32 self-start">
+              <div className="bg-card dark:bg-black/50 rounded-3xl overflow-hidden border border-border/50 dark:border-white/10 shadow-lg p-6 dark:backdrop-blur-sm relative dark:shadow-xl">
+                {/* Efeitos decorativos para o card no modo escuro */}
+                <div className="absolute inset-0 dark:bg-gradient-to-br dark:from-black/80 dark:to-black/60 dark:z-0" />
+                <div className="absolute top-0 right-0 dark:-mt-10 dark:-mr-10 dark:w-40 dark:h-40 dark:rounded-full dark:blur-3xl dark:opacity-70 dark:bg-primary/10" />
+                <div className="absolute bottom-0 left-0 dark:-mb-10 dark:-ml-10 dark:w-40 dark:h-40 dark:rounded-full dark:blur-3xl dark:opacity-70 dark:bg-primary/10" />
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Check-in</label>
-                      <div className="p-3 rounded-lg border bg-muted/20">
-                        Selecionar
+                <div className="space-y-6 relative dark:z-10">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-3xl font-bold dark:text-white">{formatarPreco(quarto.preco)}</div>
+                      <div className="text-muted-foreground dark:text-white/70">por noite</div>
+                    </div>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:border-primary/30">
+                      Disponível
+                    </Badge>
+                  </div>
+                  
+                  {/* Características Rápidas */}
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 dark:bg-white/5 rounded-xl dark:backdrop-blur-sm relative">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-background dark:bg-white/10">
+                        <Square className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium dark:text-white">{quarto.metros}m²</div>
+                        <div className="text-xs text-muted-foreground dark:text-white/70">Área total</div>
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Check-out</label>
-                      <div className="p-3 rounded-lg border bg-muted/20">
-                        Selecionar
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-background dark:bg-white/10">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium dark:text-white">Até {quarto.capacidade} pessoas</div>
+                        <div className="text-xs text-muted-foreground dark:text-white/70">Capacidade</div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Hóspedes</label>
-                    <div className="p-3 rounded-lg border bg-muted/20 flex justify-between items-center">
-                      <span>2 adultos, 0 crianças</span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <div className="border-t border-border/50 dark:border-white/10 pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium dark:text-white/90">Preço por noite</span>
+                      <span className="dark:text-white">{formatarPreco(quarto.preco)}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="font-medium dark:text-white/90">Taxa de serviço</span>
+                      <span className="dark:text-white">{formatarPreco(quarto.preco * 0.1)}</span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold">
+                      <span className="dark:text-white">Total</span>
+                      <span className="dark:text-white">{formatarPreco(quarto.preco * 1.1)}</span>
                     </div>
                   </div>
+                  
+                  <div className="flex flex-col items-center justify-center w-full space-y-2">
+                    <Button 
+                      className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-white dark:hover:bg-white/90 dark:text-black transition-all duration-300 shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 font-semibold py-3 flex items-center justify-center gap-2"
+                      onClick={handleReservar}
+                      aria-label="Ver disponibilidade deste quarto"
+                    >
+                      Ver Disponibilidade
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </Button>
+                    
+                    <p className="text-xs text-center text-muted-foreground dark:text-white/70">
+                      Não será feita nenhuma cobrança ainda. Você confirmará os detalhes na próxima etapa.
+                    </p>
+                  </div>
+                  
+                  <p className="text-sm text-center text-muted-foreground dark:text-white/70 mt-2 border-t border-border/20 dark:border-white/10 pt-2">
+                    <span className="inline-flex items-center">
+                      <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 mr-1" />
+                      <span className="font-medium dark:text-white">{quarto.avaliacao}</span>
+                    </span>
+                    <span className="mx-1 dark:text-white/70">•</span>
+                    <span className="dark:text-white/70">{quarto.numeroAvaliacoes} avaliações</span>
+                  </p>
                 </div>
-                
-                <div className="border-t border-border pt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">Preço por noite</span>
-                    <span>{formatarPreco(quarto.preco)}</span>
-                  </div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="font-medium">Taxa de serviço</span>
-                    <span>{formatarPreco(quarto.preco * 0.1)}</span>
-                  </div>
-                  <div className="flex justify-between items-center font-bold">
-                    <span>Total</span>
-                    <span>{formatarPreco(quarto.preco * 1.1)}</span>
-                  </div>
-                </div>
-                
-                <Button 
-                  size="lg"
-                  className="w-full rounded-xl bg-white hover:bg-white/90 text-black shadow-md hover:shadow-lg transition-all py-6 text-base font-semibold"
-                  onClick={handleReservar}
-                >
-                  Reservar Agora
-                </Button>
-                
-                <p className="text-xs text-center text-muted-foreground">
-                  Não será feita nenhuma cobrança ainda. Você confirmará os detalhes na próxima etapa.
-                </p>
               </div>
             </div>
           </div>
         </div>
+      </main>
+      
+      {/* CTA Section */}
+      <CTASection />
+      
+      {/* Footer com padding extra para dispositivos móveis */}
+      <div className="lg:pb-0 pb-24 md:pb-20">
+        <Footer />
       </div>
-    </main>
+    </>
   )
 } 

@@ -6,13 +6,37 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Navbar } from '@/components/navbar'
-import { ArrowRight, Wifi, Coffee, Bath, Tv, Users, Square, Star, ChevronLeft, ChevronRight, Check, ChevronDown } from 'lucide-react'
+import { 
+  ArrowRight, 
+  Wifi, 
+  Coffee, 
+  Bath, 
+  Tv, 
+  Users, 
+  Square, 
+  Star, 
+  ChevronLeft, 
+  ChevronRight, 
+  Check, 
+  ChevronDown, 
+  Search,
+  RefreshCw
+} from 'lucide-react'
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue, 
+} from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { useRouter } from 'next/navigation'
-import { RoomDetailsSheet } from '@/components/RoomDetailsSheet'
 import { getRooms } from '@/lib/firebase/firestore'
 import { Room } from '@/lib/types'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
+import { CTASection } from '@/components/cta-section'
+import { Footer } from '@/components/footer'
 
 // Dados de exemplo (serão substituídos pelos dados do Firebase)
 const quartosPadrao: QuartoUI[] = [
@@ -117,6 +141,9 @@ interface QuartoUI {
 export default function Rooms() {
   const router = useRouter()
   const [filtroPreco, setFiltroPreco] = useState('todos')
+  const [filtroCapacidade, setFiltroCapacidade] = useState('any')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
+  const [filtroPrecoMaximo, setFiltroPrecoMaximo] = useState('any')
   const [currentImageIndex, setCurrentImageIndex] = useState<number[]>([])
   const [selectedRoom, setSelectedRoom] = useState<any>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -137,6 +164,17 @@ export default function Rooms() {
   useEffect(() => {
     carregarQuartos()
   }, [])
+
+  // Função para filtrar os quartos
+  const handleFilterChange = (field: 'capacidade' | 'tipo' | 'precoMaximo', value: string) => {
+    if (field === 'capacidade') {
+      setFiltroCapacidade(value);
+    } else if (field === 'tipo') {
+      setFiltroTipo(value);
+    } else if (field === 'precoMaximo') {
+      setFiltroPrecoMaximo(value);
+    }
+  };
 
   // Função para carregar quartos do Firebase
   const carregarQuartos = async () => {
@@ -212,54 +250,78 @@ export default function Rooms() {
   }
 
   const handleNextImage = (roomIndex: number) => {
-    setCurrentImageIndex(prevState => {
-      const newState = [...prevState]
-      const room = quartos[roomIndex]
-      newState[roomIndex] = (newState[roomIndex] + 1) % room.imagens.length
-      return newState
-    })
+    if (roomIndex < 0 || roomIndex >= quartos.length) return;
+    if (!quartos[roomIndex].imagens || quartos[roomIndex].imagens.length <= 1) return;
+    
+    setCurrentImageIndex(prev => {
+      const newIndexes = [...prev];
+      newIndexes[roomIndex] = (newIndexes[roomIndex] + 1) % quartos[roomIndex].imagens.length;
+      return newIndexes;
+    });
   }
 
   const handlePrevImage = (roomIndex: number) => {
-    setCurrentImageIndex(prevState => {
-      const newState = [...prevState]
-      const room = quartos[roomIndex]
-      newState[roomIndex] = (newState[roomIndex] - 1 + room.imagens.length) % room.imagens.length
-      return newState
-    })
-  }
-
-  const openRoomDetails = (room: QuartoUI) => {
-    console.log("Abrindo detalhes do quarto:", room);
+    if (roomIndex < 0 || roomIndex >= quartos.length) return;
+    if (!quartos[roomIndex].imagens || quartos[roomIndex].imagens.length <= 1) return;
     
-    // Garantir que todos os campos necessários existam
-    setSelectedRoom({
-      id: room.id,
-      nome: room.nome,
-      descricao: room.descricao,
-      descricaoLonga: room.descricaoLonga,
-      preco: room.preco,
-      metros: room.metros,
-      capacidade: room.capacidade,
-      avaliacao: room.avaliacao,
-      numeroAvaliacoes: room.numeroAvaliacoes,
-      imagens: Array.isArray(room.imagens) ? room.imagens : [],
-      amenidades: Array.isArray(room.amenidades) ? room.amenidades : [],
-      destaques: Array.isArray(room.destaques) ? room.destaques : [],
-      servicosAdicionais: Array.isArray(room.servicosAdicionais) ? room.servicosAdicionais : []
+    setCurrentImageIndex(prev => {
+      const newIndexes = [...prev];
+      newIndexes[roomIndex] = (newIndexes[roomIndex] - 1 + quartos[roomIndex].imagens.length) % quartos[roomIndex].imagens.length;
+      return newIndexes;
     });
-    
-    setIsDetailsOpen(true);
   }
 
-  // Filtrar quartos por preço
+  const handleVerDetalhes = (id: string) => {
+    router.push(`/rooms/${id}`);
+  }
+
+  // Filtrar quartos com base nos filtros selecionados
   const quartosFiltrados = quartos.filter(quarto => {
-    if (filtroPreco === 'todos') return true
-    if (filtroPreco === 'economico' && quarto.preco < 600) return true
-    if (filtroPreco === 'medio' && quarto.preco >= 600 && quarto.preco < 800) return true
-    if (filtroPreco === 'premium' && quarto.preco >= 800) return true
-    return false
-  })
+    let atendeFiltros = true;
+    
+    // Filtro por capacidade
+    if (filtroCapacidade && filtroCapacidade !== 'any') {
+      atendeFiltros = atendeFiltros && quarto.capacidade >= parseInt(filtroCapacidade);
+    }
+    
+    // Filtro por tipo de quarto
+    if (filtroTipo && filtroTipo !== 'todos') {
+      const tipoNormalizado = filtroTipo.toLowerCase();
+      const quartoNome = quarto.nome.toLowerCase();
+      
+      // Adaptado para verificar os tipos específicos
+      switch(tipoNormalizado) {
+        case 'standard':
+          atendeFiltros = atendeFiltros && quartoNome.includes('standard');
+          break;
+        case 'deluxe':
+          atendeFiltros = atendeFiltros && quartoNome.includes('deluxe');
+          break;
+        case 'suite':
+          // Verifica ambas as grafias: suite e suíte
+          atendeFiltros = atendeFiltros && (quartoNome.includes('suite') || quartoNome.includes('suíte'));
+          break;
+        case 'familiar':
+          // Verifica ambos os termos: familiar e família
+          atendeFiltros = atendeFiltros && (quartoNome.includes('familiar') || quartoNome.includes('família') || quartoNome.includes('familia'));
+          break;
+        case 'presidencial':
+          atendeFiltros = atendeFiltros && quartoNome.includes('presidencial');
+          break;
+        default:
+          // Caso padrão, busca pelo termo no nome
+          atendeFiltros = atendeFiltros && quartoNome.includes(tipoNormalizado);
+      }
+    }
+    
+    // Filtro por preço máximo
+    if (filtroPrecoMaximo && filtroPrecoMaximo !== 'any') {
+      const precoMaximo = parseInt(filtroPrecoMaximo);
+      atendeFiltros = atendeFiltros && (quarto.preco <= precoMaximo);
+    }
+    
+    return atendeFiltros;
+  });
 
   // Evita flash de conteúdo não hidratado
   if (!mounted) {
@@ -269,6 +331,7 @@ export default function Rooms() {
   const isDark = theme === 'dark'
 
   return (
+    <>
     <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
       
@@ -282,15 +345,15 @@ export default function Rooms() {
             }}
             className="w-full h-[120%] -mt-10"
           >
-            <div className="w-full h-full relative">
-              <Image
-                src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461"
-                alt="Quartos de Luxo"
-                fill
-                priority
-                className="object-cover"
-              />
-            </div>
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
+            </video>
           </motion.div>
           <motion.div 
             style={{ opacity }}
@@ -378,164 +441,343 @@ export default function Rooms() {
       </section>
 
       {/* Filtros Modernizados */}
-      <section className={`py-12 border-t border-b ${
-        isDark ? 'bg-muted/30 border-primary/10' : 'bg-gray-100 border-gray-200'
+      <section className={`py-12 ${
+          isDark ? 'bg-black/60' : 'bg-gray-50/80'
       }`}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button
-              variant={filtroPreco === 'todos' ? 'default' : 'outline'}
-              onClick={() => setFiltroPreco('todos')}
-              className="rounded-full hover:scale-105 transition-transform"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className={`${
+                isDark 
+                ? 'bg-black/40 border-white/10' 
+                : 'bg-white/90 border-gray-200/70'
+              } backdrop-blur-xl rounded-3xl border p-6 md:p-8 shadow-xl`}
             >
-              Todos os Quartos
-            </Button>
-            <Button
-              variant={filtroPreco === 'economico' ? 'default' : 'outline'}
-              onClick={() => setFiltroPreco('economico')}
-              className="rounded-full hover:scale-105 transition-transform"
-            >
-              Até €600
-            </Button>
-            <Button
-              variant={filtroPreco === 'medio' ? 'default' : 'outline'}
-              onClick={() => setFiltroPreco('medio')}
-              className="rounded-full hover:scale-105 transition-transform"
-            >
-              Entre €600 e €800
-            </Button>
-            <Button
-              variant={filtroPreco === 'premium' ? 'default' : 'outline'}
-              onClick={() => setFiltroPreco('premium')}
-              className="rounded-full hover:scale-105 transition-transform"
-            >
-              Acima de €800
-            </Button>
-          </div>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                <div className="flex items-center mb-4 md:mb-0">
+                  <div className="mr-3 p-2 rounded-full bg-primary/10">
+                    <Search className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      Filtrar Quartos
+                    </h3>
+                    <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                      Encontre o quarto perfeito para sua estadia
+                    </p>
+                  </div>
+                </div>
+                
+                <Button
+                  variant="outline" 
+                  onClick={() => {
+                    setFiltroCapacidade('any');
+                    setFiltroTipo('todos');
+                    setFiltroPrecoMaximo('any');
+                  }}
+                  className={`${
+                    isDark 
+                      ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white shadow-inner' 
+                      : 'bg-gray-100/80 border-gray-200 hover:bg-gray-200/80 text-gray-800'
+                    } rounded-full transition-all duration-300 group`}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+                  Limpar filtros
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Filtro de Capacidade */}
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="capacidade" 
+                    className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                  >
+                    Capacidade
+                  </Label>
+                  <Select 
+                    value={filtroCapacidade} 
+                    onValueChange={(value) => handleFilterChange('capacidade', value)}
+                  >
+                    <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
+                      isDark 
+                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
+                      : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                    }`}>
+                      <SelectValue placeholder="Qualquer capacidade" />
+                    </SelectTrigger>
+                    <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                      <SelectItem value="any">Qualquer capacidade</SelectItem>
+                      <SelectItem value="1">1 pessoa</SelectItem>
+                      <SelectItem value="2">2 pessoas</SelectItem>
+                      <SelectItem value="3">3+ pessoas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                  
+                {/* Filtro de Tipo */}
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="tipo" 
+                    className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                  >
+                    Tipo de Quarto
+                  </Label>
+                  <Select 
+                    value={filtroTipo} 
+                    onValueChange={(value) => handleFilterChange('tipo', value)}
+                  >
+                    <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
+                      isDark 
+                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
+                      : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                    }`}>
+                      <SelectValue placeholder="Todos os tipos" />
+                    </SelectTrigger>
+                    <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                      <SelectItem value="todos">Todos os tipos</SelectItem>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="deluxe">Deluxe</SelectItem>
+                      <SelectItem value="suite">Suite</SelectItem>
+                      <SelectItem value="familiar">Familiar</SelectItem>
+                      <SelectItem value="presidencial">Presidencial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                  
+                {/* Filtro de Preço */}
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="preco" 
+                    className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                  >
+                    Preço Máximo
+                  </Label>
+                  <Select 
+                    value={filtroPrecoMaximo} 
+                    onValueChange={(value) => handleFilterChange('precoMaximo', value)}
+                  >
+                    <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
+                      isDark 
+                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
+                      : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                    }`}>
+                      <SelectValue placeholder="Sem limite de preço" />
+                    </SelectTrigger>
+                    <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                      <SelectItem value="any">Sem limite de preço</SelectItem>
+                      <SelectItem value="200">Até €200</SelectItem>
+                      <SelectItem value="300">Até €300</SelectItem>
+                      <SelectItem value="500">Até €500</SelectItem>
+                      <SelectItem value="1000">Até €1000</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </motion.div>
         </div>
       </section>
 
       {/* Lista de Quartos Melhorada */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {quartosFiltrados.map((quarto, index) => (
-            <motion.div
-              key={quarto.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <Card 
-                className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-primary/10 cursor-pointer" 
-                onClick={() => openRoomDetails(quarto)}
-              >
-                <div className="relative h-60">
-                  <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
-                    <img
-                      src={quarto.imagens[currentImageIndex[index]]}
-                      alt={quarto.nome}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
-                  </div>
-                  
-                  {/* Controles do Carrossel */}
-                  <div className="absolute inset-x-0 bottom-0 h-full flex items-center justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handlePrevImage(index)
-                      }}
-                    >
-                      <ChevronLeft className="h-6 w-6 text-white" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleNextImage(index)
-                      }}
-                    >
-                      <ChevronRight className="h-6 w-6 text-white" />
-                    </Button>
-                  </div>
+      <section className={`py-16 ${isDark ? 'bg-black' : 'bg-white'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-10">
+            <h2 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Nossos Quartos <span className="text-primary">& Suítes</span>
+            </h2>
+            <p className={`text-sm md:text-base mt-2 md:mt-0 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+              Mostrando {quartosFiltrados.length} {quartosFiltrados.length === 1 ? 'opção' : 'opções'} disponíveis
+            </p>
+          </div>
 
-                  {/* Indicador de Imagens */}
-                  <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm">
-                    {currentImageIndex[index] + 1}/{quarto.imagens.length}
-                  </div>
-
-                  {/* Badge de Preço */}
-                  <div className="absolute top-4 right-4">
-                    <Badge variant="default" className="text-lg font-semibold px-4 py-2 bg-primary/90 hover:bg-primary backdrop-blur-sm shadow-lg">
-                      {formatarPreco(quarto.preco)}
-                      <span className="text-xs ml-1 opacity-80">/noite</span>
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="p-5 space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-bold tracking-tight">{quarto.nome}</h3>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold">{quarto.avaliacao}</span>
-                      </div>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">{quarto.numeroAvaliacoes} avaliações</span>
-                    </div>
-                  </div>
-
-                  <p className="text-muted-foreground text-sm line-clamp-2">{quarto.descricao}</p>
-
-                  <div className="flex flex-wrap gap-3 p-3 bg-muted/50 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-full bg-background">
-                        <Square className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <span className="text-sm font-medium">{quarto.metros}m²</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-full bg-background">
-                        <Users className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <span className="text-sm font-medium">Até {quarto.capacidade} pessoas</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {quarto.amenidades.slice(0, 3).map((amenidade, i) => (
-                      <Badge 
-                        key={i} 
-                        variant="outline" 
-                        className="rounded-full px-2.5 py-0.5 text-xs bg-background border-primary/20"
-                      >
-                        {amenidade}
-                      </Badge>
-                    ))}
-                    {quarto.amenidades.length > 3 && (
-                      <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-xs">
-                        +{quarto.amenidades.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <Button 
-                    className="w-full rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 h-10 text-sm font-semibold"
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : quartosFiltrados.length === 0 ? (
+            <div className={`text-center py-16 rounded-3xl border ${
+              isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100'
+            }`}>
+              <div className="max-w-md mx-auto">
+                <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Nenhum quarto encontrado
+                </h3>
+                <p className={`mb-6 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+                  Tente ajustar seus filtros para encontrar opções disponíveis
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setFiltroCapacidade('any');
+                    setFiltroTipo('todos');
+                    setFiltroPrecoMaximo('any');
+                  }}
+                  className={`rounded-full ${
+                    isDark 
+                      ? 'bg-white/5 border-white/20 hover:bg-white/10 text-white' 
+                      : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-800'
+                  }`}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Limpar filtros
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {quartosFiltrados.map((quarto, index) => (
+                <motion.div
+                  key={quarto.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  className="transition-all duration-500 transform hover:-translate-y-1"
+                >
+                  <Card 
+                    className={`overflow-hidden group border-0 shadow-lg ${
+                      isDark 
+                        ? 'bg-black/60 backdrop-blur-sm ring-1 ring-white/10 hover:ring-primary/20' 
+                        : 'bg-white hover:shadow-xl'
+                    } rounded-2xl cursor-pointer transition-all duration-300`}
                   >
-                    Ver Detalhes
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                    <div className="relative h-60">
+                      <img
+                        src={quarto.imagens[currentImageIndex[index]]}
+                        alt={quarto.nome}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+
+                      {/* Gradiente overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300"></div>
+
+                      {/* Botões de navegação */}
+                      {quarto.imagens.length > 1 && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrevImage(index);
+                            }}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            aria-label="Imagem anterior"
+                          >
+                            <ChevronLeft className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNextImage(index);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            aria-label="Próxima imagem"
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
+
+                      {/* Contador de imagens */}
+                      <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-medium ${
+                        isDark
+                          ? 'bg-black/60 text-white backdrop-blur-sm'
+                          : 'bg-white/90 text-gray-900 backdrop-blur-sm border border-gray-200 shadow-sm'
+                      }`}>
+                        {currentImageIndex[index] + 1}/{quarto.imagens.length}
+                      </div>
+
+                      {/* Badge de Preço */}
+                      <div className="absolute top-3 right-3">
+                        <Badge variant="default" className="text-sm font-semibold px-3 py-1.5 bg-primary/90 hover:bg-primary backdrop-blur-sm shadow-lg">
+                          {formatarPreco(quarto.preco)}
+                          <span className="text-xs opacity-90 ml-1">/noite</span>
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className={`p-6 space-y-4 ${isDark ? 'text-white' : ''}`}>
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold tracking-tight">{quarto.nome}</h3>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold">{quarto.avaliacao}</span>
+                          </div>
+                          <span className={`text-xs ${isDark ? 'text-white/50' : 'text-muted-foreground'}`}>•</span>
+                          <span className={`text-sm ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
+                            {quarto.numeroAvaliacoes} avaliações
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className={`text-sm line-clamp-2 ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
+                        {quarto.descricao}
+                      </p>
+
+                      <div className={`flex items-center gap-4 p-3 rounded-xl ${
+                        isDark ? 'bg-white/5' : 'bg-muted/50'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
+                            <Square className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium">{quarto.metros}m²</span>
+                        </div>
+                        <div className="h-4 w-px bg-border/50 dark:bg-white/10"></div>
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
+                            <Users className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium">Até {quarto.capacidade} pessoas</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {quarto.amenidades.slice(0, 3).map((amenidade, i) => (
+                          <Badge 
+                            key={i} 
+                            variant="outline" 
+                            className={`rounded-full text-xs ${
+                              isDark 
+                                ? 'bg-white/5 border-white/10 text-white' 
+                                : 'bg-background border-primary/20'
+                            }`}
+                          >
+                            {amenidade}
+                          </Badge>
+                        ))}
+                        {quarto.amenidades.length > 3 && (
+                          <Badge 
+                            variant="outline" 
+                            className={`rounded-full text-xs ${
+                              isDark 
+                                ? 'bg-white/5 border-white/10 text-white' 
+                                : 'bg-background border-primary/20'
+                            }`}
+                          >
+                            +{quarto.amenidades.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <Button 
+                        className={`w-full rounded-full transition-all duration-300 group ${
+                          isDark
+                            ? 'bg-white text-black hover:bg-white/90 shadow-white/10 hover:shadow-white/20' 
+                            : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 hover:shadow-primary/30'
+                        } hover:scale-105 shadow-lg py-3 text-sm font-semibold`}
+                        onClick={() => handleVerDetalhes(quarto.id)}
+                      >
+                        Ver Detalhes
+                        <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -594,13 +836,13 @@ export default function Rooms() {
           </div>
         </div>
       </section>
-
-      {/* Sheet de Detalhes do Quarto */}
-      <RoomDetailsSheet 
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-        quarto={selectedRoom}
-      />
     </main>
+      
+      {/* CTA Section */}
+      <CTASection />
+
+      {/* Footer */}
+      <Footer />
+    </>
   )
 } 

@@ -2,17 +2,20 @@
 
 import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
+import { DayPicker, DayContent } from 'react-day-picker';
 
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  dayPrices?: Record<string, number>; // Formato: { "YYYY-MM-DD": preco }
+};
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  dayPrices,
   ...props
 }: CalendarProps) {
   return (
@@ -36,10 +39,10 @@ function Calendar({
         head_cell:
           'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
         row: 'flex w-full mt-2',
-        cell: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
+        cell: 'relative h-14 w-14 text-center p-0 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
         day: cn(
           buttonVariants({ variant: 'ghost' }),
-          'h-9 w-9 p-0 font-normal aria-selected:opacity-100'
+          'h-14 w-14 p-0 font-normal aria-selected:opacity-100 flex flex-col items-center justify-start pt-1'
         ),
         day_range_end: 'day-range-end',
         day_selected:
@@ -56,6 +59,33 @@ function Calendar({
       components={{
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
+        DayContent: (props) => {
+          const date = props.date;
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const dateStr = `${year}-${month}-${day}`;
+          
+          const price = dayPrices?.[dateStr];
+          
+          if (dateStr === '2025-06-17' || dateStr === '2025-06-18' || 
+              dateStr === '2025-06-19' || dateStr === '2025-06-20') {
+            console.log(`Calendário - Data ${dateStr}: Preço = €${price}`);
+          }
+          
+          return (
+            <div className="flex flex-col items-center h-full">
+              <div className="w-7 h-7 flex items-center justify-center">
+                {props.date.getDate()}
+              </div>
+              {price !== undefined && (
+                <span className="text-[10px] text-muted-foreground font-medium mt-1">
+                  €{price}
+                </span>
+              )}
+            </div>
+          );
+        }
       }}
       {...props}
     />

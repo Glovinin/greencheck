@@ -40,6 +40,10 @@ import { Label } from "@/components/ui/label";
 import { Form } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getRoomById, getRoomBookings, getDatesInRange } from '@/lib/firebase/firestore'
+import { getMyselfBookings, checkAvailability, getRoom } from "@/lib/firebase/firestore"
+import { formatCurrency, calcStayDays } from "@/lib/utils"
+import { getIconNameForAmenity } from "@/lib/functions"
 
 // Dicionário para traduzir mensagens de erro comuns do Stripe
 const errorMessages: Record<string, string> = {

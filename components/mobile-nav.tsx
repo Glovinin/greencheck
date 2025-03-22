@@ -21,6 +21,9 @@ import {
   FacebookLogo,
   Waves,
   CaretDown,
+  Image as ImageIcon,
+  CalendarCheck,
+  Camera
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -30,7 +33,7 @@ const bottomNavItems = [
   { href: '/', label: 'Home', icon: House },
   { href: '/rooms', label: 'Quartos', icon: MagnifyingGlass },
   { href: '/booking', label: 'Reservar', icon: Calendar },
-  { href: '/contato', label: 'Contato', icon: ChatCircle },
+  { href: '/gallery', label: 'Galeria', icon: Camera },
 ]
 
 // Todos os itens de navegação (para o menu expandido)
@@ -39,7 +42,8 @@ const allNavItems = [
   { href: '/rooms', label: 'Quartos', icon: MagnifyingGlass },
   { href: '/booking', label: 'Reservar', icon: Calendar },
   { href: '/restaurante', label: 'Restaurante', icon: ForkKnife },
-  { href: '/eventos', label: 'Eventos', icon: Calendar },
+  { href: '/eventos', label: 'Eventos', icon: CalendarCheck },
+  { href: '/gallery', label: 'Galeria', icon: Camera },
   { href: '/sobre', label: 'Sobre Nós', icon: Info },
   { href: '/contato', label: 'Contato', icon: ChatCircle },
   { href: '/admin/login', label: 'Login Admin', icon: UserCircle },
@@ -179,7 +183,7 @@ export function MobileNav() {
     <>
       {/* Barra de navegação inferior */}
       <nav className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-t rounded-t-[2rem] md:hidden",
+        "fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-t rounded-t-[2rem] block lg:hidden",
         isDark 
           ? "bg-black/80 border-white/10" 
           : "bg-white/80 border-gray-200"
@@ -213,11 +217,11 @@ export function MobileNav() {
                   )}
                   <ItemIcon 
                     weight={isActive ? "fill" : "regular"} 
-                    className="h-6 w-6 transition-all duration-300" 
+                    className="h-6 w-6 transition-all duration-300 sm:h-7 sm:w-7" 
                   />
                 </div>
                 <span className={cn(
-                  "text-xs mt-1 font-medium transition-all duration-300",
+                  "text-xs mt-1 font-medium transition-all duration-300 sm:text-sm",
                   isActive && "font-bold"
                 )}>{item.label}</span>
               </Link>
@@ -235,10 +239,10 @@ export function MobileNav() {
             <div className="relative p-2 rounded-2xl transition-all duration-300">
               <List 
                 weight="bold" 
-                className="h-6 w-6 transition-all duration-300" 
+                className="h-6 w-6 transition-all duration-300 sm:h-7 sm:w-7" 
               />
             </div>
-            <span className="text-xs mt-1 font-medium transition-all duration-300">Menu</span>
+            <span className="text-xs mt-1 font-medium transition-all duration-300 sm:text-sm">Menu</span>
           </button>
         </div>
       </nav>
@@ -265,7 +269,7 @@ export function MobileNav() {
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              "fixed inset-0 z-[100] md:hidden flex flex-col overflow-hidden",
+              "fixed inset-0 z-[100] lg:hidden flex flex-col overflow-hidden",
               isDark 
                 ? "bg-black text-white" 
                 : "bg-white text-gray-900"
@@ -278,16 +282,16 @@ export function MobileNav() {
               isDark ? "border-white/10" : "border-gray-200"
             )}>
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Waves className="h-5 w-5 text-primary" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center sm:h-12 sm:w-12">
+                  <Waves className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
                 </div>
-                <h1 className="text-xl font-bold">Aqua Vista</h1>
+                <h1 className="text-xl font-bold sm:text-2xl">Aqua Vista</h1>
               </div>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="h-10 w-10 rounded-full flex items-center justify-center transition-all hover:bg-primary/10"
+                className="h-10 w-10 rounded-full flex items-center justify-center transition-all hover:bg-primary/10 sm:h-12 sm:w-12"
               >
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6 sm:h-7 sm:w-7" />
               </button>
             </div>
 
@@ -317,7 +321,7 @@ export function MobileNav() {
                   : "bg-gradient-to-b from-white to-transparent"
               )} />
               
-              <ul className="space-y-6 pb-12" ref={menuItemsRef}>
+              <ul ref={menuItemsRef} className="space-y-6 pb-24">
                 {allNavItems.map((item, index) => {
                   const ItemIcon = item.icon
                   const isActive = pathname === item.href
@@ -325,42 +329,34 @@ export function MobileNav() {
                   return (
                     <motion.li 
                       key={item.href}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ 
-                        delay: 0.05 * index,
-                        duration: 0.4,
-                        ease: [0.22, 1, 0.36, 1]  
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ 
+                        opacity: 1, 
+                        x: 0,
+                        transition: {
+                          delay: 0.1 + index * 0.05,
+                          duration: 0.3
+                        }
                       }}
                     >
-                      <Link
+                      <Link 
                         href={item.href}
                         className={cn(
-                          "flex items-center gap-4 py-3 px-4 rounded-xl transition-all relative",
-                          isActive 
-                            ? "text-primary font-medium bg-primary/15 dark:bg-primary/20" 
-                            : "text-foreground hover:text-primary hover:bg-primary/5"
+                          "flex items-center py-2 px-3 rounded-xl hover:bg-primary/5 transition-all sm:py-3",
+                          isActive && "bg-primary/5"
                         )}
                       >
-                        {isActive ? (
-                          <div className="absolute inset-0 bg-gray-800/10 dark:bg-white/10 rounded-xl -z-10" />
-                        ) : null}
                         <div className={cn(
-                          "h-10 w-10 rounded-full flex items-center justify-center",
+                          "h-12 w-12 rounded-xl flex items-center justify-center sm:h-14 sm:w-14",
                           isActive 
-                            ? "bg-primary/40 text-primary" 
-                            : "bg-primary/5 text-foreground"
+                            ? "bg-primary/10 text-primary" 
+                            : "text-foreground"
                         )}>
-                          <ItemIcon 
-                            weight={isActive ? "fill" : "regular"} 
-                            className={cn(
-                              "h-5 w-5 transition-all",
-                              isActive ? "text-primary" : "text-muted-foreground"
-                            )}
-                          />
+                          <ItemIcon weight={isActive ? "fill" : "regular"} className="h-6 w-6 sm:h-7 sm:w-7" />
                         </div>
+                        
                         <span className={cn(
-                          "text-lg transition-all",
+                          "text-lg transition-all sm:text-xl",
                           isActive ? "font-medium text-primary" : "text-foreground"
                         )}>
                           {item.label}
@@ -377,27 +373,27 @@ export function MobileNav() {
 
               {/* Alternador de tema */}
               <div className={cn(
-                "mt-12 p-6 rounded-2xl border",
+                "mt-12 p-6 rounded-2xl border sm:p-8 sm:mt-16",
                 isDark ? "border-white/10 bg-gray-900/50" : "border-gray-200 bg-gray-50/50"
               )}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium text-lg">Alternar Tema</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Escolha entre modo claro ou escuro</p>
+                    <h3 className="font-medium text-lg sm:text-xl">Alternar Tema</h3>
+                    <p className="text-sm text-muted-foreground mt-1 sm:text-base sm:mt-2">Escolha entre modo claro ou escuro</p>
                   </div>
                   <Button 
                     onClick={toggleTheme}
                     variant="outline" 
                     size="icon" 
                     className={cn(
-                      "rounded-full h-12 w-12",
+                      "rounded-full h-12 w-12 sm:h-14 sm:w-14",
                       isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                     )}
                   >
                     {isDark ? (
-                      <SunDim className="h-5 w-5 text-yellow-400" />
+                      <SunDim className="h-5 w-5 text-yellow-400 sm:h-6 sm:w-6" />
                     ) : (
-                      <Moon className="h-5 w-5 text-indigo-600" />
+                      <Moon className="h-5 w-5 text-indigo-600 sm:h-6 sm:w-6" />
                     )}
                   </Button>
                 </div>

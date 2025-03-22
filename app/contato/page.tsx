@@ -13,6 +13,8 @@ import { useTheme } from 'next-themes'
 import { Contact, createContactMessage } from '@/lib/firebase/firestore'
 import { Timestamp } from 'firebase/firestore'
 import { toast, Toaster } from 'sonner'
+import { CTASection } from '@/components/cta-section'
+import { Footer } from '@/components/footer'
 
 export default function Contato() {
   const router = useRouter()
@@ -86,316 +88,324 @@ export default function Contato() {
   const isDark = theme === 'dark'
 
   return (
-    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
-      <Navbar />
-      <Toaster position="top-right" richColors />
-      
-      {/* Hero Section */}
-      <section className="relative min-h-[100svh] pb-20 md:pb-0">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="w-full h-[120%] -mt-10">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-            >
-              <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
-            </video>
-          </div>
-          <motion.div 
-            style={{ opacity }}
-            className={`absolute inset-0 backdrop-blur-[2px] ${
-              isDark 
-                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
-                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
-            }`} 
-          />
-          
-          {/* Elementos Decorativos */}
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
-          <div className={`absolute inset-x-0 top-0 h-32 ${
-            isDark 
-              ? 'bg-gradient-to-b from-black/60 to-transparent' 
-              : 'bg-gradient-to-b from-white/60 to-transparent'
-          }`} />
-          <div className={`absolute inset-x-0 bottom-0 h-32 ${
-            isDark 
-              ? 'bg-gradient-to-t from-black/60 to-transparent' 
-              : 'bg-gradient-to-t from-white/60 to-transparent'
-          }`} />
-        </div>
+    <>
+      <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
+        <Navbar />
+        <Toaster position="top-right" richColors />
         
-        <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
-          <motion.div 
-            style={{ opacity }}
-            className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6 md:space-y-8"
-            >
-              <div className="inline-block">
-                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
-                  isDark 
-                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
-                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
-                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
-                  Estamos à sua disposição
-                </span>
-              </div>
-              
-              <h1 className={`text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-                Entre em Contato
-                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                  isDark ? 'text-white/80' : 'text-gray-700'
-                }`}>com o Aqua Vista Monchique</span>
-              </h1>
-              
-              <p className={`text-lg sm:text-xl md:text-2xl font-light mb-8 md:mb-12 max-w-4xl mx-auto ${
-                isDark ? 'text-white/90' : 'text-gray-800'
-              }`}>
-                Estamos aqui para ajudar. Entre em contato conosco para qualquer dúvida ou solicitação.
-              </p>
-            </motion.div>
-          </motion.div>
-
-          {/* Scroll Indicator */}
-          <motion.div 
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="mt-12 md:mt-16 flex flex-col items-center"
-            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
-              isDark 
-                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
-                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
-            }`}>
-              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
-              }`} />
+        {/* Hero Section */}
+        <section className="relative min-h-[100svh] pb-20 md:pb-0">
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="w-full h-[120%] -mt-10">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
+              </video>
             </div>
-            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-              isDark ? 'text-white/80' : 'text-gray-700'
-            }`}>Explorar</span>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        
-        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8">
-          {/* Contact Form */}
-          <Card className={`p-6 shadow-xl backdrop-blur-sm ${
-            isDark ? 'border-white/10' : 'border-gray-200'
-          }`}>
-            <form onSubmit={handleSubmit}>
-              <CardHeader>
-                <CardTitle>Envie sua Mensagem</CardTitle>
-                <CardDescription>Preencha o formulário abaixo e entraremos em contato em breve.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Nome Completo</label>
-                  <Input
-                    name="nome"
-                    placeholder="Digite seu nome"
-                    value={formData.nome}
-                    onChange={handleInputChange}
-                    className="rounded-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input
-                    name="email"
-                    type="email"
-                    placeholder="Digite seu email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="rounded-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Telefone</label>
-                  <Input
-                    name="telefone"
-                    placeholder="Digite seu telefone"
-                    value={formData.telefone}
-                    onChange={handleInputChange}
-                    className="rounded-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Mensagem</label>
-                  <Textarea
-                    name="mensagem"
-                    placeholder="Digite sua mensagem"
-                    value={formData.mensagem}
-                    onChange={handleInputChange}
-                    className="rounded-lg min-h-[150px]"
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      Enviar Mensagem
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-
-          {/* Contact Info */}
-          <div className="space-y-8">
-            <Card className={`p-6 shadow-xl backdrop-blur-sm ${
-              isDark ? 'border-white/10' : 'border-gray-200'
-            }`}>
-              <CardHeader>
-                <CardTitle>Informações de Contato</CardTitle>
-                <CardDescription>Escolha a melhor forma de nos contatar</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <div className="p-2 rounded-full bg-primary/10 text-primary">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Endereço</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Rua das Montanhas, 123<br />
-                      Monchique, Portugal
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="p-2 rounded-full bg-primary/10 text-primary">
-                    <Phone className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Telefone</h3>
-                    <p className="text-sm text-muted-foreground">+351 282 123 456</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="p-2 rounded-full bg-primary/10 text-primary">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Email</h3>
-                    <p className="text-sm text-muted-foreground">contato@aquavista.com</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Map */}
-            <Card className={`p-6 shadow-xl backdrop-blur-sm ${
-              isDark ? 'border-white/10' : 'border-gray-200'
-            }`}>
-              <CardHeader>
-                <CardTitle>Nossa Localização</CardTitle>
-                <CardDescription>Venha nos visitar</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-video rounded-lg overflow-hidden">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12614.865603257537!2d-8.555277!3d37.316944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd1b1f2455555555%3A0x5555555555555555!2sMonchique%2C+Portugal!5e0!3m2!1spt-BR!2sbr!4v1555555555555"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-        
-        <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <div className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 shadow-2xl border ${
-            isDark ? 'bg-black/30 border-white/10' : 'bg-white/70 border-gray-200'
-          }`}>
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className={`text-3xl md:text-4xl font-bold mb-6 ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}
-            >
-              Pronto para uma Experiência Única?
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-              className={`text-lg max-w-2xl mx-auto mb-8 ${
-                isDark ? 'text-white/70' : 'text-gray-700'
-              }`}
-            >
-              Reserve agora e desfrute de momentos inesquecíveis no Aqua Vista Hotel.
-            </motion.p>
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
+              style={{ opacity }}
+              className={`absolute inset-0 backdrop-blur-[2px] ${
+                isDark 
+                  ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
+                  : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+              }`} 
+            />
+            
+            {/* Elementos Decorativos */}
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
+            <div className={`absolute inset-x-0 top-0 h-32 ${
+              isDark 
+                ? 'bg-gradient-to-b from-black/60 to-transparent' 
+                : 'bg-gradient-to-b from-white/60 to-transparent'
+            }`} />
+            <div className={`absolute inset-x-0 bottom-0 h-32 ${
+              isDark 
+                ? 'bg-gradient-to-t from-black/60 to-transparent' 
+                : 'bg-gradient-to-t from-white/60 to-transparent'
+            }`} />
+          </div>
+          
+          <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
+            <motion.div 
+              style={{ opacity }}
+              className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
             >
-              <Button 
-                size="lg"
-                onClick={() => router.push('/booking')}
-                className={`rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
-                  isDark
-                    ? 'bg-white text-black hover:bg-white/90'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="space-y-6 md:space-y-8"
+              >
+                <div className="inline-block">
+                  <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
+                    isDark 
+                      ? 'text-primary/90 bg-primary/10 border-primary/20' 
+                      : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                  } px-4 py-2 rounded-full backdrop-blur-sm border`}>
+                    Estamos à sua disposição
+                  </span>
+                </div>
+                
+                <h1 className={`text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none ${
+                  isDark ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Entre em Contato
+                  <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
+                    isDark ? 'text-white/80' : 'text-gray-700'
+                  }`}>com o Aqua Vista Monchique</span>
+                </h1>
+                
+                <p className={`text-lg sm:text-xl md:text-2xl font-light mb-8 md:mb-12 max-w-4xl mx-auto ${
+                  isDark ? 'text-white/90' : 'text-gray-800'
+                }`}>
+                  Estamos aqui para ajudar. Entre em contato conosco para qualquer dúvida ou solicitação.
+                </p>
+              </motion.div>
+            </motion.div>
+
+            {/* Scroll Indicator */}
+            <motion.div 
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="mt-12 md:mt-16 flex flex-col items-center"
+              onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
+                isDark 
+                  ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
+                  : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+              }`}>
+                <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
+                  isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+                }`} />
+              </div>
+              <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
+                isDark ? 'text-white/80' : 'text-gray-700'
+              }`}>Explorar</span>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+          <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+          <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+          
+          <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8">
+            {/* Contact Form */}
+            <Card className={`p-6 shadow-xl backdrop-blur-sm ${
+              isDark ? 'border-white/10' : 'border-gray-200'
+            }`}>
+              <form onSubmit={handleSubmit}>
+                <CardHeader>
+                  <CardTitle>Envie sua Mensagem</CardTitle>
+                  <CardDescription>Preencha o formulário abaixo e entraremos em contato em breve.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nome Completo</label>
+                    <Input
+                      name="nome"
+                      placeholder="Digite seu nome"
+                      value={formData.nome}
+                      onChange={handleInputChange}
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email</label>
+                    <Input
+                      name="email"
+                      type="email"
+                      placeholder="Digite seu email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Telefone</label>
+                    <Input
+                      name="telefone"
+                      placeholder="Digite seu telefone"
+                      value={formData.telefone}
+                      onChange={handleInputChange}
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Mensagem</label>
+                    <Textarea
+                      name="mensagem"
+                      placeholder="Digite sua mensagem"
+                      value={formData.mensagem}
+                      onChange={handleInputChange}
+                      className="rounded-lg min-h-[150px]"
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        Enviar Mensagem
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+
+            {/* Contact Info */}
+            <div className="space-y-8">
+              <Card className={`p-6 shadow-xl backdrop-blur-sm ${
+                isDark ? 'border-white/10' : 'border-gray-200'
+              }`}>
+                <CardHeader>
+                  <CardTitle>Informações de Contato</CardTitle>
+                  <CardDescription>Escolha a melhor forma de nos contatar</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-2 rounded-full bg-primary/10 text-primary">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Endereço</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Estrada da Foia, 8550-257<br />
+                        Monchique, Portugal
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="p-2 rounded-full bg-primary/10 text-primary">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Telefone</h3>
+                      <p className="text-sm text-muted-foreground">+351 282 249 728</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="p-2 rounded-full bg-primary/10 text-primary">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Email</h3>
+                      <p className="text-sm text-muted-foreground">contato@aquavista.com</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Map */}
+              <Card className={`p-6 shadow-xl backdrop-blur-sm ${
+                isDark ? 'border-white/10' : 'border-gray-200'
+              }`}>
+                <CardHeader>
+                  <CardTitle>Nossa Localização</CardTitle>
+                  <CardDescription>Venha nos visitar</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video rounded-lg overflow-hidden">
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12614.865603257537!2d-8.555277!3d37.316944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd1b1f2455555555%3A0x5555555555555555!2sMonchique%2C+Portugal!5e0!3m2!1spt-BR!2sbr!4v1555555555555"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+          <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+          
+          <div className="relative max-w-5xl mx-auto px-4 text-center">
+            <div className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 shadow-2xl border ${
+              isDark ? 'bg-black/30 border-white/10' : 'bg-white/70 border-gray-200'
+            }`}>
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className={`text-3xl md:text-4xl font-bold mb-6 ${
+                  isDark ? 'text-white' : 'text-gray-900'
                 }`}
               >
-                Fazer Reserva
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </motion.div>
+                Pronto para uma Experiência Única?
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                viewport={{ once: true }}
+                className={`text-lg max-w-2xl mx-auto mb-8 ${
+                  isDark ? 'text-white/70' : 'text-gray-700'
+                }`}
+              >
+                Reserve agora e desfrute de momentos inesquecíveis no Aqua Vista Hotel.
+              </motion.p>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                <Button 
+                  size="lg"
+                  onClick={() => router.push('/booking')}
+                  className={`rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
+                    isDark
+                      ? 'bg-white text-black hover:bg-white/90'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  Fazer Reserva
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </motion.div>
+            </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+      
+      {/* CTA Section */}
+      <CTASection />
+
+      {/* Footer */}
+      <Footer />
+    </>
   )
 } 

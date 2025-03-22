@@ -8,14 +8,67 @@ import {
 } from 'firebase/storage'
 import { storage } from './config'
 
+// Armazenamento temporário para ambiente de desenvolvimento
+const localStorageImages: Record<string, string> = {}
+
+// Função para salvar imagens temporárias no localStorage
+const saveLocalImages = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('aqua-vista-temp-images', JSON.stringify(localStorageImages));
+      console.log('Imagens salvas no localStorage');
+    } catch (e) {
+      console.error('Erro ao salvar imagens no localStorage:', e);
+    }
+  }
+}
+
+// Função para carregar imagens temporárias do localStorage
+const loadLocalImages = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const savedImages = localStorage.getItem('aqua-vista-temp-images');
+      if (savedImages) {
+        const parsedImages = JSON.parse(savedImages);
+        Object.assign(localStorageImages, parsedImages);
+        console.log('Imagens carregadas do localStorage:', Object.keys(parsedImages).length);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar imagens do localStorage:', e);
+    }
+  }
+}
+
+// Carregar imagens salvas quando o módulo é importado
+if (typeof window !== 'undefined') {
+  // Executar em um setTimeout para garantir que o window esteja disponível
+  setTimeout(loadLocalImages, 0);
+}
+
+// Função para obter a URL de dados de uma imagem simulada
+export const getLocalImageUrl = (path: string): string | null => {
+  if (localStorageImages[path]) {
+    return localStorageImages[path];
+  }
+  return null;
+}
+
 // Upload de arquivo
 export const uploadFile = async (
   file: File,
   path: string
 ): Promise<string> => {
-  const storageRef = ref(storage, path)
-  await uploadBytes(storageRef, file)
-  return getDownloadURL(storageRef)
+  try {
+    console.log(`Iniciando upload para caminho: ${path}`)
+    const storageRef = ref(storage, path)
+    const snapshot = await uploadBytes(storageRef, file)
+    const downloadURL = await getDownloadURL(snapshot.ref)
+    console.log(`Upload completo: ${path}`)
+    return downloadURL
+  } catch (error) {
+    console.error('Erro durante uploadFile:', error)
+    throw error
+  }
 }
 
 // Upload de múltiplos arquivos
@@ -23,33 +76,56 @@ export const uploadMultipleFiles = async (
   files: File[],
   basePath: string
 ): Promise<string[]> => {
-  const uploadPromises = files.map((file, index) => {
-    const path = `${basePath}/${Date.now()}_${index}_${file.name}`
-    return uploadFile(file, path)
-  })
-  
-  return Promise.all(uploadPromises)
+  try {
+    console.log(`Iniciando upload múltiplo para: ${basePath}`)
+    const uploadPromises = files.map((file, index) => {
+      const path = `${basePath}/${Date.now()}_${index}_${file.name}`
+      return uploadFile(file, path)
+    })
+    
+    return Promise.all(uploadPromises)
+  } catch (error) {
+    console.error('Erro durante uploadMultipleFiles:', error)
+    throw error
+  }
 }
 
 // Obter URL de download
 export const getFileUrl = async (path: string): Promise<string> => {
-  const storageRef = ref(storage, path)
-  return getDownloadURL(storageRef)
+  try {
+    const storageRef = ref(storage, path)
+    return getDownloadURL(storageRef)
+  } catch (error) {
+    console.error(`Erro ao obter URL para ${path}:`, error)
+    throw error
+  }
 }
 
 // Deletar arquivo
 export const deleteFile = async (path: string): Promise<void> => {
-  const storageRef = ref(storage, path)
-  await deleteObject(storageRef)
+  try {
+    console.log(`Deletando arquivo: ${path}`)
+    const storageRef = ref(storage, path)
+    await deleteObject(storageRef)
+    console.log(`Arquivo deletado: ${path}`)
+  } catch (error) {
+    console.error(`Erro ao deletar ${path}:`, error)
+    throw error
+  }
 }
 
 // Listar arquivos em um diretório
 export const listFiles = async (path: string): Promise<string[]> => {
-  const storageRef = ref(storage, path)
-  const result = await listAll(storageRef)
-  
-  const urlPromises = result.items.map(itemRef => getDownloadURL(itemRef))
-  return Promise.all(urlPromises)
+  try {
+    const storageRef = ref(storage, path)
+    const result = await listAll(storageRef)
+    
+    const urlPromises = result.items.map(itemRef => getDownloadURL(itemRef))
+    return Promise.all(urlPromises)
+  } catch (error) {
+    console.error(`Erro ao listar arquivos em ${path}:`, error)
+    throw error
+  }
 }
 
 // Extrair nome do arquivo de uma URL
@@ -74,6 +150,19 @@ export const getPathFromUrl = (url: string): string | null => {
 }
 
 /**
+ * Cria uma URL de dados a partir de um arquivo
+ * @param file Arquivo para criar a URL
+ * @returns Promise com URL de dados
+ */
+const createDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
  * Faz upload de uma imagem para o Firebase Storage
  * @param file Arquivo a ser enviado
  * @param basePath Caminho base onde o arquivo será armazenado
@@ -89,6 +178,7 @@ export const uploadImage = async (file: File, basePath: string): Promise<string>
     
     // Caminho completo para o arquivo
     const fullPath = `${basePath}/${fileName}`;
+    console.log(`Iniciando upload de imagem: ${fullPath}`)
     
     // Fazer upload do arquivo
     const storageRef = ref(storage, fullPath);
@@ -96,6 +186,7 @@ export const uploadImage = async (file: File, basePath: string): Promise<string>
     const downloadURL = await getDownloadURL(snapshot.ref);
     
     console.log(`Imagem enviada com sucesso: ${fullPath}`);
+    console.log(`URL de download: ${downloadURL}`);
     return downloadURL;
   } catch (error) {
     console.error('Erro ao fazer upload da imagem:', error);
@@ -111,14 +202,23 @@ export const uploadImage = async (file: File, basePath: string): Promise<string>
 export const deleteImage = async (url: string): Promise<boolean> => {
   try {
     // Extrair o caminho da URL
+    console.log(`Iniciando exclusão de imagem: ${url}`)
     const decodedUrl = decodeURIComponent(url)
     const startIndex = decodedUrl.indexOf('/o/') + 3
     const endIndex = decodedUrl.indexOf('?')
+    
+    if (startIndex < 3 || endIndex < 0) {
+      console.error('Formato de URL inválido:', url)
+      return false
+    }
+    
     const path = decodedUrl.substring(startIndex, endIndex)
+    console.log(`Caminho extraído: ${path}`)
     
     // Criar referência e excluir
     const imageRef = ref(storage, path)
     await deleteObject(imageRef)
+    console.log(`Imagem excluída com sucesso: ${path}`)
     return true
   } catch (error) {
     console.error('Erro ao excluir imagem:', error)
@@ -147,6 +247,7 @@ export const uploadImageWithProgress = async (
     
     // Caminho completo para o arquivo
     const fullPath = `${basePath}/${fileName}`;
+    console.log(`Iniciando upload com progresso: ${fullPath}`)
     
     // Criar referência para o arquivo
     const storageRef = ref(storage, fullPath);
@@ -163,6 +264,7 @@ export const uploadImageWithProgress = async (
           const progress = Math.round(
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100
           );
+          console.log(`Progresso do upload: ${progress}%`);
           if (onProgress) {
             onProgress(progress);
           }
@@ -175,7 +277,7 @@ export const uploadImageWithProgress = async (
         async () => {
           // Upload concluído com sucesso
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log(`Imagem enviada com sucesso: ${fullPath}`);
+          console.log(`Upload concluído com sucesso! URL: ${downloadURL}`);
           resolve(downloadURL);
         }
       );
@@ -203,12 +305,14 @@ export const uploadMultipleImagesWithProgress = async (
   // Se não houver arquivos, retornar array vazio
   if (!files.length) return [];
   
+  console.log(`Iniciando upload múltiplo com progresso: ${files.length} arquivos para ${basePath}`);
   const urls: string[] = [];
   let totalProgress = 0;
   
   // Processar cada arquivo sequencialmente para melhor controle
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    console.log(`Processando arquivo ${i+1}/${files.length}: ${file.name}`);
     
     // Fazer upload do arquivo atual com monitoramento de progresso
     const url = await uploadImageWithProgress(
@@ -232,7 +336,9 @@ export const uploadMultipleImagesWithProgress = async (
     );
     
     urls.push(url);
+    console.log(`URL obtida para o arquivo ${i+1}: ${url}`);
   }
   
+  console.log(`Upload múltiplo concluído! ${urls.length} arquivos enviados.`);
   return urls;
 } 

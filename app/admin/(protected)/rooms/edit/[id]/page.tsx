@@ -26,7 +26,7 @@ import { compressImages } from "@/lib/utils"
 import { toast } from "sonner"
 import { Calendar } from "@/components/ui/calendar"
 import { ptBR } from "date-fns/locale"
-import { format, addMonths, isSameMonth, isSameDay, parseISO } from "date-fns"
+import { format, addMonths, isSameMonth, isSameDay, parseISO, isWithinInterval, isBefore, isAfter } from "date-fns"
 import {
   Popover,
   PopoverContent,
@@ -43,6 +43,16 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { SeasonalPrice } from "@/lib/types"
+import { nanoid } from "nanoid"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface EditRoomPageProps {
   params: {
@@ -75,6 +85,16 @@ export default function EditRoom({ params }: EditRoomPageProps) {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date | undefined }>({
     from: new Date(),
     to: undefined,
+  })
+  const [seasonalPrices, setSeasonalPrices] = useState<SeasonalPrice[]>([])
+  const [seasonalPriceDialogOpen, setSeasonalPriceDialogOpen] = useState(false)
+  const [editingSeasonalPrice, setEditingSeasonalPrice] = useState<SeasonalPrice | null>(null)
+  const [seasonalPriceForm, setSeasonalPriceForm] = useState<Omit<SeasonalPrice, 'id'>>({
+    name: "",
+    startDate: format(new Date(), 'yyyy-MM-dd'),
+    endDate: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+    price: 0,
+    description: ""
   })
   
   const [formData, setFormData] = useState({
@@ -122,6 +142,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       setAmenities(roomData.amenities || [])
       setAdditionalServices(roomData.additionalServices || [])
       setHighlights(roomData.highlights || [])
+      setSeasonalPrices(roomData.seasonalPrices || [])
       
       // Carregar dados de disponibilidade
       if (roomData.availabilityDates) {
@@ -294,17 +315,28 @@ export default function EditRoom({ params }: EditRoomPageProps) {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     
-    if (!formData.name || !formData.description || formData.price <= 0 || (existingImages.length === 0 && imageFiles.length === 0)) {
-      toast.error("Por favor, preencha todos os campos obrigatórios e mantenha pelo menos uma imagem.");
-      return;
+    if (!formData.name || !formData.description || formData.price <= 0) {
+      toast.error("Por favor, preencha todos os campos obrigatórios.")
+      return
+    }
+    
+    // Validar preços sazonais
+    const invalidSeasonalPrices = seasonalPrices.filter(period => period.price <= 0)
+    if (invalidSeasonalPrices.length > 0) {
+      toast.error("Um ou mais períodos sazonais têm preços inválidos.")
+      return
+    }
+    
+    // Verificar conflitos entre períodos sazonais
+    const hasConflicts = checkForSeasonalPriceConflicts()
+    if (hasConflicts) {
+      toast.error("Existem períodos sazonais com datas que se sobrepõem.")
+      return
     }
 
-    // Log para depuração
-    console.log("Valor de serviceFeePct a ser salvo:", formData.serviceFeePct)
-
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     
     try {
       // Excluir imagens marcadas para exclusão
@@ -343,14 +375,16 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       // Atualizar o quarto com todas as imagens
       toast.loading("Atualizando informações do quarto...");
       
+      // Atualizar os dados do quarto com as imagens existentes e novas
       const roomData = {
         ...formData,
         images: allImageUrls,
         amenities,
         additionalServices,
         highlights,
+        seasonalPrices,
         updatedAt: new Date()
-      };
+      }
       
       await updateRoom(id, roomData);
       
@@ -362,7 +396,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
   // Função para lidar com a seleção/desseleção de datas no calendário
   const handleDateSelect = (date: Date) => {
@@ -440,6 +474,117 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     } finally {
       setIsAvailabilitySubmitting(false)
     }
+  }
+
+  // Função para validar se há conflitos nas datas dos preços sazonais
+  const checkForSeasonalPriceConflicts = (): boolean => {
+    for (let i = 0; i < seasonalPrices.length; i++) {
+      const period1 = seasonalPrices[i]
+      const start1 = new Date(period1.startDate)
+      const end1 = new Date(period1.endDate)
+      
+      for (let j = i + 1; j < seasonalPrices.length; j++) {
+        const period2 = seasonalPrices[j]
+        const start2 = new Date(period2.startDate)
+        const end2 = new Date(period2.endDate)
+        
+        // Verificar se há sobreposição
+        if (
+          (isWithinInterval(start1, { start: start2, end: end2 }) || 
+           isWithinInterval(end1, { start: start2, end: end2 }) ||
+           isWithinInterval(start2, { start: start1, end: end1 }) ||
+           isWithinInterval(end2, { start: start1, end: end1 }))
+        ) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+  
+  // Função para adicionar ou atualizar um preço sazonal
+  const handleSaveSeasonalPrice = () => {
+    if (!seasonalPriceForm.name || !seasonalPriceForm.startDate || !seasonalPriceForm.endDate || seasonalPriceForm.price <= 0) {
+      toast.error("Preencha todos os campos obrigatórios.")
+      return
+    }
+    
+    const startDate = new Date(seasonalPriceForm.startDate)
+    const endDate = new Date(seasonalPriceForm.endDate)
+    
+    if (isBefore(endDate, startDate)) {
+      toast.error("A data final deve ser posterior à data inicial.")
+      return
+    }
+    
+    // Verificar conflitos apenas com outros períodos (excluindo o atual se estiver editando)
+    const periodsToCheck = editingSeasonalPrice 
+      ? seasonalPrices.filter(p => p.id !== editingSeasonalPrice.id) 
+      : seasonalPrices
+      
+    const hasConflict = periodsToCheck.some(period => {
+      const periodStart = new Date(period.startDate)
+      const periodEnd = new Date(period.endDate)
+      
+      return (
+        isWithinInterval(startDate, { start: periodStart, end: periodEnd }) || 
+        isWithinInterval(endDate, { start: periodStart, end: periodEnd }) ||
+        isWithinInterval(periodStart, { start: startDate, end: endDate }) ||
+        isWithinInterval(periodEnd, { start: startDate, end: endDate })
+      )
+    })
+    
+    if (hasConflict) {
+      toast.error("Este período conflita com outro período já cadastrado.")
+      return
+    }
+    
+    if (editingSeasonalPrice) {
+      // Editar período existente
+      setSeasonalPrices(prices => prices.map(price => 
+        price.id === editingSeasonalPrice.id 
+          ? { ...seasonalPriceForm, id: price.id } 
+          : price
+      ))
+      toast.success("Período sazonal atualizado.")
+    } else {
+      // Adicionar novo período
+      setSeasonalPrices(prices => [
+        ...prices, 
+        { ...seasonalPriceForm, id: nanoid() }
+      ])
+      toast.success("Período sazonal adicionado.")
+    }
+    
+    // Resetar formulário
+    setSeasonalPriceForm({
+      name: "",
+      startDate: format(new Date(), 'yyyy-MM-dd'),
+      endDate: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+      price: 0,
+      description: ""
+    })
+    setEditingSeasonalPrice(null)
+    setSeasonalPriceDialogOpen(false)
+  }
+  
+  // Função para iniciar a edição de um preço sazonal
+  const handleEditSeasonalPrice = (price: SeasonalPrice) => {
+    setEditingSeasonalPrice(price)
+    setSeasonalPriceForm({
+      name: price.name,
+      startDate: price.startDate,
+      endDate: price.endDate,
+      price: price.price,
+      description: price.description || ""
+    })
+    setSeasonalPriceDialogOpen(true)
+  }
+  
+  // Função para remover um preço sazonal
+  const handleRemoveSeasonalPrice = (id: string) => {
+    setSeasonalPrices(prices => prices.filter(price => price.id !== id))
+    toast.success("Período sazonal removido.")
   }
 
   if (isLoading) {
@@ -540,7 +685,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Preço por Noite (€) *</Label>
+                      <Label htmlFor="price">Preço Base por Noite (€) *</Label>
                       <Input 
                         id="price" 
                         name="price" 
@@ -552,6 +697,91 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         onChange={handleInputChange}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Este é o preço padrão que será cobrado quando nenhum preço sazonal estiver ativo.
+                      </p>
+                    </div>
+                    
+                    {/* Preços Sazonais */}
+                    <div className="space-y-3 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium">Preços Sazonais</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Defina preços diferentes para períodos específicos do ano (alta temporada, feriados, etc.)
+                          </p>
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingSeasonalPrice(null)
+                            setSeasonalPriceForm({
+                              name: "",
+                              startDate: format(new Date(), 'yyyy-MM-dd'),
+                              endDate: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+                              price: 0,
+                              description: ""
+                            })
+                            setSeasonalPriceDialogOpen(true)
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Adicionar Período
+                        </Button>
+                      </div>
+                      
+                      {seasonalPrices.length === 0 ? (
+                        <div className="py-4 text-center text-sm text-muted-foreground bg-muted/30 rounded-md">
+                          Nenhum preço sazonal cadastrado. O preço base será usado para todas as datas.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {seasonalPrices.map((price) => (
+                            <div 
+                              key={price.id} 
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-md border bg-card hover:bg-accent/5 transition-colors"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium">{price.name}</h4>
+                                  <Badge variant="secondary" className="h-5 px-1.5">
+                                    {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(price.price)}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {format(new Date(price.startDate), 'dd/MM/yyyy')} - {format(new Date(price.endDate), 'dd/MM/yyyy')}
+                                  </span>
+                                </div>
+                                {price.description && (
+                                  <p className="text-xs text-muted-foreground mt-1">{price.description}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 self-end sm:self-auto">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleEditSeasonalPrice(price)}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleRemoveSeasonalPrice(price.id)}
+                                >
+                                  <X className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
@@ -1246,6 +1476,90 @@ export default function EditRoom({ params }: EditRoomPageProps) {
           </TabsContent>
         </Tabs>
       )}
+      
+      {/* Modal de preço sazonal */}
+      <Dialog open={seasonalPriceDialogOpen} onOpenChange={setSeasonalPriceDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{editingSeasonalPrice ? "Editar Período Sazonal" : "Adicionar Período Sazonal"}</DialogTitle>
+            <DialogDescription>
+              Configure preços diferentes para temporadas específicas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="seasonName">Nome do Período *</Label>
+              <Input 
+                id="seasonName"
+                value={seasonalPriceForm.name}
+                onChange={(e) => setSeasonalPriceForm({...seasonalPriceForm, name: e.target.value})}
+                placeholder="Ex: Alta Temporada, Natal, Verão"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Data Inicial *</Label>
+                <Input 
+                  id="startDate"
+                  type="date"
+                  value={seasonalPriceForm.startDate}
+                  onChange={(e) => setSeasonalPriceForm({...seasonalPriceForm, startDate: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="endDate">Data Final *</Label>
+                <Input 
+                  id="endDate"
+                  type="date"
+                  value={seasonalPriceForm.endDate}
+                  onChange={(e) => setSeasonalPriceForm({...seasonalPriceForm, endDate: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="seasonPrice">Preço por Noite (€) *</Label>
+              <Input 
+                id="seasonPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                value={seasonalPriceForm.price || ""}
+                onChange={(e) => setSeasonalPriceForm({...seasonalPriceForm, price: parseFloat(e.target.value)})}
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="seasonDescription">Descrição (opcional)</Label>
+              <Textarea 
+                id="seasonDescription"
+                value={seasonalPriceForm.description || ""}
+                onChange={(e) => setSeasonalPriceForm({...seasonalPriceForm, description: e.target.value})}
+                placeholder="Ex: Preço especial para o período de férias"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSeasonalPriceDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleSaveSeasonalPrice}
+            >
+              {editingSeasonalPrice ? "Atualizar" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 } 

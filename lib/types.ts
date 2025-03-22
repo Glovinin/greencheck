@@ -1,11 +1,20 @@
 import { Timestamp } from "firebase/firestore";
 
+export interface SeasonalPrice {
+  id: string;
+  name: string;
+  startDate: string; // ISO format: "YYYY-MM-DD"
+  endDate: string;   // ISO format: "YYYY-MM-DD"
+  price: number;
+  description?: string;
+}
+
 export interface Room {
   id?: string;
   name: string;
   type: string;
   description: string;
-  price: number;
+  price: number; // Preço base/padrão
   capacity: number;
   size: number;
   available: boolean;
@@ -18,6 +27,7 @@ export interface Room {
   availabilityDates?: {
     [date: string]: boolean;
   };
+  seasonalPrices?: SeasonalPrice[]; // Preços para períodos específicos
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 } 
