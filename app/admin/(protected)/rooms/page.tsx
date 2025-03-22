@@ -16,7 +16,8 @@ import {
   Check,
   X,
   CalendarRange,
-  MoreHorizontal
+  MoreHorizontal,
+  RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,8 +82,32 @@ export default function RoomsManagement() {
   const loadRooms = async () => {
     try {
       setLoading(true)
-      const roomsData = await getRooms()
-      setRooms(roomsData)
+      toast.info("Atualizando dados dos quartos...");
+      
+      // Buscar dados atualizados forçando uma nova consulta
+      const roomsData = await getRooms(true);
+      
+      // Log detalhado para depuração
+      console.log("Dados brutos dos quartos carregados do Firestore:", roomsData);
+      
+      // Garantir que serviceFeePct seja tratado como número
+      const roomsWithCorrectServiceFee = roomsData.map(room => {
+        const serviceFeePct = room.serviceFeePct !== undefined 
+          ? Number(room.serviceFeePct) 
+          : 10;
+        
+        console.log(`Quarto ${room.name}: Taxa=${room.serviceFeePct} (tipo: ${typeof room.serviceFeePct}) => Convertido para ${serviceFeePct}`);
+        
+        return {
+          ...room,
+          serviceFeePct: serviceFeePct
+        };
+      });
+      
+      console.log("Quartos com taxa corrigida:", roomsWithCorrectServiceFee);
+      
+      setRooms(roomsWithCorrectServiceFee);
+      toast.success("Dados atualizados com sucesso!");
     } catch (error) {
       console.error('Erro ao carregar quartos:', error)
       toast.error("Erro ao carregar quartos")
@@ -143,10 +168,24 @@ export default function RoomsManagement() {
           className="mb-0"
         />
         
-        <Button onClick={() => router.push('/admin/rooms/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Quarto
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={loadRooms}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Atualizar
+          </Button>
+          <Button onClick={() => router.push('/admin/rooms/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Quarto
+          </Button>
+        </div>
       </div>
       
       <Tabs defaultValue="grid" className="space-y-6">
@@ -248,6 +287,15 @@ export default function RoomsManagement() {
                         <Badge variant="outline" className="text-xs">
                           {room.type || "Standard"}
                         </Badge>
+                        <Badge 
+                          variant={room.serviceFeePct === 0 ? "destructive" : "secondary"} 
+                          className="text-xs font-medium"
+                        >
+                          {room.serviceFeePct === 0 
+                            ? "Sem taxa" 
+                            : `Taxa: ${room.serviceFeePct}%`
+                          }
+                        </Badge>
                       </div>
                     </CardContent>
                     
@@ -315,9 +363,10 @@ export default function RoomsManagement() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
-                      <TableHead>Capacidade</TableHead>
-                      <TableHead>Preço</TableHead>
-                      <TableHead>Status</TableHead>
+                    <TableHead>Capacidade</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead>Taxa de Serviço</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -328,6 +377,13 @@ export default function RoomsManagement() {
                         <TableCell>{room.type || "Standard"}</TableCell>
                         <TableCell>{room.capacity} pessoas</TableCell>
                         <TableCell>{formatarPreco(room.price)}</TableCell>
+                        <TableCell>
+                          {room.serviceFeePct === 0 ? (
+                            <Badge variant="destructive">Sem taxa</Badge>
+                          ) : (
+                            <Badge variant="secondary">{room.serviceFeePct}%</Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={room.available ? "default" : "destructive"}>
                             {room.available ? "Disponível" : "Indisponível"}

@@ -184,14 +184,14 @@ export default function Sidebar({ className }: SidebarProps) {
                     <>
                       <span>{item.label}</span>
                       {item.badge && (
-                        <Badge className="ml-auto bg-primary text-white">
+                        <Badge className="ml-auto bg-primary text-primary-foreground">
                           {item.badge}
                         </Badge>
                       )}
                     </>
                   )}
                   {isCollapsed && item.badge && (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-primary text-white">
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-primary text-primary-foreground">
                       {item.badge}
                     </Badge>
                   )}
@@ -293,7 +293,7 @@ export default function Sidebar({ className }: SidebarProps) {
                       <item.icon className="h-5 w-5" />
                       <span>{item.label}</span>
                       {item.badge && (
-                        <Badge className="ml-auto bg-primary text-white">
+                        <Badge className="ml-auto bg-primary text-primary-foreground">
                           {item.badge}
                         </Badge>
                       )}

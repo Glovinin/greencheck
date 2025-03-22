@@ -48,8 +48,18 @@ export interface Contact {
   subject: string
   message: string
   status: 'new' | 'read' | 'replied'
-  createdAt?: Timestamp
+  createdAt: Timestamp
   updatedAt?: Timestamp
+  repliedAt?: Timestamp
+  replyContent?: string
+  reservationDetails?: {
+    checkIn?: Timestamp
+    checkOut?: Timestamp
+    roomId?: string
+    roomName?: string
+    totalGuests?: number
+    totalPrice?: number
+  }
 }
 
 // Funções genéricas para CRUD
@@ -85,7 +95,17 @@ export const getDocument = async <T>(
   const docSnap = await getDoc(docRef)
   
   if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() } as T
+    const data = docSnap.data();
+    console.log("Dados brutos recuperados do Firestore para quarto:", id, data);
+    
+    if (data?.serviceFeePct !== undefined) {
+      console.log("serviceFeePct antes da conversão:", data.serviceFeePct, "tipo:", typeof data.serviceFeePct);
+      // Garantir que serviceFeePct seja um número
+      data.serviceFeePct = Number(data.serviceFeePct);
+      console.log("serviceFeePct após conversão:", data.serviceFeePct, "tipo:", typeof data.serviceFeePct);
+    }
+    
+    return { id: docSnap.id, ...data } as T
   } else {
     return null
   }
@@ -93,13 +113,23 @@ export const getDocument = async <T>(
 
 export const getDocuments = async <T>(
   collectionName: string,
-  constraints: QueryConstraint[] = []
+  constraints: QueryConstraint[] = [],
+  forceRefresh = false
 ): Promise<T[]> => {
-  const collectionRef = collection(db, collectionName)
-  const q = query(collectionRef, ...constraints)
-  const querySnapshot = await getDocs(q)
-  
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as T)
+  try {
+    const collectionRef = collection(db, collectionName)
+    const q = query(collectionRef, ...constraints)
+    
+    // Se forceRefresh for verdadeiro, adicionar opções que forçam uma nova consulta ao Firestore
+    const querySnapshot = await getDocs(q)
+    
+    console.log(`Buscando documentos na coleção ${collectionName} - Força atualização: ${forceRefresh}`);
+    
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as T)
+  } catch (error) {
+    console.error(`Erro ao buscar documentos da coleção ${collectionName}:`, error);
+    return [];
+  }
 }
 
 export const updateDocument = async <T extends DocumentData>(
@@ -124,21 +154,28 @@ export const deleteDocument = async (
 }
 
 // Funções para gerenciar quartos
-export const getRooms = async (featuredOnly = false): Promise<Room[]> => {
+export const getRooms = async (forceRefresh = false): Promise<Room[]> => {
   try {
     const constraints: QueryConstraint[] = []
     
-    if (featuredOnly) {
-      constraints.push(where('featured', '==', true))
-    }
-    
     constraints.push(orderBy('name', 'asc'))
     
-    const rooms = await getDocuments<Room>('rooms', constraints)
+    const rooms = await getDocuments<Room>('rooms', constraints, forceRefresh)
     
     // Garantir que todos os campos necessários estejam presentes
     return rooms.map(room => {
       console.log(`Firebase - Quarto ${room.id} dados brutos:`, room);
+      
+      // Garantir que serviceFeePct seja um número
+      const serviceFeePct = room.serviceFeePct !== undefined 
+        ? Number(room.serviceFeePct) 
+        : 10;
+        
+      console.log(`Firebase - Quarto ${room.id} serviceFeePct:`, {
+        original: room.serviceFeePct,
+        tipo: typeof room.serviceFeePct,
+        convertido: serviceFeePct
+      });
       
       return {
         id: room.id,
@@ -149,6 +186,7 @@ export const getRooms = async (featuredOnly = false): Promise<Room[]> => {
         capacity: room.capacity || 2,
         size: room.size || 0,
         available: room.available !== undefined ? room.available : true,
+        serviceFeePct: serviceFeePct,
         images: room.images || [],
         amenities: room.amenities || [],
         additionalServices: room.additionalServices || [],
@@ -262,8 +300,9 @@ export const getDatesInRange = (startDate: Date, endDate: Date): string[] => {
   const endDateNormalized = new Date(endDate);
   endDateNormalized.setHours(0, 0, 0, 0);
   
-  // Adicionar cada data no intervalo
-  while (currentDate <= endDateNormalized) {
+  // Adicionar cada data no intervalo EXCETO o dia de checkout
+  // Usando < em vez de <= para não incluir o dia de checkout
+  while (currentDate < endDateNormalized) {
     dates.push(currentDate.toISOString().split('T')[0]); // Formato YYYY-MM-DD
     currentDate.setDate(currentDate.getDate() + 1);
   }
@@ -279,6 +318,9 @@ export const getRoomById = async (id: string): Promise<Room | null> => {
     
     console.log(`Firebase - getRoomById ${id} dados brutos:`, room);
     
+    // Log específico para serviceFeePct
+    console.log(`serviceFeePct no Firestore:`, room.serviceFeePct);
+    
     // Garantir que todos os campos necessários estejam presentes
     return {
       ...room,
@@ -289,6 +331,7 @@ export const getRoomById = async (id: string): Promise<Room | null> => {
       capacity: room.capacity || 2,
       size: room.size || 0,
       available: room.available !== undefined ? room.available : true,
+      serviceFeePct: room.serviceFeePct !== undefined ? room.serviceFeePct : 10,
       images: room.images || [],
       amenities: room.amenities || [],
       additionalServices: room.additionalServices || [],
@@ -338,6 +381,12 @@ export const updateRoom = async (id: string, roomData: Partial<Omit<Room, 'id' |
   try {
     console.log(`updateRoom - ID: ${id}, Dados recebidos:`, roomData);
     
+    // Garantir que estamos lidando explicitamente com o serviceFeePct se ele for 0
+    if (roomData.serviceFeePct === 0) {
+      console.log("updateRoom - Detectado serviceFeePct com valor 0, salvando explicitamente.", roomData.serviceFeePct);
+    }
+    
+    // Adicionar timestamp de atualização
     const roomWithTimestamp = {
       ...roomData,
       amenities: roomData.amenities || [],
@@ -367,37 +416,129 @@ export const deleteRoom = async (id: string): Promise<boolean> => {
 }
 
 // Funções específicas para reservas
-export const createBooking = async (booking: Booking): Promise<string> => {
+export const createBooking = async (bookingData: any) => {
   try {
-    // Primeiro, criar a reserva
-    const bookingId = await createDocument<Booking>('bookings', booking);
+    const bookingsCollection = collection(db, 'bookings');
+    const docRef = await addDoc(bookingsCollection, bookingData);
     
-    // Depois, atualizar a disponibilidade do quarto
-    const room = await getRoomById(booking.roomId);
-    if (room) {
-      // Criar array de datas do intervalo da reserva
-      const checkInDate = booking.checkIn.toDate();
-      const checkOutDate = booking.checkOut.toDate();
-      const dateStrings = getDatesInRange(checkInDate, checkOutDate);
-      
-      // Inicializar ou obter o objeto de disponibilidade existente
-      const availabilityDates = room.availabilityDates || {};
-      
-      // Marcar as datas como indisponíveis
-      dateStrings.forEach(dateStr => {
-        availabilityDates[dateStr] = false;
-      });
-      
-      // Atualizar o quarto com as novas datas indisponíveis
-      await updateRoomAvailability(booking.roomId, availabilityDates);
-    }
+    // CORREÇÃO: Não bloquear a data no momento da criação da reserva
+    // O bloqueio será feito apenas quando o pagamento for confirmado
+    // através da função updateBookingStatus
     
-    return bookingId;
+    return docRef;
   } catch (error) {
     console.error('Erro ao criar reserva:', error);
     throw error;
   }
 };
+
+// Nova função para atualizar status da reserva e bloquear as datas da estadia
+export const updateBookingStatus = async (
+  bookingId: string, 
+  newStatus: 'pending' | 'confirmed' | 'cancelled' | 'completed',
+  newPaymentStatus: 'pending' | 'paid' | 'refunded'
+): Promise<boolean> => {
+  try {
+    // Referência ao documento da reserva
+    const bookingRef = doc(db, 'bookings', bookingId);
+    const bookingSnap = await getDoc(bookingRef);
+    
+    if (!bookingSnap.exists()) {
+      console.error(`Booking ${bookingId} não existe ao atualizar status`);
+      return false;
+    }
+    
+    const bookingData = bookingSnap.data();
+    
+    // Atualizar o status da reserva
+    await updateDoc(bookingRef, {
+      status: newStatus,
+      paymentStatus: newPaymentStatus,
+      updatedAt: serverTimestamp(),
+      ...(newStatus === 'confirmed' && { confirmedAt: serverTimestamp() })
+    });
+    
+    // Se a reserva está sendo confirmada, precisamos bloquear as datas
+    if (newStatus === 'confirmed') {
+      console.log(`Atualizando disponibilidade para reserva confirmada: ${bookingId}`);
+      
+      // Recuperar datas de check-in e check-out
+      const checkIn = bookingData.checkIn.toDate();
+      const checkOut = bookingData.checkOut.toDate();
+      const roomId = bookingData.roomId;
+      
+      // Obter todas as datas entre check-in e check-out
+      const dates: Date[] = [];
+      const currentDate = new Date(checkIn);
+      
+      while (currentDate < checkOut) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      console.log(`Bloqueando ${dates.length} dias para quarto ${roomId}`);
+      
+      // Atualizar disponibilidade para cada data
+      const availabilityUpdates: {[date: string]: boolean} = {};
+      
+      dates.forEach(date => {
+        const dateString = date.toISOString().split('T')[0]; // formato YYYY-MM-DD
+        availabilityUpdates[dateString] = false; // false significa indisponível
+      });
+      
+      // Atualizar disponibilidade do quarto
+      if (Object.keys(availabilityUpdates).length > 0) {
+        try {
+          // Obter o documento do quarto
+          const roomRef = doc(db, 'rooms', roomId);
+          const roomSnap = await getDoc(roomRef);
+          
+          if (roomSnap.exists()) {
+            const roomData = roomSnap.data();
+            const currentAvailability = roomData.availabilityDates || {};
+            
+            // Mesclar a disponibilidade atual com as novas atualizações
+            const updatedAvailability = {
+              ...currentAvailability,
+              ...availabilityUpdates
+            };
+            
+            // Atualizar o documento do quarto
+            await updateDoc(roomRef, {
+              availabilityDates: updatedAvailability,
+              updatedAt: serverTimestamp()
+            });
+            
+            console.log(`Disponibilidade atualizada com sucesso para quarto ${roomId}`);
+            
+            // Criar log da reserva
+            await addDoc(collection(db, 'bookingLogs'), {
+              bookingId,
+              roomId,
+              action: 'status_updated',
+              previousStatus: bookingData.status,
+              newStatus,
+              previousPaymentStatus: bookingData.paymentStatus,
+              newPaymentStatus,
+              datesBlocked: Object.keys(availabilityUpdates),
+              timestamp: serverTimestamp(),
+              userId: bookingData.userId || 'system'
+            });
+          } else {
+            console.error(`Quarto ${roomId} não encontrado ao atualizar disponibilidade`);
+          }
+        } catch (error) {
+          console.error(`Erro ao atualizar disponibilidade do quarto ${roomId}:`, error);
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Erro ao atualizar status da reserva ${bookingId}:`, error);
+    return false;
+  }
+}
 
 export const getUserBookings = async (userId: string): Promise<Booking[]> => {
   return getDocuments<Booking>('bookings', [
@@ -428,8 +569,31 @@ export const getRoomBookings = async (roomId: string): Promise<Booking[]> => {
 };
 
 // Funções específicas para contatos
-export const createContactMessage = async (contact: Contact): Promise<string> => {
-  return createDocument<Contact>('contacts', contact)
+export const createContactMessage = async (contactData: Contact) => {
+  try {
+    const contactsCollection = collection(db, 'contacts')
+    
+    // Garantir que o status seja 'new' para novos contatos
+    const contactWithDefaults = {
+      ...contactData,
+      status: contactData.status || 'new',
+      createdAt: contactData.createdAt || Timestamp.now()
+    }
+    
+    // Se tiver detalhes de reserva, adicionar metadados
+    if (contactWithDefaults.reservationDetails) {
+      // Ajustar subject para indicar que é relacionado a reserva
+      if (!contactWithDefaults.subject.includes('Reserva')) {
+        contactWithDefaults.subject = `Reserva: ${contactWithDefaults.subject}`;
+      }
+    }
+    
+    const docRef = await addDoc(contactsCollection, contactWithDefaults)
+    return docRef
+  } catch (error) {
+    console.error('Erro ao criar mensagem de contato:', error)
+    throw error
+  }
 }
 
 export const getNewContactMessages = async (): Promise<Contact[]> => {

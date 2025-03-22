@@ -10,6 +10,7 @@ export interface Room {
   size: number;
   available: boolean;
   featured?: boolean;
+  serviceFeePct?: number;
   images: string[];
   amenities: string[];
   additionalServices?: string[];

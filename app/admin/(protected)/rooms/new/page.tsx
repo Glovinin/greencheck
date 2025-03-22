@@ -57,16 +57,29 @@ export default function NewRoom() {
     capacity: 2,
     size: 0,
     available: true,
+    serviceFeePct: 10,
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: name === "price" || name === "capacity" || name === "size" 
-        ? parseFloat(value) 
-        : value
-    })
+    
+    // Tratamento especial para o campo serviceFeePct para garantir que o valor 0 seja tratado corretamente
+    if (name === "serviceFeePct") {
+      const parsedValue = parseFloat(value)
+      // Verificação específica para serviceFeePct, permitindo explicitamente o valor 0
+      setFormData({
+        ...formData,
+        [name]: isNaN(parsedValue) ? 0 : parsedValue
+      })
+    } else {
+      // Tratamento normal para outros campos
+      setFormData({
+        ...formData,
+        [name]: name === "price" || name === "capacity" || name === "size" 
+          ? parseFloat(value) 
+          : value
+      })
+    }
   }
 
   const handleSelectChange = (name: string, value: string) => {
@@ -325,6 +338,44 @@ export default function NewRoom() {
                   onChange={handleInputChange}
                   required
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="serviceFeePct">Taxa de Serviço (%)</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Aplicar taxa de serviço</span>
+                    <Switch 
+                      checked={formData.serviceFeePct > 0}
+                      onCheckedChange={(checked) => {
+                        setFormData({
+                          ...formData,
+                          serviceFeePct: checked ? 10 : 0
+                        })
+                      }}
+                    />
+                  </div>
+                  
+                  {formData.serviceFeePct > 0 && (
+                    <Input 
+                      id="serviceFeePct" 
+                      name="serviceFeePct" 
+                      type="number" 
+                      min="0.1" 
+                      max="100"
+                      step="0.1"
+                      placeholder="10" 
+                      value={formData.serviceFeePct || ""}
+                      onChange={handleInputChange}
+                    />
+                  )}
+                  
+                  <p className="text-xs text-muted-foreground">
+                    {formData.serviceFeePct > 0 
+                      ? `Taxa de ${formData.serviceFeePct}% sobre o valor da diária.` 
+                      : "Nenhuma taxa de serviço será aplicada."}
+                  </p>
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { format, addDays, differenceInDays, isSameDay, isAfter, isBefore, isSameMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { CalendarIcon, Users, Bed, CreditCard, Clock, ArrowRight, Check, Calendar as CalendarIcon2, ArrowLeft, AlertCircle, Loader2, Search, Info, Home, ChevronDown } from 'lucide-react'
+import { CalendarIcon, Users, Bed, CreditCard, Clock, ArrowRight, Check, Calendar as CalendarIcon2, ArrowLeft, AlertCircle, Loader2, Search, Info, Home, ChevronDown, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Star, Square, MessageSquare } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 import { useTheme } from 'next-themes'
 import {
@@ -37,7 +37,7 @@ import { Badge } from '@/components/ui/badge'
 import Header from '@/components/header'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Room } from '@/lib/types'
-import { getRooms, getAvailableRooms, createBooking } from '@/lib/firebase/firestore'
+import { getRooms, getAvailableRooms, createBooking, createContactMessage } from '@/lib/firebase/firestore'
 import { Timestamp } from 'firebase/firestore'
 import { toast } from 'sonner'
 import { 
@@ -67,6 +67,16 @@ import { db } from '@/lib/firebase/config'
 import { getRoomById, getRoomBookings, getDatesInRange } from '@/lib/firebase/firestore'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import axios from 'axios'
+import StripeProvider from '@/components/StripeProvider'
+import PaymentForm from '@/components/PaymentForm'
+import { updateBookingStatus } from '@/lib/firebase/firestore'
+import { Label } from "@/components/ui/label"
+import { Elements } from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
+
+// Logo após a seção de imports 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 // Função para obter datas indisponíveis do Firebase
 const getUnavailableDates = async (roomId: string): Promise<Date[]> => {
@@ -81,6 +91,8 @@ const getUnavailableDates = async (roomId: string): Promise<Date[]> => {
     // 2. Buscar todas as reservas confirmadas para este quarto
     const bookings = await getRoomBookings(roomId);
     
+    console.log(`Total de reservas para o quarto ${roomId}:`, bookings.length);
+    
     // 3. Inicializar array de datas indisponíveis
     const datasIndisponiveis: Date[] = [];
     
@@ -90,25 +102,57 @@ const getUnavailableDates = async (roomId: string): Promise<Date[]> => {
         if (isAvailable === false) {
           // Converter string de data (YYYY-MM-DD) para objeto Date
           const [year, month, day] = dateStr.split('-').map(Number);
-          datasIndisponiveis.push(new Date(year, month - 1, day)); // Mês é 0-indexed em JS
+          // Criar data com ano, mês (0-indexed) e dia, com hora 12:00 UTC para evitar problemas de fuso
+          datasIndisponiveis.push(new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0)));
         }
       });
     }
     
-    // 5. Adicionar datas de reservas existentes
+    // 5. Adicionar datas de reservas existentes apenas se o pagamento foi confirmado ou o status for 'confirmed'
+    let reservasConfirmadas = 0;
+    let reservasPendentes = 0;
+    
     bookings.forEach(booking => {
-      if (booking.status === 'confirmed' || booking.status === 'pending') {
+      // IMPORTANTE: Apenas considerar reservas com pagamento confirmado ou status confirmado
+      // Ignorar reservas em estado 'pending' ou 'awaiting_payment'
+      if (booking.status === 'confirmed' || booking.paymentStatus === 'paid') {
+        reservasConfirmadas++;
         const checkIn = booking.checkIn.toDate();
         const checkOut = booking.checkOut.toDate();
         
-        // Adicionar todas as datas entre checkIn e checkOut
-        const dateStrings = getDatesInRange(checkIn, checkOut);
-        dateStrings.forEach(dateStr => {
-          const [year, month, day] = dateStr.split('-').map(Number);
-          datasIndisponiveis.push(new Date(year, month - 1, day));
-        });
+        console.log(`Reserva confirmada ID=${booking.id}, Check-in: ${checkIn.toISOString()}, Check-out: ${checkOut.toISOString()}`);
+        
+        // Gerar todas as datas do período da estadia (excluindo o checkout)
+        // Necessário calcular todas as datas entre check-in e check-out
+        let currentDate = new Date(checkIn);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        const checkOutDate = new Date(checkOut);
+        checkOutDate.setHours(0, 0, 0, 0);
+        
+        // Adicionar cada dia da estadia (excluindo o dia de checkout)
+        while (currentDate < checkOutDate) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+        const [year, month, day] = dateStr.split('-').map(Number);
+        
+          // Criar data normalizada com UTC
+          const normalizedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+        
+          console.log(`Data da estadia para bloqueio: ${dateStr} => ${normalizedDate.toISOString()}`);
+        
+          // Adicionar à lista de datas indisponíveis
+        datasIndisponiveis.push(normalizedDate);
+          
+          // Avançar para o próximo dia
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      } else {
+        reservasPendentes++;
+        console.log(`Reserva pendente ignorada: ID=${booking.id}, status=${booking.status}, paymentStatus=${booking.paymentStatus}`);
       }
     });
+    
+    console.log(`Quarto ${roomId}: ${reservasConfirmadas} reservas confirmadas, ${reservasPendentes} pendentes`);
     
     // 6. Remover duplicatas (pode haver sobreposição entre datas administrativas e reservas)
     const uniqueDates = datasIndisponiveis.filter((date, index, self) => 
@@ -139,9 +183,24 @@ const utilsDatas = {
   // Verifica se uma data específica está indisponível
   isDateUnavailable: (date: Date | undefined, datasIndisponiveis: Date[]) => {
     if (!date) return false;
-    return datasIndisponiveis.some(dataIndisponivel => 
-      isSameDay(date, dataIndisponivel)
-    );
+    
+    // Extrair ano, mês e dia em UTC da data a ser verificada
+    const utcYear = date.getUTCFullYear();
+    const utcMonth = date.getUTCMonth();
+    const utcDay = date.getUTCDate();
+    
+    // Comparação estrita baseada em UTC para eliminar problemas de fuso horário
+    return datasIndisponiveis.some(dataIndisponivel => {
+      const indispYear = dataIndisponivel.getUTCFullYear();
+      const indispMonth = dataIndisponivel.getUTCMonth();
+      const indispDay = dataIndisponivel.getUTCDate();
+      
+      return (
+        utcYear === indispYear &&
+        utcMonth === indispMonth &&
+        utcDay === indispDay
+      );
+    });
   },
   
   // Verifica se as datas inicial ou final são indisponíveis
@@ -156,13 +215,42 @@ const utilsDatas = {
   // Verifica se um intervalo contém datas indisponíveis
   intervaloContemDatasIndisponiveis: (dataInicio: Date | undefined, dataFim: Date | undefined, datasIndisponiveis: Date[]) => {
     if (!dataInicio || !dataFim) return false;
+    
+    // Extrair valores UTC das datas de início e fim
+    const inicioUTCYear = dataInicio.getUTCFullYear();
+    const inicioUTCMonth = dataInicio.getUTCMonth();
+    const inicioUTCDay = dataInicio.getUTCDate();
+    
+    const fimUTCYear = dataFim.getUTCFullYear();
+    const fimUTCMonth = dataFim.getUTCMonth();
+    const fimUTCDay = dataFim.getUTCDate();
+    
+    // Criar datas UTC para comparação, fixando a hora em meio-dia para evitar problemas de fuso
+    const inicioUTC = new Date(Date.UTC(inicioUTCYear, inicioUTCMonth, inicioUTCDay, 12, 0, 0, 0));
+    const fimUTC = new Date(Date.UTC(fimUTCYear, fimUTCMonth, fimUTCDay, 12, 0, 0, 0));
+    
     // Verificamos apenas as datas entre o check-in e o check-out (exclusivo)
     // Excluímos o dia de check-out da verificação, pois é permitido fazer check-out
     // em um dia que está marcado como indisponível (o check-out é de manhã)
     return datasIndisponiveis.some(dataIndisponivel => {
-      return isAfter(dataIndisponivel, dataInicio) && 
-             isBefore(dataIndisponivel, dataFim) && 
-             !isSameDay(dataIndisponivel, dataFim);
+      // Extrair ano, mês e dia em UTC da data indisponível
+      const indispUTCYear = dataIndisponivel.getUTCFullYear();
+      const indispUTCMonth = dataIndisponivel.getUTCMonth();
+      const indispUTCDay = dataIndisponivel.getUTCDate();
+      
+      // Criar uma data UTC normalizada para a data indisponível
+      const indispUTC = new Date(Date.UTC(indispUTCYear, indispUTCMonth, indispUTCDay, 12, 0, 0, 0));
+      
+      // Verificar se a data indisponível está após o início e antes do fim, e não é o dia do fim
+      const isAfterInicio = indispUTC > inicioUTC;
+      const isBeforeFim = indispUTC < fimUTC;
+      const isSameAsFim = (
+        indispUTCYear === fimUTCYear &&
+        indispUTCMonth === fimUTCMonth &&
+        indispUTCDay === fimUTCDay
+      );
+      
+      return isAfterInicio && isBeforeFim && !isSameAsFim;
     });
   },
   
@@ -194,6 +282,17 @@ const utilsDatas = {
   }
 };
 
+// Função para verificar o status de um pagamento
+const checkPaymentStatus = async (paymentId: string) => {
+  try {
+    const response = await axios.get(`/api/payment-status?id=${paymentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao verificar status do pagamento:', error);
+    throw error;
+  }
+};
+
 export default function Booking() {
   // Obter parâmetros da URL
   const searchParams = useSearchParams()
@@ -206,39 +305,28 @@ export default function Booking() {
   
   // Theme support
   const { theme } = useTheme()
+  const isDark = theme === 'dark'
+  
+  // Todos os useState devem vir primeiro
   const [mounted, setMounted] = useState(false)
-  
-  // After mounting, we can safely show the UI that depends on the theme
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  
-  // Novo fluxo: 1. Escolher quarto, 2. Escolher datas disponíveis, 3. Informações, 4. Confirmação
   const [step, setStep] = useState(1)
-  
-  // Estados principais
   const [quartos, setQuartos] = useState<Room[]>([])
   const [quartoSelecionado, setQuartoSelecionado] = useState<Room | null>(null)
   const [datasIndisponiveis, setDatasIndisponiveis] = useState<Date[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [loadingDatas, setLoadingDatas] = useState<boolean>(false)
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  const [precoTotal, setPrecoTotal] = useState<number>(0)
-  
-  // Data selecionada pelo usuário
+  const [loading, setLoading] = useState(false)
+  const [loadingDatas, setLoadingDatas] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [precoTotal, setPrecoTotal] = useState(0)
   const [date, setDate] = useState<DateRange>({
     from: new Date(),
     to: undefined,
   })
-  
-  // Filtros para quartos
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date())
   const [filtros, setFiltros] = useState({
     capacidade: 'any',
     tipo: 'todos',
     precoMaximo: 'any'
   })
-  
-  // Informações do cliente
   const [formData, setFormData] = useState({
     adultos: '2',
     criancas: '0',
@@ -247,19 +335,22 @@ export default function Booking() {
     telefone: '',
     observacoes: ''
   })
-
-  // Estado adicional para o hover
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentCompleted, setPaymentCompleted] = useState(false)
+  const [bookingId, setBookingId] = useState<string | null>(null)
+  const [loadingQuartos, setLoadingQuartos] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState<number[]>([0, 0, 0]);
   
-  // Verificar se uma data está no intervalo entre from e hoverDate
-  const isDateInHoverRange = (day: Date) => {
-    if (!date.from || !hoverDate) return false;
-    
-    return (
-      isAfter(day, date.from) && 
-      isBefore(day, hoverDate)
-    );
-  };
+  // Variável para controlar visibilidade sem early return
+  const shouldRender = mounted;
+  
+  // Depois de todos os useState, vêm os useEffect, sempre sem condicionais
+  
+  // After mounting, we can safely show the UI that depends on the theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Carregar todos os quartos quando o componente montar
   useEffect(() => {
@@ -268,6 +359,7 @@ export default function Booking() {
       try {
         const rooms = await getRooms()
         setQuartos(rooms)
+        setCurrentImageIndex(Array(rooms.length).fill(0))
         
         // Se temos um roomId na URL, selecionar automaticamente esse quarto
         if (roomIdFromUrl) {
@@ -292,56 +384,131 @@ export default function Booking() {
     fetchQuartos()
   }, [roomIdFromUrl])
   
-  // Carregar datas indisponíveis quando um quarto for selecionado
+  // Funções para controle do carrossel de imagens
+  const handleNextImage = (roomIndex: number) => {
+    setCurrentImageIndex(prevState => {
+      const newState = [...prevState]
+      const room = quartos[roomIndex]
+      newState[roomIndex] = (newState[roomIndex] + 1) % room.images.length
+      return newState
+    })
+  }
+
+  const handlePrevImage = (roomIndex: number) => {
+    setCurrentImageIndex(prevState => {
+      const newState = [...prevState]
+      const room = quartos[roomIndex]
+      newState[roomIndex] = (newState[roomIndex] - 1 + room.images.length) % room.images.length
+      return newState
+    })
+  }
+  
+  // Carregar datas indisponíveis quando um quarto é selecionado
   useEffect(() => {
+    // Mover a verificação para dentro da função
     const fetchDatasIndisponiveis = async () => {
-      if (!quartoSelecionado) return
+      if (!quartoSelecionado) return;
       
       setLoadingDatas(true)
       try {
-        // Buscar datas indisponíveis do Firebase
         const datas = await getUnavailableDates(quartoSelecionado.id!)
         setDatasIndisponiveis(datas)
-        
-        // Reset das datas selecionadas para evitar conflitos
-        setDate({ 
-          from: new Date(), 
-          to: undefined 
-        })
-        
-        // Mostrar mensagem informativa sobre datas indisponíveis
-        if (datas.length > 0) {
-          toast.info(`Este quarto possui ${datas.length} datas indisponíveis. Por favor, verifique o calendário.`, {
-            duration: 5000,
-            icon: <Info className="h-5 w-5 text-blue-500" />
-          })
-        } else {
-          toast.success(`Todas as datas estão disponíveis para este quarto!`, {
-            icon: <Check className="h-5 w-5 text-green-500" />
-          })
-        }
       } catch (error) {
         console.error('Erro ao carregar datas indisponíveis:', error)
-        toast.error('Não foi possível verificar a disponibilidade deste quarto', {
-          icon: <AlertCircle className="h-5 w-5 text-red-500" />
-        })
+        toast.error('Erro ao carregar datas indisponíveis')
       } finally {
         setLoadingDatas(false)
       }
     }
     
-    if (quartoSelecionado) {
-      fetchDatasIndisponiveis()
-    }
+    fetchDatasIndisponiveis()
   }, [quartoSelecionado])
-
-  // Calcular preço total quando quarto e datas mudarem
+  
+  // Calcular preço total quando as datas ou o quarto mudam
   useEffect(() => {
-    if (date.from && date.to && quartoSelecionado) {
-      calcularPrecoTotal()
+    if (!quartoSelecionado || !date.from || !date.to) {
+      setPrecoTotal(0);
+      return;
     }
-  }, [date, quartoSelecionado])
-
+    
+    // Calcular o número de noites
+    const numNoites = differenceInDays(date.to, date.from);
+    
+    // Preço base (preço do quarto * número de noites)
+    const precoBase = quartoSelecionado.price * (numNoites || 1); // Mínimo 1 noite
+    
+    // Taxa de serviço (10% do preço base)
+    const taxaServico = precoBase * 0.1;
+    
+    // Preço total
+    const total = precoBase + taxaServico;
+    
+    setPrecoTotal(total);
+  }, [quartoSelecionado, date]);
+  
+  // Verificar resultado do pagamento quando o usuário retorna
+  useEffect(() => {
+    const checkPayment = async () => {
+      const paymentIntent = searchParams.get('payment_intent');
+      const returnedBookingId = searchParams.get('booking_id');
+      
+      // Só executar a lógica se os parâmetros existirem
+      if (paymentIntent && returnedBookingId) {
+        try {
+          // Buscar a reserva
+          const bookingRef = doc(db, "bookings", returnedBookingId);
+          const bookingSnap = await getDoc(bookingRef);
+          
+          if (bookingSnap.exists()) {
+            // Verificar o status do pagamento
+            const response = await axios.get(`/api/payment-success?payment_intent=${paymentIntent}&booking_id=${returnedBookingId}`);
+            
+            if (response.data.paymentStatus === 'success') {
+              toast.success('Pagamento confirmado! Sua reserva está garantida.', {
+                duration: 5000,
+                icon: <Check className="h-5 w-5 text-green-500" />
+              });
+              
+              // Setar como confirmado na UI
+              setStep(5); // Step para confirmação final
+              setBookingId(returnedBookingId);
+            } else if (response.data.paymentStatus === 'processing') {
+              toast.info('Seu pagamento está sendo processado.', {
+                duration: 5000,
+                icon: <Info className="h-5 w-5 text-blue-500" />
+              });
+            } else {
+              toast.error('Houve um problema com seu pagamento. Por favor, tente novamente.', {
+                duration: 5000,
+                icon: <AlertCircle className="h-5 w-5 text-red-500" />
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao verificar pagamento:', error);
+        }
+      }
+    };
+    
+    // Executar sempre, não verificar mounted
+    checkPayment();
+  }, [searchParams]);
+  
+  // Verificar se uma data está no intervalo entre from e hoverDate
+  const isDateInHoverRange = (day: Date) => {
+    if (!date.from || !hoverDate) return false;
+    
+    return (
+      isAfter(day, date.from) && 
+      isBefore(day, hoverDate)
+    );
+  };
+  
+  // O resto do componente continua como antes...
+  
+  // Os hooks devem ser declarados ANTES de qualquer condicional
+  // Criando uma variável para controlar a visibilidade em vez de return null
+  
   // Função segura para atualizar as datas
   const handleDateChange = (range: DateRange | undefined) => {
     // Se não houver range, limpa a seleção
@@ -453,6 +620,16 @@ export default function Booking() {
   const calcularPrecoTotal = () => {
     if (!date.from || !date.to || !quartoSelecionado) return
     
+    console.log("💰 INÍCIO DO CÁLCULO DE PREÇO TOTAL");
+    console.log("Dados do quarto:", {
+      id: quartoSelecionado.id,
+      nome: quartoSelecionado.name,
+      serviceFeePct: quartoSelecionado.serviceFeePct,
+      rawValue: quartoSelecionado.serviceFeePct,
+      typeofServiceFee: typeof quartoSelecionado.serviceFeePct,
+      price: quartoSelecionado.price
+    });
+    
     // Calcular a diferença em dias entre check-in e check-out
     const dias = differenceInDays(date.to, date.from);
     
@@ -462,16 +639,67 @@ export default function Booking() {
     const noites = dias === 0 ? 1 : dias;
     
     const precoBase = quartoSelecionado.price * noites;
-    const taxaServico = precoBase * 0.1;
+    // Usar a taxa de serviço personalizada do quarto ou 10% como padrão se não estiver definida
+    // Garantir que a taxa seja exatamente o valor definido no quarto
+    const taxaServicoPercentual = quartoSelecionado.serviceFeePct !== undefined 
+      ? Number(quartoSelecionado.serviceFeePct) // Converter para número para garantir
+      : 10;
+    
+    console.log("🧮 Detalhes do cálculo:", {
+      quartoId: quartoSelecionado.id,
+      nome: quartoSelecionado.name,
+      serviceFeePct: quartoSelecionado.serviceFeePct,
+      taxaServicoPercentual,
+      precoBase,
+      noites
+    });
+    
+    // Se a taxa for 0%, não aplicar nenhum valor adicional
+    const taxaServico = taxaServicoPercentual > 0 ? precoBase * (taxaServicoPercentual / 100) : 0;
+    
+    console.log("✅ Resultado do cálculo:", {
+      taxaServico,
+      precoTotal: precoBase + taxaServico
+    });
+    console.log("💰 FIM DO CÁLCULO DE PREÇO TOTAL");
     
     setPrecoTotal(precoBase + taxaServico);
   }
   
-  // Função para selecionar um quarto
+  // Função para selecionar quarto
   const selecionarQuarto = (quarto: Room) => {
-    setQuartoSelecionado(quarto)
-    setStep(2) // Avançar para seleção de datas
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    console.log("Quarto selecionado com serviceFeePct:", quarto.serviceFeePct);
+    setQuartoSelecionado(quarto);
+    
+    // Buscar dados atualizados do quarto para garantir que temos a taxa de serviço correta
+    if (quarto.id) {
+      getRoomById(quarto.id).then(quartoAtualizado => {
+        if (quartoAtualizado) {
+          console.log("Dados atualizados do quarto após seleção:", quartoAtualizado);
+          console.log("Taxa de serviço atualizada:", quartoAtualizado.serviceFeePct);
+          setQuartoSelecionado(quartoAtualizado);
+          // Calcular preço total com os dados atualizados
+          setTimeout(() => calcularPrecoTotal(), 0);
+        }
+      });
+    }
+    
+    setStep(2);
+    
+    // Em vez de rolar para o topo, vamos apenas manter a posição
+    setTimeout(() => {
+      const step2Element = document.getElementById("step-2-content");
+      if (step2Element) {
+        const headerOffset = 80;
+        const elementPosition = step2Element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
+    }, 100);
   }
 
   // Handler para inputs de texto
@@ -485,11 +713,14 @@ export default function Booking() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
   
-  // Avançar para o próximo passo
+  // Handler para avançar para a próxima etapa
   const handleNextStep = () => {
+    calcularPrecoTotal()
+    
+    // Se estiver na etapa 2, verificamos se as datas foram selecionadas
     if (step === 2) {
       if (!date.from || !date.to) {
-        toast.error('Selecione as datas de check-in e check-out', {
+        toast.error('Por favor, selecione as datas de check-in e check-out', {
           icon: <CalendarIcon className="h-5 w-5 text-red-500" />
         });
         return;
@@ -536,16 +767,16 @@ export default function Booking() {
     } 
     else if (step === 3) {
       if (!formData.nome || !formData.email || !formData.telefone) {
-        toast.error('Preencha todos os campos obrigatórios', {
+        toast.error('Por favor, preencha todos os campos obrigatórios', {
           icon: <AlertCircle className="h-5 w-5 text-red-500" />
         });
         return;
       }
       
-      // Validação básica de email
+      // Validação básica de e-mail
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
-        toast.error('Por favor, insira um email válido', {
+        toast.error('Por favor, informe um e-mail válido', {
           icon: <AlertCircle className="h-5 w-5 text-red-500" />
         });
         return;
@@ -554,7 +785,7 @@ export default function Booking() {
       // Validação básica de telefone (pelo menos 9 dígitos)
       const phoneDigits = formData.telefone.replace(/\D/g, '');
       if (phoneDigits.length < 9) {
-        toast.error('Por favor, insira um número de telefone válido', {
+        toast.error('Por favor, insira um número de telefone válido com pelo menos 9 dígitos', {
           icon: <AlertCircle className="h-5 w-5 text-red-500" />
         });
         return;
@@ -564,21 +795,127 @@ export default function Booking() {
       toast.success("Dados confirmados com sucesso!", {
         icon: <Check className="h-5 w-5 text-green-500" />
       });
+      
+      // Recarregar dados do quarto antes de prosseguir para o pagamento
+      recarregarDadosQuarto().then(success => {
+        if (success) {
+          // Avançar para a próxima etapa apenas se os dados forem carregados com sucesso
+          const nextStep = step + 1;
+          setStep(nextStep);
+          
+          // Scroll suave para a próxima seção
+          setTimeout(() => {
+            const nextStepElement = document.getElementById(`step-${nextStep}-content`);
+            if (nextStepElement) {
+              nextStepElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        }
+      });
+      
+      // Retornar aqui para evitar o próximo bloco de código, já que recarregarDadosQuarto
+      // vai lidar com a navegação
+      return;
     }
     
-    setStep(step + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Avançar para a próxima etapa
+    const nextStep = step + 1;
+    setStep(nextStep);
+    
+    // Scroll suave para a próxima seção
+    setTimeout(() => {
+      const nextStepElement = document.getElementById(`step-${nextStep}-content`);
+      if (nextStepElement) {
+        nextStepElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
   
-  // Voltar para o passo anterior
+  // Função para recarregar os dados do quarto selecionado
+  const recarregarDadosQuarto = async () => {
+    if (!quartoSelecionado?.id) {
+      toast.error('Erro ao processar informações do quarto');
+      return false;
+    }
+    
+    try {
+      console.log("Recarregando dados do quarto:", quartoSelecionado.id);
+      
+      // Buscar dados atualizados do quarto
+      const quartoAtualizado = await getRoomById(quartoSelecionado.id);
+      
+      if (!quartoAtualizado) {
+        toast.error('Não foi possível carregar informações atualizadas do quarto');
+        return false;
+      }
+      
+      console.log("Dados atualizados do quarto:", quartoAtualizado);
+      console.log("serviceFeePct atualizado:", quartoAtualizado.serviceFeePct);
+      
+      // Atualizar o estado com os dados atualizados do quarto
+      setQuartoSelecionado(quartoAtualizado);
+      
+      // Recalcular o preço com os dados atualizados
+      setTimeout(() => {
+        calcularPrecoTotal();
+      }, 0);
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao recarregar dados do quarto:', error);
+      toast.error('Houve um erro ao processar as informações');
+      return false;
+    }
+  };
+  
+  // Handler para voltar para a etapa anterior
   const handlePrevStep = () => {
-    setStep(step - 1)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const prevStep = step - 1;
+    setStep(prevStep);
+    
+    // Scroll suave para a seção anterior
+    setTimeout(() => {
+      const prevStepElement = document.getElementById(`step-${prevStep}-content`);
+      if (prevStepElement) {
+        prevStepElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
   
   // Finalizar reserva
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validação completa dos dados do formulário
+    if (!formData.nome || formData.nome.trim() === '') {
+      toast.error('Por favor, preencha seu nome completo', {
+        icon: <AlertCircle className="h-5 w-5 text-red-500" />
+      })
+      return
+    }
+    
+    if (!formData.email || formData.email.trim() === '') {
+      toast.error('Por favor, preencha seu email', {
+        icon: <AlertCircle className="h-5 w-5 text-red-500" />
+      })
+      return
+    }
+    
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Por favor, insira um email válido', {
+        icon: <AlertCircle className="h-5 w-5 text-red-500" />
+      })
+      return
+    }
+    
+    if (!formData.telefone || formData.telefone.trim() === '') {
+      toast.error('Por favor, preencha seu telefone', {
+        icon: <AlertCircle className="h-5 w-5 text-red-500" />
+      })
+      return
+    }
     
     if (!date.from || !date.to || !quartoSelecionado) {
       toast.error('Informações de reserva incompletas', {
@@ -591,22 +928,18 @@ export default function Booking() {
       setIsSubmitting(true)
       
       // Verificar novamente se as datas estão disponíveis
-      // (pode ter havido alterações desde que o usuário selecionou)
       const datasAtualizadas = await getUnavailableDates(quartoSelecionado.id!);
       
-      // Verificar se a data de check-in está indisponível
       if (utilsDatas.isDateUnavailable(date.from, datasAtualizadas)) {
         toast.error("A data de check-in selecionada não está mais disponível. Por favor, escolha outra data.", {
           duration: 5000,
           icon: <AlertCircle className="h-5 w-5 text-red-500" />
         });
-        setStep(2); // Voltar para a seleção de datas
+        setStep(2);
         setIsSubmitting(false);
         return;
       }
       
-      // Verificar se existem datas indisponíveis no intervalo selecionado
-      // Excluindo o dia de check-out da verificação
       const temDatasIndisponiveisNoIntervalo = datasAtualizadas.some(dataIndisponivel => {
         return isAfter(dataIndisponivel, date.from!) && 
                isBefore(dataIndisponivel, date.to!) && 
@@ -618,7 +951,7 @@ export default function Booking() {
           duration: 5000,
           icon: <AlertCircle className="h-5 w-5 text-red-500" />
         });
-        setStep(2); // Voltar para a seleção de datas
+        setStep(2);
         setIsSubmitting(false);
         return;
       }
@@ -635,24 +968,43 @@ export default function Booking() {
         adults: parseInt(formData.adultos, 10),
         children: parseInt(formData.criancas, 10),
         totalPrice: precoTotal,
-        status: 'pending' as const,
+        status: 'awaiting_payment' as const,
         paymentStatus: 'pending' as const,
         specialRequests: formData.observacoes,
         createdAt: Timestamp.now()
       }
       
       // Enviar para o Firebase
-      await createBooking(booking)
+      const docRef = await createBooking(booking)
+      
+      // Guardar o ID da reserva
+      if (docRef && docRef.id) {
+        setBookingId(docRef.id)
+      }
       
       // Mostrar mensagem de sucesso
-      toast.success('Reserva realizada com sucesso!', {
+      toast.success('Reserva registrada com sucesso! Prosseguindo para o pagamento...', {
         duration: 5000,
         icon: <Check className="h-5 w-5 text-green-500" />
       })
       
       // Avançar para o último passo
       setStep(4)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      
+      // Scroll suave para a seção de pagamento
+      setTimeout(() => {
+        const paymentSection = document.getElementById('step-4-content');
+        if (paymentSection) {
+          const headerOffset = 80;
+          const elementPosition = paymentSection.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
       
     } catch (error) {
       console.error('Erro ao enviar reserva:', error)
@@ -691,18 +1043,131 @@ export default function Booking() {
     return atendeFiltros;
   })
 
-  // Evita flash de conteúdo não hidratado
-  if (!mounted) {
-    return null
-  }
+  // Handlers para o pagamento com Stripe
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    try {
+      if (bookingId) {
+        // Atualizar o status da reserva e bloquear a data usando a nova função
+        await updateBookingStatus(bookingId, 'confirmed', 'paid');
+        
+        // Buscar informações da reserva para criar a mensagem
+        const bookingRef = doc(db, "bookings", bookingId);
+        const bookingSnapshot = await getDoc(bookingRef);
+        
+        if (bookingSnapshot.exists() && bookingSnapshot.data().specialRequests) {
+          // Obter dados da reserva
+          const bookingData = bookingSnapshot.data();
+          
+          // Enviar observações/solicitações especiais como mensagem para o sistema de mensagens
+          // Somente agora, após confirmação do pagamento
+          if (bookingData.specialRequests && bookingData.specialRequests.trim() !== '') {
+            // Verificar se já enviamos essa mensagem anteriormente
+            const messageKey = `msg_sent_${bookingId}`;
+            const alreadySent = localStorage.getItem(messageKey);
+            
+            if (!alreadySent) {
+              const contactMessage = {
+                name: bookingData.guestName,
+                email: bookingData.guestEmail,
+                phone: bookingData.guestPhone,
+                subject: 'Solicitação Especial de Reserva Confirmada',
+                message: bookingData.specialRequests,
+                status: 'new' as const,
+                createdAt: Timestamp.now(),
+                reservationDetails: {
+                  checkIn: bookingData.checkIn,
+                  checkOut: bookingData.checkOut,
+                  roomId: bookingData.roomId,
+                  roomName: bookingData.roomName,
+                  totalGuests: bookingData.adults + (bookingData.children || 0),
+                  totalPrice: bookingData.totalPrice
+                }
+              };
+              
+              await createContactMessage(contactMessage);
+              console.log('Mensagem de solicitação especial enviada após pagamento confirmado');
+              
+              // Marcar que esta mensagem já foi enviada
+              localStorage.setItem(messageKey, 'true');
+              
+              // Definir um tempo de expiração para a flag (24 horas)
+              setTimeout(() => {
+                localStorage.removeItem(messageKey);
+              }, 24 * 60 * 60 * 1000);
+            } else {
+              console.log('Mensagem já enviada anteriormente para esta reserva, evitando duplicação');
+            }
+          }
+        }
+        
+        setPaymentCompleted(true);
+        
+        // Avançar para tela de confirmação
+        setTimeout(() => {
+          setStep(5);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status da reserva:', error);
+    }
+  };
   
-  const isDark = theme === 'dark'
+  const handlePaymentError = (errorMessage: string) => {
+    toast.error(`Erro no pagamento: ${errorMessage}`, {
+      duration: 5000,
+      icon: <AlertCircle className="h-5 w-5 text-red-500" />
+    });
+    
+    // Excluir a reserva que não foi paga para liberar as datas
+    if (bookingId) {
+      try {
+        // Remover a reserva do Firestore
+        const bookingRef = doc(db, "bookings", bookingId);
+        deleteDoc(bookingRef)
+          .then(() => {
+            console.log(`Reserva ${bookingId} removida após falha no pagamento`);
+            toast.info("Reserva cancelada devido a falha no pagamento. Por favor, tente novamente.", {
+              duration: 5000
+            });
+            // Reiniciar o processo de reserva
+            setBookingId("");
+          })
+          .catch(error => {
+            console.error("Erro ao remover reserva após falha no pagamento:", error);
+          });
+      } catch (error) {
+        console.error("Erro ao cancelar reserva após falha no pagamento:", error);
+      }
+    }
+  };
   
-  return (
+  // Função para filtrar os quartos
+  const handleFilterChange = (field: 'capacidade' | 'tipo' | 'precoMaximo', value: string) => {
+    setFiltros(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // Criar todos os hooks de useEffect incondicional e juntos
+  // Inicializar carregamento de quartos - não pode estar dentro de nenhuma condição
+  useEffect(() => {
+    // Pequeno atraso para simular carregamento
+    let timer: NodeJS.Timeout | null = null;
+    
+    if (loadingQuartos) {
+      timer = setTimeout(() => {
+        setLoadingQuartos(false);
+      }, 1000);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loadingQuartos]);
+  
+  return shouldRender ? (
     <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
       
-      {/* Hero Section Atualizado para seguir o mesmo padrão das outras páginas */}
+      {/* Hero Section - Compatível com a homepage */}
       <section className="relative min-h-[100svh] pb-20 md:pb-0">
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
@@ -712,15 +1177,15 @@ export default function Booking() {
             }}
             className="w-full h-[120%] -mt-10"
           >
-            <div className="w-full h-full relative">
-              <Image 
-                src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070"
-                alt="Reserva Aqua Vista Monchique"
-                fill
-                priority
-                className="object-cover"
-              />
-            </div>
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
+            </video>
           </motion.div>
           <motion.div 
             style={{ opacity: opacityTransform }}
@@ -807,23 +1272,38 @@ export default function Booking() {
         </div>
       </section>
 
-      {/* Formulário de Reserva com Design Elevado */}
-      <section className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4">
-          {/* Progress Steps Modernizado - Ajustado para mobile */}
+      {/* Conteúdo principal - Seção de Reserva */}
+      <section className={`py-24 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`}>
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+        {isDark && (
+          <>
+            <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+          </>
+        )}
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          {/* Indicador de Etapas - Reintroduzido com estilo refinado */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="flex justify-center mb-16"
           >
-            <div className="flex flex-wrap items-center justify-center gap-4 bg-background/60 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-white/10 max-w-full overflow-x-auto">
+            <div className={`flex flex-wrap items-center justify-center gap-4 ${
+              isDark 
+                ? 'bg-black/60 border-white/10' 
+                : 'bg-white/80 border-gray-200/70'
+              } backdrop-blur-lg p-4 rounded-2xl shadow-lg border max-w-full overflow-x-auto mx-auto`}
+            >
               <div className="flex items-center">
                 <motion.div 
                   whileHover={{ scale: 1.05 }}
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
-                    step >= 1 ? "bg-primary text-primary-foreground scale-110" : "bg-muted text-muted-foreground"
+                    step >= 1 ? "bg-primary text-primary-foreground scale-110" : 
+                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
                   )}
                   onClick={() => step > 1 && setStep(1)}
                 >
@@ -831,7 +1311,8 @@ export default function Booking() {
                 </motion.div>
                 <div className={cn(
                   "h-1 w-8 transition-all duration-500 mx-1",
-                  step >= 2 ? "bg-primary scale-x-100" : "bg-muted scale-x-90"
+                  step >= 2 ? "bg-primary scale-x-100" : 
+                  isDark ? "bg-white/20 scale-x-90" : "bg-gray-200 scale-x-90"
                 )} />
               </div>
               
@@ -840,7 +1321,8 @@ export default function Booking() {
                   whileHover={{ scale: 1.05 }}
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
-                    step >= 2 ? "bg-primary text-primary-foreground scale-110" : "bg-muted text-muted-foreground"
+                    step >= 2 ? "bg-primary text-primary-foreground scale-110" : 
+                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
                   )}
                   onClick={() => step > 2 && setStep(2)}
                 >
@@ -848,7 +1330,8 @@ export default function Booking() {
                 </motion.div>
                 <div className={cn(
                   "h-1 w-8 transition-all duration-500 mx-1",
-                  step >= 3 ? "bg-primary scale-x-100" : "bg-muted scale-x-90"
+                  step >= 3 ? "bg-primary scale-x-100" : 
+                  isDark ? "bg-white/20 scale-x-90" : "bg-gray-200 scale-x-90"
                 )} />
               </div>
               
@@ -857,7 +1340,8 @@ export default function Booking() {
                   whileHover={{ scale: 1.05 }}
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
-                    step >= 3 ? "bg-primary text-primary-foreground scale-110" : "bg-muted text-muted-foreground"
+                    step >= 3 ? "bg-primary text-primary-foreground scale-110" : 
+                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
                   )}
                   onClick={() => step > 3 && setStep(3)}
                 >
@@ -865,7 +1349,8 @@ export default function Booking() {
                 </motion.div>
                 <div className={cn(
                   "h-1 w-8 transition-all duration-500 mx-1",
-                  step >= 4 ? "bg-primary scale-x-100" : "bg-muted scale-x-90"
+                  step >= 4 ? "bg-primary scale-x-100" : 
+                  isDark ? "bg-white/20 scale-x-90" : "bg-gray-200 scale-x-90"
                 )} />
               </div>
               
@@ -874,7 +1359,8 @@ export default function Booking() {
                   whileHover={{ scale: 1.05 }}
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
-                    step >= 4 ? "bg-primary text-primary-foreground scale-110" : "bg-muted text-muted-foreground"
+                    step >= 4 ? "bg-primary text-primary-foreground scale-110" : 
+                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
                   )}
                 >
                   <CreditCard className="h-5 w-5" />
@@ -883,260 +1369,450 @@ export default function Booking() {
             </div>
           </motion.div>
 
+          {/* Conteúdo das etapas de reserva */}
+          <div className="space-y-12">
           {/* Step 1: Seleção de Quarto */}
           {step === 1 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
               className="space-y-8"
             >
-              {/* Cabeçalho da Seção */}
+                {/* Cabeçalho */}
               <div className="text-center max-w-3xl mx-auto mb-12">
-                <h2 className="text-2xl md:text-3xl font-bold mb-4">Escolha seu Quarto</h2>
-                <p className="text-muted-foreground text-base md:text-lg">
-                  Selecione o quarto que melhor atende às suas necessidades
-                </p>
+                  <motion.span 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10 inline-block mb-6"
+                  >
+                    Hospedagem de Luxo
+                  </motion.span>
+                  <motion.h2 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                  >
+                    Escolha seu Quarto
+                  </motion.h2>
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-8`}
+                  >
+            Selecione o quarto que melhor atende às suas necessidades
+                  </motion.p>
               </div>
 
-              {/* Filtros de Busca */}
-              <Card className="overflow-hidden border-none shadow-xl bg-background/70 backdrop-blur-lg mb-10">
-                <CardHeader className="border-b border-border/10 pb-4">
-                  <CardTitle className="text-xl flex items-center">
-                    <Search className="h-5 w-5 mr-2" />
-                    Filtrar Quartos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
+                {/* Filtros */}
+                <div className="mb-8">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className={`${
+                      isDark 
+                      ? 'bg-black/60 border-white/10' 
+                      : 'bg-white/80 border-gray-200/70'
+                    } backdrop-blur-lg rounded-2xl border p-4 shadow-lg`}
+                  >
+                    <div className="flex items-center mb-6">
+                      <Search className="h-5 w-5 mr-2 text-primary" />
+                      <h3 className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Filtrar Quartos</h3>
+                    </div>
+                    
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Filtro de Capacidade */}
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Capacidade</label>
+                        <Label htmlFor="capacidade" className="block mb-2 text-sm">Capacidade</Label>
                       <Select 
                         value={filtros.capacidade} 
-                        onValueChange={(value) => setFiltros(prev => ({ ...prev, capacidade: value }))}
-                      >
-                        <SelectTrigger className="w-full">
+                          onValueChange={(value) => handleFilterChange('capacidade', value)}
+                        >
+                          <SelectTrigger className={`w-full ${
+                            isDark 
+                            ? 'bg-white/5 border-white/10 text-white' 
+                            : 'bg-white border-gray-200 text-gray-900'
+                          }`}>
                           <SelectValue placeholder="Qualquer capacidade" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="any">Qualquer capacidade</SelectItem>
-                          <SelectItem value="1">Mínimo 1 pessoa</SelectItem>
-                          <SelectItem value="2">Mínimo 2 pessoas</SelectItem>
-                          <SelectItem value="3">Mínimo 3 pessoas</SelectItem>
-                          <SelectItem value="4">Mínimo 4 pessoas</SelectItem>
+                            <SelectItem value="1">1 pessoa</SelectItem>
+                            <SelectItem value="2">2 pessoas</SelectItem>
+                            <SelectItem value="3">3+ pessoas</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                      
+                      {/* Filtro de Tipo */}
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Tipo de Quarto</label>
+                        <Label htmlFor="tipo" className="block mb-2 text-sm">Tipo de Quarto</Label>
                       <Select 
                         value={filtros.tipo} 
-                        onValueChange={(value) => setFiltros(prev => ({ ...prev, tipo: value }))}
-                      >
-                        <SelectTrigger className="w-full">
+                          onValueChange={(value) => handleFilterChange('tipo', value)}
+                        >
+                          <SelectTrigger className={`w-full ${
+                            isDark 
+                            ? 'bg-white/5 border-white/10 text-white' 
+                            : 'bg-white border-gray-200 text-gray-900'
+                          }`}>
                           <SelectValue placeholder="Todos os tipos" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="todos">Todos os tipos</SelectItem>
+                            <SelectItem value="any">Todos os tipos</SelectItem>
                           <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="premium">Premium</SelectItem>
-                          <SelectItem value="suite">Suite</SelectItem>
                           <SelectItem value="deluxe">Deluxe</SelectItem>
+                            <SelectItem value="suite">Suite</SelectItem>
+                            <SelectItem value="presidential">Presidencial</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                      
+                      {/* Filtro de Preço */}
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Preço Máximo</label>
+                        <Label htmlFor="preco" className="block mb-2 text-sm">Preço Máximo</Label>
                       <Select 
                         value={filtros.precoMaximo} 
-                        onValueChange={(value) => setFiltros(prev => ({ ...prev, precoMaximo: value }))}
-                      >
-                        <SelectTrigger className="w-full">
+                          onValueChange={(value) => handleFilterChange('precoMaximo', value)}
+                        >
+                          <SelectTrigger className={`w-full ${
+                            isDark 
+                            ? 'bg-white/5 border-white/10 text-white' 
+                            : 'bg-white border-gray-200 text-gray-900'
+                          }`}>
                           <SelectValue placeholder="Sem limite de preço" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="any">Sem limite de preço</SelectItem>
-                          <SelectItem value="100">Até €100</SelectItem>
                           <SelectItem value="200">Até €200</SelectItem>
                           <SelectItem value="300">Até €300</SelectItem>
                           <SelectItem value="500">Até €500</SelectItem>
+                            <SelectItem value="1000">Até €1000</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                  </motion.div>
+                </div>
 
-              {/* Grid de Quartos */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {loading ? (
-                  <div className="col-span-full flex justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Carregando quartos disponíveis...</span>
+                {/* Lista de Quartos */}
+                {loadingQuartos ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <Loader2 className="h-12 w-12 text-primary animate-spin mb-6" />
+                    <p className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'}`}>Carregando quartos disponíveis...</p>
                   </div>
                 ) : quartosFiltrados.length === 0 ? (
-                  <div className="col-span-full">
-                    <Alert className="mb-6">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Nenhum quarto encontrado</AlertTitle>
-                      <AlertDescription>
-                        Não encontramos quartos que correspondam aos seus filtros. 
-                        Por favor, tente outros critérios de busca.
-                      </AlertDescription>
-                    </Alert>
+                  <div className="text-center py-16">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-100 text-yellow-600 mb-4">
+                      <AlertTriangle className="h-8 w-8" />
+                    </div>
+                    <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Nenhum quarto encontrado</h3>
+                    <p className={`${isDark ? 'text-white/70' : 'text-gray-600'} max-w-md mx-auto mb-6`}>
+                      Não encontramos quartos com os filtros selecionados. Tente ajustar os critérios de busca.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setFiltros({
+                          capacidade: 'any',
+                          tipo: 'any',
+                          precoMaximo: 'any'
+                        });
+                      }}
+                      className={`${
+                        isDark 
+                          ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' 
+                          : 'bg-gray-100 border-gray-200 hover:bg-gray-200 text-gray-800'
+                        }`}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Limpar filtros
+                    </Button>
                   </div>
                 ) : (
-                  quartosFiltrados.map((quarto) => (
-                    <Card 
-                      key={quarto.id}
-                      className="overflow-hidden transition-all cursor-pointer hover:shadow-xl hover:translate-y-[-5px]"
-                      onClick={() => selecionarQuarto(quarto)}
-                    >
-                      <div className="aspect-video w-full relative overflow-hidden">
-                        <img 
-                          src={quarto.images[0]} 
-                          alt={quarto.name}
-                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                        />
-                        <div className="absolute top-2 right-2">
-                          <Badge className="bg-primary/90 hover:bg-primary">
-                            {formatarPreco(quarto.price)}/noite
-                          </Badge>
-                        </div>
-                      </div>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg flex items-center justify-between">
-                          {quarto.name}
-                          <Badge variant="outline" className="bg-primary/5">
-                            {quarto.type}
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>Até {quarto.capacity} pessoas</span>
-                          <span className="mx-1">•</span>
-                          <span>{quarto.size} m²</span>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p className="text-sm line-clamp-3">{quarto.description}</p>
-                        
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {quarto.amenities.slice(0, 3).map((amenity, index) => (
-                            <Badge key={index} variant="outline" className="bg-primary/5">
-                              {amenity}
-                            </Badge>
-                          ))}
-                          {quarto.amenities.length > 3 && (
-                            <Badge variant="outline" className="bg-primary/5">
-                              +{quarto.amenities.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="pt-0">
-                        <Button 
-                          variant="default"
-                          className="w-full group"
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {quartosFiltrados.map((quarto, index) => (
+                      <motion.div
+                        key={quarto.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                      >
+                        <Card 
+                          className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-primary/10 cursor-pointer h-full flex flex-col"
+                          onClick={() => selecionarQuarto(quarto)}
                         >
-                          <span className="mr-2">Ver disponibilidade</span>
-                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))
+                          <div className="relative h-60">
+                            <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
+                              <img
+                                src={quarto.images[currentImageIndex[index]]}
+                                alt={quarto.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
+                            </div>
+                            
+                            {/* Controles do Carrossel */}
+                            <div className="absolute inset-x-0 bottom-0 h-full flex items-center justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handlePrevImage(index)
+                                }}
+                              >
+                                <ChevronLeft className="h-6 w-6 text-white" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleNextImage(index)
+                                }}
+                              >
+                                <ChevronRight className="h-6 w-6 text-white" />
+                              </Button>
+                            </div>
+
+                            {/* Indicador de Imagens */}
+                            <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm">
+                              {currentImageIndex[index] + 1}/{quarto.images.length}
+                            </div>
+
+                            {/* Badge de Preço */}
+                            <div className="absolute top-4 right-4">
+                              <Badge variant="default" className="text-lg font-semibold px-4 py-2 bg-primary/90 hover:bg-primary backdrop-blur-sm shadow-lg">
+                                {formatarPreco(quarto.price)}
+                                <span className="text-xs ml-1 opacity-80">/noite</span>
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="p-5 space-y-4 flex-grow">
+                            <div className="space-y-1">
+                              <h3 className="text-xl font-bold tracking-tight">{quarto.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                  <span className="font-semibold">4.8</span>
+                                </div>
+                                <span className="text-muted-foreground">•</span>
+                                <span className="text-muted-foreground">50 avaliações</span>
+                              </div>
+                            </div>
+
+                            <p className="text-muted-foreground text-sm line-clamp-2">{quarto.description}</p>
+
+                            <div className="flex flex-wrap gap-3 p-3 bg-muted/50 rounded-xl">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-full bg-background">
+                                  <Square className="h-3.5 w-3.5 text-primary" />
+                                </div>
+                                <span className="text-sm font-medium">{quarto.size}m²</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-full bg-background">
+                                  <Users className="h-3.5 w-3.5 text-primary" />
+                                </div>
+                                <span className="text-sm font-medium">Até {quarto.capacity} pessoas</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5">
+                              {quarto.amenities.slice(0, 3).map((amenity, i) => (
+                                <Badge 
+                                  key={i} 
+                                  variant="outline" 
+                                  className="rounded-full px-2.5 py-0.5 text-xs bg-background border-primary/20"
+                                >
+                                  {amenity}
+                                </Badge>
+                              ))}
+                              {quarto.amenities.length > 3 && (
+                                <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-xs">
+                                  +{quarto.amenities.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+
+                            <Button 
+                              className="w-full rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 h-10 text-sm font-semibold"
+                              id={`btn-selecionar-${quarto.id}`}
+                            >
+                              Ver disponibilidade
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
                 )}
-              </div>
             </motion.div>
           )}
 
-          {/* Step 2: Verificação de Disponibilidade para o Quarto Selecionado */}
+            {/* Step 2: Seleção de Datas */}
           {step === 2 && quartoSelecionado && (
+              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-2-content">
+                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+                {isDark && (
+                  <>
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                  </>
+                )}
+                
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
               {/* Cabeçalho da Seção */}
-              <div className="text-center max-w-3xl mx-auto mb-8">
-                <h2 className="text-2xl md:text-3xl font-bold mb-4">Selecione suas Datas</h2>
-                <p className="text-muted-foreground text-base md:text-lg">
+                    <div className="text-center max-w-3xl mx-auto mb-12">
+                      <motion.span 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10 inline-block mb-6"
+                      >
+                        Disponibilidade
+                      </motion.span>
+                      <motion.h2 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                      >
+                        Selecione suas Datas
+                      </motion.h2>
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-2`}
+                      >
                   Escolha quando deseja se hospedar no {quartoSelecionado.name}
-                </p>
+                      </motion.p>
               </div>
               
+                    {/* Grid layout melhorado - Responsivo */}
               <div className="grid md:grid-cols-5 gap-8">
                 {/* Coluna 1: Detalhes do Quarto */}
                 <div className="md:col-span-2">
-                  <Card className="overflow-hidden border-none shadow-xl bg-background/70 backdrop-blur-lg sticky top-24">
-                    <div className="aspect-[4/3] w-full relative overflow-hidden">
-                      <img 
-                        src={quartoSelecionado.images[0]} 
-                        alt={quartoSelecionado.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <h3 className="text-white text-xl font-bold">{quartoSelecionado.name}</h3>
-                        <p className="text-white/90 text-sm">{quartoSelecionado.type}</p>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <Card className={`overflow-hidden group hover:shadow-xl transition-all duration-300 border-primary/10 shadow-xl sticky top-24`}>
+                    <div className="relative h-60">
+                      <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
+                        <img 
+                          src={quartoSelecionado.images[0]} 
+                          alt={quartoSelecionado.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
+                      </div>
+                      {/* Badge de Preço */}
+                      <div className="absolute top-4 right-4">
+                        <Badge variant="default" className="text-lg font-semibold px-4 py-2 bg-primary/90 hover:bg-primary backdrop-blur-sm shadow-lg">
+                          {formatarPreco(quartoSelecionado.price)}
+                          <span className="text-xs ml-1 opacity-80">/noite</span>
+                        </Badge>
                       </div>
                     </div>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold">{formatarPreco(quartoSelecionado.price)}</span>
-                        <span className="text-muted-foreground">por noite</span>
-                      </div>
-                      
-                      <div className="space-y-3">
+                            <CardContent className="p-5 space-y-4">
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold tracking-tight">{quartoSelecionado.name}</h3>
                         <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-primary" />
-                          <span>Até {quartoSelecionado.capacity} pessoas</span>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold">4.8</span>
+                          </div>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-muted-foreground">50 avaliações</span>
+                        </div>
+                      </div>
+
+                      <p className="text-muted-foreground text-sm line-clamp-2">{quartoSelecionado.description}</p>
+
+                      <div className="flex flex-wrap gap-3 p-3 bg-muted/50 rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-full bg-background">
+                            <Square className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium">{quartoSelecionado.size}m²</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Home className="h-4 w-4 text-primary" />
-                          <span>{quartoSelecionado.size} m²</span>
+                          <div className="p-1.5 rounded-full bg-background">
+                            <Users className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium">Até {quartoSelecionado.capacity} pessoas</span>
                         </div>
                       </div>
                       
                       <div className="space-y-2">
                         <h4 className="font-medium">Comodidades</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {quartoSelecionado.amenities.map((amenity, index) => (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <Check className="h-3.5 w-3.5 text-primary" />
-                              <span className="text-sm">{amenity}</span>
-                            </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {quartoSelecionado.amenities.slice(0, 3).map((amenity, i) => (
+                            <Badge 
+                              key={i} 
+                              variant="outline" 
+                              className="rounded-full px-2.5 py-0.5 text-xs bg-background border-primary/20"
+                            >
+                              {amenity}
+                            </Badge>
                           ))}
+                          {quartoSelecionado.amenities.length > 3 && (
+                            <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-xs">
+                              +{quartoSelecionado.amenities.length - 3}
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="pt-4 border-t border-border/10">
-                        <h4 className="font-medium mb-2">Descrição</h4>
-                        <p className="text-sm text-muted-foreground">{quartoSelecionado.description}</p>
-                      </div>
                     </CardContent>
-                    <CardFooter className="p-6 pt-0">
+                    <CardFooter className="p-5 pt-0">
                       <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setStep(1)}
+                        className="w-full rounded-full bg-gradient-to-r from-primary/90 to-primary/70 hover:from-primary hover:to-primary/80 shadow-lg hover:shadow-xl transition-all duration-300 h-10 text-sm font-semibold"
+                        onClick={() => {
+                          setStep(1);
+                        }}
                       >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Escolher outro quarto
                       </Button>
                     </CardFooter>
                   </Card>
+                        </motion.div>
                 </div>
                 
                 {/* Coluna 2: Calendário e Formulário */}
                 <div className="md:col-span-3">
-                  <Card className="overflow-hidden border-none shadow-2xl bg-background/70 backdrop-blur-lg mb-8">
-                    <CardHeader className="pb-4">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                          <Card className={`overflow-hidden border-none shadow-2xl ${
+                            isDark ? 'bg-black/60' : 'bg-white/80'
+                          } backdrop-blur-lg mb-8`}>
+                            <CardHeader className="pb-4 border-b border-border/5">
                       <CardTitle className="flex items-center">
                         <CalendarIcon2 className="h-5 w-5 mr-2 text-primary" />
                         Selecione as datas da sua estadia
                       </CardTitle>
-                      <CardDescription>
-                        Escolha a data de check-in e check-out para sua reserva
-                      </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
                       {loadingDatas ? (
@@ -1225,6 +1901,8 @@ export default function Booking() {
                             locale={ptBR}
                             disabled={(date) => isBefore(date, new Date()) && !isSameDay(date, new Date())}
                             className="rounded-lg w-full max-w-full border border-border p-6 shadow-lg bg-card"
+                            month={calendarMonth}
+                            onMonthChange={setCalendarMonth}
                             modifiersStyles={{
                               disabled: { 
                                 color: "#888888",
@@ -1296,6 +1974,8 @@ export default function Booking() {
                             fixedWeeks={true}
                             weekStartsOn={0}
                           />
+                                </div>
+                              )}
 
                           {/* Botões de navegação rápida e limpar seleção */}
                           <div className="mt-6 space-y-4">
@@ -1330,6 +2010,7 @@ export default function Booking() {
                                     from: currentDate,
                                     to: undefined
                                   });
+                                  setCalendarMonth(currentDate);
                                 }}
                               >
                                 <CalendarIcon2 className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
@@ -1346,6 +2027,7 @@ export default function Booking() {
                                     from: nextMonth,
                                     to: undefined
                                   });
+                                  setCalendarMonth(nextMonth);
                                 }}
                               >
                                 <CalendarIcon2 className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
@@ -1362,6 +2044,7 @@ export default function Booking() {
                                     from: twoMonthsAhead,
                                     to: undefined
                                   });
+                                  setCalendarMonth(twoMonthsAhead);
                                 }}
                               >
                                 <CalendarIcon2 className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
@@ -1439,60 +2122,29 @@ export default function Booking() {
                               </span>
                             </Button>
                           </div>
-                        </div>
-                      )}
                     </CardContent>
-                    <CardFooter className="p-6 flex justify-end">
-                      {/* Removido o botão duplicado */}
-                    </CardFooter>
                   </Card>
-                  
-                  {/* Legenda e Informações adicionais */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-card p-4 rounded-lg border border-border shadow-md">
-                      <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <CalendarIcon2 className="h-4 w-4 text-primary" />
-                        Legenda do Calendário
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-full bg-muted/70 border border-border"></div>
-                          <span>Datas passadas</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">✓</div>
-                          <span>Datas selecionadas</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center text-xs font-bold">✓</div>
-                          <span>Hoje</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-full bg-transparent text-muted-foreground flex items-center justify-center text-xs opacity-50">23</div>
-                          <span>Mês anterior/posterior</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs font-bold line-through">15</div>
-                          <span className="text-xs">Indisponível/Reservado</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Alert className="bg-card border-border">
-                      <Info className="h-4 w-4 text-primary" />
-                      <AlertTitle>Política de cancelamento</AlertTitle>
-                      <AlertDescription className="text-sm text-muted-foreground">
-                        Cancelamento gratuito até 48 horas antes do check-in. Após esse período, será cobrada uma taxa de uma diária.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
+                        </motion.div>
                 </div>
               </div>
             </motion.div>
+                </div>
+              </section>
           )}
 
           {/* Step 3: Dados do Hóspede */}
           {step === 3 && quartoSelecionado && date.from && date.to && (
+              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-3-content">
+                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+                {isDark && (
+                  <>
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                  </>
+                )}
+                
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1500,10 +2152,30 @@ export default function Booking() {
             >
               {/* Cabeçalho da Seção */}
               <div className="text-center mb-12">
-                <h2 className="text-2xl md:text-3xl font-bold mb-4">Informações de Reserva</h2>
-                <p className="text-muted-foreground text-base md:text-lg">
+                      <motion.span 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10 inline-block mb-6"
+                      >
+                        Finalizar Reserva
+                      </motion.span>
+                      <motion.h2 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                      >
+                        Informações de Reserva
+                      </motion.h2>
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-2`}
+                      >
                   Preencha seus dados para finalizar a reserva
-                </p>
+                      </motion.p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8">
@@ -1586,48 +2258,68 @@ export default function Booking() {
                   <Card className="overflow-hidden border-none shadow-2xl bg-background/70 backdrop-blur-lg">
                     <CardHeader className="border-b border-border/5 pb-6">
                       <CardTitle className="text-lg font-semibold">Dados Pessoais</CardTitle>
-                      <CardDescription>Preencha seus dados de contato</CardDescription>
+                      <CardDescription>
+                        Preencha seus dados de contato. Campos marcados com <span className="text-red-500">*</span> são obrigatórios.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Nome Completo</label>
+                          <label className="text-sm font-medium">
+                            Nome Completo <span className="text-red-500">*</span>
+                          </label>
                           <Input
                             value={formData.nome}
                             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                             className="h-12 rounded-lg border-border/50 bg-background/70 backdrop-blur transition-all focus:bg-background/90"
                             placeholder="Digite seu nome completo"
+                            required
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Email</label>
+                          <label className="text-sm font-medium">
+                            Email <span className="text-red-500">*</span>
+                          </label>
                           <Input
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             className="h-12 rounded-lg border-border/50 bg-background/70 backdrop-blur transition-all focus:bg-background/90"
                             placeholder="seu@email.com"
+                            required
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Telefone</label>
+                          <label className="text-sm font-medium">
+                            Telefone <span className="text-red-500">*</span>
+                          </label>
                           <Input
                             value={formData.telefone}
                             onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                             className="h-12 rounded-lg border-border/50 bg-background/70 backdrop-blur transition-all focus:bg-background/90"
                             placeholder="+55 (00) 00000-0000"
+                            required
                           />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Observações</label>
+                        <label className="text-sm font-medium">
+                          Observações
+                          <span className="text-muted-foreground ml-1 text-xs">(opcional)</span>
+                        </label>
                         <Textarea
-                          value={formData.observacoes}
-                          onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                          className="min-h-[120px] rounded-lg border-border/50 bg-background/70 backdrop-blur transition-all focus:bg-background/90"
-                          placeholder="Tem alguma solicitação especial? (opcional)"
+                          name="observacoes"
+                          placeholder="Alguma solicitação especial ou informação adicional? Nossa equipe irá analisar e responder o mais breve possível."
+                          value={formData.observacoes || ''}
+                          onChange={handleInputChange}
+                          rows={4}
+                          className="resize-none"
                         />
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          <MessageSquare className="h-3 w-3 mr-1" />
+                          Suas observações serão tratadas como mensagens após a confirmação do pagamento.
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -1636,14 +2328,26 @@ export default function Booking() {
                   <div className="flex flex-col gap-4">
                     <Button 
                       className="w-full rounded-full h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary transition-all duration-300 hover:scale-105"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || !formData.nome || !formData.email || !formData.telefone}
                     >
-                      Confirmar Reserva
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          Confirmar Reserva
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </>
+                      )}
                     </Button>
                     <Button 
                       variant="outline"
                       className="w-full rounded-full h-12 hover:bg-background/80 transition-all duration-300"
                       onClick={() => setStep(2)}
+                      disabled={isSubmitting}
                     >
                       <ArrowLeft className="mr-2 h-5 w-5" />
                       Voltar para Quartos
@@ -1652,9 +2356,303 @@ export default function Booking() {
                 </div>
               </div>
             </motion.div>
-          )}
+        </div>
+      </section>
+            )}
+
+      {/* Step 4: Pagamento */}
+            {step === 4 && quartoSelecionado && (
+              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-4-content">
+                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+                {isDark && (
+                  <>
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                  </>
+                )}
+                
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+                  {/* Cabeçalho da Seção - mesmo estilo que outras seções */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-center mb-16"
+                  >
+                    <motion.span 
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                      className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10 inline-block mb-6"
+                    >
+                      Confirmação
+                    </motion.span>
+                    <motion.h2 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                      className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                    >
+                      Pagamento da Reserva
+                    </motion.h2>
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                      className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-2`}
+                    >
+              Sua reserva foi registrada! Complete o pagamento para garantir sua estadia.
+                    </motion.p>
+                  </motion.div>
+
+                  <div className="grid md:grid-cols-5 gap-6 lg:gap-8">
+            {/* Coluna 1: Resumo da Reserva */}
+            <div className="md:col-span-2">
+                      <Card className="overflow-hidden shadow-2xl border-none bg-background/70 backdrop-blur-lg"> {/* Estilo consistente com outros cards */}
+                        <CardHeader className="border-b border-border/5 pb-6">
+                  <CardTitle className="flex items-center">
+                    <CalendarIcon2 className="h-5 w-5 mr-2 text-primary" />
+                    Resumo da Reserva
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4"> {/* Reduzi o space-y */}
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between pb-2 border-b border-border/5">
+                      <span className="text-muted-foreground">Quarto:</span>
+                      <span className="font-medium">{quartoSelecionado.name}</span>
+                    </div>
+                    
+                    <div className="flex justify-between pb-2 border-b border-border/5">
+                      <span className="text-muted-foreground">Check-in:</span>
+                      <span className="font-medium">{date.from && format(date.from, "dd/MM/yyyy", { locale: ptBR })}</span>
+                    </div>
+                    
+                    <div className="flex justify-between pb-2 border-b border-border/5">
+                      <span className="text-muted-foreground">Check-out:</span>
+                      <span className="font-medium">{date.to && format(date.to, "dd/MM/yyyy", { locale: ptBR })}</span>
+                    </div>
+                    
+                    <div className="flex justify-between pb-2 border-b border-border/5">
+                      <span className="text-muted-foreground">Duração:</span>
+                      <span className="font-medium">
+                        {date.from && date.to && differenceInDays(date.to, date.from) === 0 
+                          ? "1 noite" 
+                          : date.from && date.to && `${differenceInDays(date.to, date.from)} noites`}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between pb-2 border-b border-border/5">
+                      <span className="text-muted-foreground">Hóspedes:</span>
+                      <span className="font-medium">{formData.adultos} adultos, {formData.criancas} crianças</span>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Valor da Diária:</span>
+                      <span>{formatarPreco(quartoSelecionado.price)}</span>
+                    </div>
+                    
+                    {/* Verificação para mostrar taxa de serviço apenas quando ela não for zero */}
+                    {((quartoSelecionado.serviceFeePct !== 0) && quartoSelecionado.serviceFeePct > 0) && (
+                      <div className="flex justify-between items-center mt-1">
+                        <div className="flex items-center">
+                          <span className="font-medium">Taxa de Serviço:</span>
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({quartoSelecionado.serviceFeePct}%)
+                          </span>
+                        </div>
+                        <span>
+                          {formatarPreco(quartoSelecionado.price * (quartoSelecionado.serviceFeePct / 100))}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-border/5">
+                      <span className="font-bold text-lg">Total:</span>
+                      <span className="font-bold text-lg text-primary">{formatarPreco(precoTotal)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-border/5">
+                    <div className="aspect-[4/3] rounded-lg overflow-hidden">
+                      <img
+                        src={quartoSelecionado.images[0]}
+                        alt={quartoSelecionado.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h4 className="font-semibold mt-3">{quartoSelecionado.name}</h4>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{quartoSelecionado.description}</p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {quartoSelecionado.amenities?.slice(0, 3).map((amenity, index) => (
+                        <Badge 
+                          key={index} 
+                          variant="secondary" 
+                          className="bg-primary/10"
+                        >
+                          {amenity}
+                        </Badge>
+                      ))}
+                      {quartoSelecionado.amenities?.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{quartoSelecionado.amenities.length - 3} mais
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Coluna 2: Formulário de Pagamento */}
+            <div className="md:col-span-3">
+              <Elements 
+                stripe={stripePromise}
+                options={{
+                  mode: 'payment',
+                  currency: 'eur',
+                  amount: Math.round(precoTotal * 100), // em centavos
+                  appearance: {
+                    theme: 'stripe',
+                    labels: 'floating',
+                    variables: {
+                      colorPrimary: '#0A2540',
+                      colorBackground: '#ffffff',
+                      colorText: '#30313d',
+                      colorDanger: '#df1b41',
+                      fontFamily: 'Inter, system-ui, Segoe UI, Roboto, sans-serif',
+                      spacingUnit: '4px',
+                      borderRadius: '8px',
+                    },
+                  },
+                  paymentMethodCreation: 'manual',
+                  paymentMethodTypes: [
+                    'card',
+                    'paypal',
+                    'klarna',
+                    'ideal',
+                    'bancontact',
+                    'multibanco',
+                    'sofort',
+                  ],
+                }}
+              >
+                <PaymentForm 
+                  amount={precoTotal}
+                  bookingId={bookingId || ""}
+                  description={`Reserva no Aqua Vista Monchique - ${quartoSelecionado.name} - ${format(date.from!, "dd/MM/yyyy", { locale: ptBR })} a ${format(date.to!, "dd/MM/yyyy", { locale: ptBR })}`}
+                  customerName={formData.nome}
+                  customerEmail={formData.email}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  onPaymentError={handlePaymentError}
+                  serviceFee={quartoSelecionado.serviceFeePct ?? 0}
+                />
+              </Elements>
+            </div>
+          </div>
+                </div>
+              </section>
+      )}
+      
+      {/* Step 5: Confirmação Final após pagamento bem-sucedido */}
+      {step === 5 && (
+              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-5-content">
+                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+                {isDark && (
+                  <>
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                  </>
+                )}
+                
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+                    className="max-w-3xl mx-auto"
+                  >
+                    <div className="text-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                        className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8"
+                      >
+                        <Check className="h-10 w-10 text-primary" />
+                      </motion.div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Reserva Confirmada!</h2>
+                      <p className="text-zinc-400 text-base md:text-lg">
+              Seu pagamento foi processado com sucesso e sua reserva está garantida.
+            </p>
+          </div>
+          
+                    <Card className="overflow-hidden shadow-2xl bg-black border border-zinc-800 backdrop-blur-lg">
+                      <CardContent className="p-6 md:p-8 text-center space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Detalhes da Reserva</h3>
+                <div className="bg-primary/5 rounded-lg p-4 inline-block">
+                  <p className="font-bold text-xl">Código da Reserva:</p>
+                  <p className="text-primary font-mono text-xl">{bookingId?.substring(0, 8).toUpperCase()}</p>
+                </div>
+                
+                <div className="pt-4">
+                  <p>Um email de confirmação foi enviado para:</p>
+                  <p className="font-medium">{formData.email}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 pt-6">
+                <h3 className="font-medium">Próximos Passos</h3>
+                <div className="grid gap-4 max-w-xl mx-auto">
+                  <div className="flex items-start gap-3 text-left">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 flex-shrink-0">
+                      <span className="font-bold text-primary">1</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Prepare-se para sua estadia</p>
+                                <p className="text-sm text-zinc-400">Lembre-se de trazer um documento com foto para o check-in</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 text-left">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 flex-shrink-0">
+                      <span className="font-bold text-primary">2</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Check-in entre 14:00 e 20:00</p>
+                                <p className="text-sm text-zinc-400">Nossa equipe estará aguardando sua chegada</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 text-left">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 flex-shrink-0">
+                      <span className="font-bold text-primary">3</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Aproveite sua experiência</p>
+                                <p className="text-sm text-zinc-400">Desfrute de todos os nossos serviços exclusivos</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+                      <CardFooter className="p-6 md:p-8 pt-0 flex flex-col gap-4 border-t border-zinc-800">
+              <Button 
+                          className="w-full py-5 md:py-6 bg-primary hover:bg-primary/90"
+                onClick={() => window.location.href = '/'}
+              >
+                Retornar à Página Inicial
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+                </div>
+              </section>
+      )}
+          </div>
         </div>
       </section>
     </main>
-  )
+  ) : null;
 } 

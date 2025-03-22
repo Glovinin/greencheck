@@ -10,6 +10,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
+import { Contact, createContactMessage } from '@/lib/firebase/firestore'
+import { Timestamp } from 'firebase/firestore'
+import { toast, Toaster } from 'sonner'
 
 export default function Contato() {
   const router = useRouter()
@@ -33,12 +36,41 @@ export default function Contato() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validação básica
+    if (!formData.nome.trim() || !formData.email.trim() || !formData.mensagem.trim()) {
+      toast.error("Por favor, preencha os campos obrigatórios")
+      return
+    }
+    
     setIsLoading(true)
-    // Simular envio
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    // Resetar formulário
-    setFormData({ nome: '', email: '', telefone: '', mensagem: '' })
+    
+    try {
+      // Criar objeto de contato
+      const contactMessage: Contact = {
+        name: formData.nome,
+        email: formData.email,
+        phone: formData.telefone || undefined,
+        subject: "Mensagem do site",
+        message: formData.mensagem,
+        status: 'new',
+        createdAt: Timestamp.now()
+      }
+      
+      // Enviar para o Firestore
+      await createContactMessage(contactMessage)
+      
+      // Feedback positivo
+      toast.success("Mensagem enviada com sucesso!")
+      
+      // Resetar formulário
+      setFormData({ nome: '', email: '', telefone: '', mensagem: '' })
+    } catch (error) {
+      console.error("Erro ao enviar mensagem:", error)
+      toast.error("Erro ao enviar mensagem. Tente novamente.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -56,6 +88,7 @@ export default function Contato() {
   return (
     <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
       <Navbar />
+      <Toaster position="top-right" richColors />
       
       {/* Hero Section */}
       <section className="relative min-h-[100svh] pb-20 md:pb-0">
