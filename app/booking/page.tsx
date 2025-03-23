@@ -890,7 +890,12 @@ export default function Booking() {
     try {
       // Usar a API existente para calcular o preço considerando os preços sazonais
       if (quartoSelecionado.id) {
-        let priceData;
+        let priceData: {
+          nightlyPrices: { date: string; price: number }[];
+          totalPrice: number;
+          serviceFee: number;
+          totalWithFee: number;
+        };
         try {
           priceData = await calculateStayPrice(
           quartoSelecionado.id,
