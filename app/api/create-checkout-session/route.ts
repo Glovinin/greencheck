@@ -58,8 +58,8 @@ export async function POST(request: Request) {
           },
         ],
         mode: 'payment',
-        success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/booking?canceled=true`,
+        success_url: `https://aquavista.replit.app/booking/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `https://aquavista.replit.app/booking?canceled=true`,
         client_reference_id: bookingId,
         customer_email: email,
         metadata: {
