@@ -11,7 +11,7 @@ NEXT_TELEMETRY_DISABLED = "1"
 NEXT_PUBLIC_SITE_URL = "https://aquavista.replit.app"
 
 [deployment]
-build = ["sh", "-c", "npm run build"]
+build = ["sh", "-c", "NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production npm run build"]
 deploymentTarget = "cloudrun"
 run = ["sh", "-c", "npm start"]
 
