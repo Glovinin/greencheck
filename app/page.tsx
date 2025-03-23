@@ -105,7 +105,7 @@ export default function Home() {
   const [isLoadingImages, setIsLoadingImages] = useState(true)
   const [galleryImages, setGalleryImages] = useState<GalleryItem[]>([])
   const [isLoadingGallery, setIsLoadingGallery] = useState(true)
-
+  
   const { scrollY } = useScroll()
   const videoY = useTransform(scrollY, [0, 500], [0, 150])
   const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
@@ -121,10 +121,10 @@ export default function Home() {
       setIsLoadingImages(true)
       try {
         const items = await getDocuments<GalleryItem>('gallery')
-
+        
         // Filtrar apenas as imagens da seção "Sobre Nós"
         const aboutImagesFromDB = items.filter(item => item.isHomeAboutImage && item.homePosition)
-
+        
         if (aboutImagesFromDB.length > 0) {
           // Mapear para o formato necessário para exibição
           const formattedImages = aboutImagesFromDB.map(item => ({
@@ -133,16 +133,16 @@ export default function Home() {
             alt: item.title,
             caption: item.description || item.title
           }))
-
+          
           // Ordenar por posição
           formattedImages.sort((a, b) => a.position - b.position)
-
+          
           setAboutImages(formattedImages)
         } else {
           // Deixar o array vazio para que o componente possa renderizar condicionalmente
           setAboutImages([])
         }
-
+        
         // Filtrar imagens para a seção de galeria na homepage
         // Obter imagens featured ou mostrar as 5 primeiras
         const galleryImagesFromDB = items
@@ -155,9 +155,9 @@ export default function Home() {
             return b.createdAt - a.createdAt
           })
           .slice(0, 5) // Limitar a 5 imagens
-
+        
         setGalleryImages(galleryImagesFromDB)
-
+        
       } catch (error) {
         console.error('Erro ao carregar imagens:', error)
         // Deixar os arrays vazios em caso de erro
@@ -168,7 +168,7 @@ export default function Home() {
         setIsLoadingGallery(false)
       }
     }
-
+    
     if (mounted) {
       fetchAboutImages()
     }
@@ -217,7 +217,7 @@ export default function Home() {
   return (
     <main className={`min-h-screen overflow-x-hidden ${isDark ? '' : 'bg-gray-50'}`}>
       {!sheetOpen && <Navbar />}
-
+      
       {/* Hero Section */}
       <section className="relative min-h-[100svh] pb-20 md:pb-0">
         <div className="absolute inset-0 overflow-hidden">
@@ -246,7 +246,7 @@ export default function Home() {
                 : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
             }`} 
           />
-
+          
           {/* Elementos Decorativos */}
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
           <div className={`absolute inset-x-0 top-0 h-32 ${
@@ -260,7 +260,7 @@ export default function Home() {
               : 'bg-gradient-to-t from-white/60 to-transparent'
           }`} />
         </div>
-
+        
         <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
           <motion.div 
             style={{ opacity }}
@@ -281,7 +281,7 @@ export default function Home() {
                   Bem-vindo ao seu refúgio na serra
                 </span>
               </div>
-
+              
               <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}>
@@ -290,7 +290,7 @@ export default function Home() {
                   isDark ? 'text-white/80' : 'text-gray-700'
                 }`}>Monchique</span>
               </h1>
-
+              
               <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 h-12 transition-all duration-500 transform ${
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
               } ${
@@ -298,7 +298,7 @@ export default function Home() {
               }`}>
                 {slogans[currentSlogan]}
               </p>
-
+              
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 <Button 
                   size="lg" 
@@ -357,7 +357,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -411,7 +411,7 @@ export default function Home() {
                 </Button>
               </motion.div>
             </motion.div>
-
+            
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -434,7 +434,7 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-
+                
                 {/* Imagem 2: Inferior Esquerda */}
                 <div className="overflow-hidden rounded-3xl shadow-lg shadow-black/20 group relative">
                   <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
@@ -465,7 +465,7 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-
+                
                 {/* Imagem 4: Inferior Direita */}
                 <div className="overflow-hidden rounded-3xl shadow-lg shadow-black/20 group relative">
                   <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
@@ -490,7 +490,7 @@ export default function Home() {
       <section className="py-24 bg-black relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
             <span 
@@ -510,7 +510,7 @@ export default function Home() {
               combinando conforto moderno com a beleza natural da serra.
             </p>
           </div>
-
+          
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {amenities.map((amenity, index) => (
               <div
@@ -525,7 +525,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-
+          
           <div className="flex justify-center mt-12">
             <Sheet onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
@@ -550,7 +550,7 @@ export default function Home() {
                       </SheetClose>
                     </div>
                   </div>
-
+                  
                   <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       {/* Principais comodidades */}
@@ -589,7 +589,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                      
                       {/* Comodidades dos quartos */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -617,7 +617,7 @@ export default function Home() {
                             <span>Comodidades para fazer chá e café</span>
                           </li>
                         </ul>
-
+                        
                         <h3 className="flex items-center gap-2 font-semibold text-lg mt-6 mb-4">
                           <Square className="w-5 h-5 text-primary" /> Equipamentos
                         </h3>
@@ -628,7 +628,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                      
                       {/* Serviços e outros */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -665,7 +665,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                    
                       {/* Áreas de Lazer */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -706,7 +706,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                      
                       {/* Acessibilidade */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -718,7 +718,7 @@ export default function Home() {
                             <span>Barras de segurança para bebés</span>
                           </li>
                         </ul>
-
+                        
                         <h3 className="flex items-center gap-2 font-semibold text-lg mt-6 mb-4">
                           <AlertCircle className="w-5 h-5 text-primary" /> Segurança
                         </h3>
@@ -749,7 +749,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                      
                       {/* Comodidades adicionais */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -786,7 +786,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                    
                       {/* Áreas exteriores */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -823,7 +823,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                      
                       {/* Comida e Bebida */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -860,7 +860,7 @@ export default function Home() {
                           </li>
                         </ul>
                       </div>
-
+                      
                       {/* Outros */}
                       <div className="bg-accent/30 rounded-xl p-6">
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
@@ -869,14 +869,14 @@ export default function Home() {
                         <div className="p-4 bg-primary/10 rounded-lg mb-4">
                           <p className="text-sm">Acesso Wi-Fi disponível nas áreas públicas. Custo: Gratuito</p>
                         </div>
-
+                        
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
                           <Car className="w-5 h-5 text-primary" /> Estacionamento
                         </h3>
                         <div className="p-4 bg-primary/10 rounded-lg mb-4">
                           <p className="text-sm">Estacionamento gratuito e público disponível no local (não carece de reserva)</p>
                         </div>
-
+                        
                         <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
                           <Globe className="w-5 h-5 text-primary" /> Idiomas falados
                         </h3>
@@ -912,7 +912,7 @@ export default function Home() {
       <section className="py-24 bg-black relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
             <span
@@ -931,7 +931,7 @@ export default function Home() {
               Experiências reais de quem já desfrutou da tranquilidade e do conforto do Aqua Vista Monchique.
             </p>
           </div>
-
+          
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
               <div 
@@ -974,12 +974,12 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+      
       {/* Gallery Section */}
       <section className="py-24 bg-black relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
             <span 
@@ -998,7 +998,7 @@ export default function Home() {
               Confira alguns registros de experiências especiais em nosso hotel.
             </p>
           </div>
-
+          
           {isLoadingGallery ? (
             <div className="flex justify-center items-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -1020,7 +1020,7 @@ export default function Home() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
+                  transition={{ duration: 0.5 }}
                   viewport={{ once: true }}
                   className="col-span-2 row-span-2 relative overflow-hidden rounded-3xl group"
                 >
@@ -1040,7 +1040,7 @@ export default function Home() {
                   </div>
                 </motion.div>
               )}
-
+              
               {galleryImages.length > 1 && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1062,7 +1062,7 @@ export default function Home() {
                   </div>
                 </motion.div>
               )}
-
+              
               {galleryImages.length > 2 && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1084,7 +1084,7 @@ export default function Home() {
                   </div>
                 </motion.div>
               )}
-
+              
               {galleryImages.length > 3 && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1106,7 +1106,7 @@ export default function Home() {
                   </div>
                 </motion.div>
               )}
-
+              
               {galleryImages.length > 4 && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1130,7 +1130,7 @@ export default function Home() {
               )}
             </div>
           )}
-
+          
           <div className="flex justify-center mt-12">
             <Button 
               className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20" 
@@ -1142,7 +1142,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+      
       {/* CTA Section */}
       <CTASection />
 
