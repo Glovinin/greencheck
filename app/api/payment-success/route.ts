@@ -531,3 +531,51 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 } 
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2023-10-16',
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { payment_intent, session_id, booking_id } = body;
+    
+    if (payment_intent) {
+      const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent);
+      
+      return NextResponse.json({
+        success: true,
+        data: paymentIntent
+      });
+    } else if (session_id) {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      
+      return NextResponse.json({
+        success: true,
+        data: session
+      });
+    } else if (booking_id) {
+      // Handle booking verification logic here
+      
+      return NextResponse.json({
+        success: true,
+        data: { booking_id }
+      });
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: 'É necessário fornecer payment_intent, session_id ou booking_id'
+      }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('Erro ao verificar pagamento:', error);
+    
+    return NextResponse.json({ 
+      success: false,
+      error: error.message || 'Erro ao verificar o pagamento'
+    }, { status: 500 });
+  }
+}

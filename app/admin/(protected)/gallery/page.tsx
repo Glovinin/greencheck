@@ -1239,3 +1239,48 @@ export default function GalleryManagement() {
     </div>
   )
 } 
+"use client"
+
+import { useState, useEffect } from 'react'
+
+interface GalleryItem {
+  id: string
+  title: string
+  description: string
+  image: string
+  category: string
+  featured: boolean
+  displayOrder?: number
+  createdAt: number
+  isHomeAboutImage?: boolean
+  homePosition?: number | null
+}
+
+export default function GalleryPage() {
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
+  
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">Gallery Management</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {galleryItems.length > 0 ? (
+          galleryItems.map((item) => (
+            <div key={item.id} className="border rounded-lg overflow-hidden">
+              <img 
+                src={item.image} 
+                alt={item.title} 
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <h3 className="font-semibold">{item.title}</h3>
+                <p className="text-sm text-gray-600">{item.description}</p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No gallery items found</p>
+        )}
+      </div>
+    </div>
+  )
+}
