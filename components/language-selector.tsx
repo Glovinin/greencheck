@@ -1,6 +1,8 @@
+
 "use client"
 
-import { useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -20,11 +22,16 @@ const languages = [
 ]
 
 export function LanguageSelector() {
-  const [currentLanguage, setCurrentLanguage] = useState('pt-BR')
+  const router = useRouter()
+  const pathname = usePathname()
+  const locale = useLocale()
 
   const handleLanguageChange = (langCode: string) => {
-    setCurrentLanguage(langCode)
-    // Aqui você pode adicionar a lógica para mudar o idioma da aplicação
+    // Obtém o caminho atual sem o prefixo de idioma
+    const pathWithoutLocale = pathname.replace(/^\/[^\/]+/, '') || '/'
+    
+    // Navega para o mesmo caminho, mas com o novo idioma
+    router.push(`/${langCode}${pathWithoutLocale}`)
   }
 
   return (
@@ -43,7 +50,7 @@ export function LanguageSelector() {
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            className={`cursor-pointer ${currentLanguage === lang.code ? 'bg-primary/10' : ''}`}
+            className={`cursor-pointer ${locale === lang.code ? 'bg-primary/10' : ''}`}
             onClick={() => handleLanguageChange(lang.code)}
           >
             {lang.label}
@@ -52,4 +59,4 @@ export function LanguageSelector() {
       </DropdownMenuContent>
     </DropdownMenu>
   )
-} 
+}

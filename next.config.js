@@ -1,20 +1,15 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // !! WARN !!
-    // Ignora erros de tipagem durante o build
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
-  images: { unoptimized: true },
-  output: 'standalone',
-  experimental: {
-    // Permite o uso da sintaxe Node.js
-    serverComponentsExternalPackages: ['sharp'],
-  },
-};
 
-module.exports = nextConfig;
+/** @type {import('next').NextConfig} */
+const withNextIntl = require('next-intl/plugin')(
+  // Configuração do next-intl
+  './src/i18n.ts'
+);
+
+const nextConfig = {
+  // Suas outras configurações do Next.js
+  images: {
+    domains: ['firebasestorage.googleapis.com', 'images.unsplash.com'],
+  },
+}
+
+module.exports = withNextIntl(nextConfig);
