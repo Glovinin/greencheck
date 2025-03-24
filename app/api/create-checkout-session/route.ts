@@ -2,9 +2,21 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Inicializa o Stripe com a chave secreta
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
-});
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
+    })
+  : // Fallback para desenvolvimento ou para quando a chave não estiver disponível
+    { 
+      checkout: { 
+        sessions: { 
+          create: () => Promise.resolve({ 
+            id: 'mock_session_id', 
+            url: 'https://checkout.example.com',
+          }) 
+        } 
+      } 
+    } as unknown as Stripe;
 
 export async function POST(request: Request) {
   try {

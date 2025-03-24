@@ -3,9 +3,20 @@ import Stripe from 'stripe';
 import { updateBookingStatus } from '@/lib/firebase/firestore';
 
 // Inicializa o Stripe com a chave secreta
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
-});
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
+    })
+  : // Fallback para desenvolvimento ou para quando a chave não estiver disponível
+    { 
+      paymentIntents: { 
+        create: () => Promise.resolve({ 
+          id: 'mock_payment_intent_id', 
+          client_secret: 'mock_client_secret',
+          payment_method_types: ['card']
+        }) 
+      } 
+    } as unknown as Stripe;
 
 export async function POST(request: Request) {
   try {
