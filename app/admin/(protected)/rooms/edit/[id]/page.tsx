@@ -1,10 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
+
 export async function generateStaticParams() {
   return []
 }
-
-import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ArrowLeft, Loader2, Upload, X, Plus, Minus, Calendar as CalendarIcon, CalendarRange } from "lucide-react"
