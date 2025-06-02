@@ -844,7 +844,7 @@ export default function Booking() {
         // Gerar preços temporários baseados nos preços diários já carregados
         const startDate = new Date(range.from);
         for (let i = 0; i < noites; i++) {
-          const currentDate: Date = new Date(startDate);
+          const currentDate = new Date(startDate);
           currentDate.setDate(startDate.getDate() + i);
           const dateStr = format(currentDate, "yyyy-MM-dd");
           
@@ -931,7 +931,7 @@ export default function Booking() {
             const manualNightlyPrices = [];
             
             for (let i = 0; i < nights; i++) {
-              const currentDate: Date = new Date(date.from);
+              const currentDate = new Date(date.from);
               currentDate.setDate(date.from.getDate() + i);
               const dateStr = format(currentDate, "yyyy-MM-dd");
               
@@ -962,7 +962,7 @@ export default function Booking() {
           const manualNightlyPrices = [];
           
           for (let i = 0; i < nights; i++) {
-            const currentDate: Date = new Date(date.from);
+            const currentDate = new Date(date.from);
             currentDate.setDate(date.from.getDate() + i);
             const dateStr = format(currentDate, "yyyy-MM-dd");
             
