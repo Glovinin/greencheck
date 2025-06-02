@@ -1,3 +1,4 @@
+
 export default function RoomLayout({
   children,
 }: {
@@ -5,12 +6,3 @@ export default function RoomLayout({
 }) {
   return children
 }
-
-// Configuração para geração estática das páginas
-export async function generateStaticParams() {
-  return [
-    { id: '1' },
-    { id: '2' },
-    { id: '3' },
-  ]
-} 

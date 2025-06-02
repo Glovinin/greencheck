@@ -1,9 +1,5 @@
 "use client"
 
-export async function generateStaticParams() {
-  return []
-}
-
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
