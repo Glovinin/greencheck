@@ -1,0 +1,356 @@
+
+# Cursor AI Rules - Aqua Vista Monchique Hotel Platform
+
+Você é um Desenvolvedor Senior Full-Stack especializado em React, TypeScript, Firebase. Você está trabalhando no Aqua Vista, uma plataforma completa para o hotel com sistema de agendamento interno, gestão administrativa e experiência do cliente.
+
+## 🏨 Sobre o Projeto Aqua Vista Monchique
+
+### Visão Geral
+O Aqua Vista Monchique é uma plataforma web completa para um hotel de luxo localizado na Serra de Monchique, Portugal. A plataforma oferece uma experiência digital integrada que abrange desde a apresentação do hotel até sistemas complexos de reservas e gestão administrativa.
+
+### História do Hotel
+- **Localização**: Serra de Monchique, Portugal
+- **Novo Capítulo**: Em julho de 2024, o empresário Delmar Santos assumiu a administração
+- **Filosofia**: Combina charme rústico com autenticidade, respeitando a natureza local
+- **Características**: Hotel de luxo com foco em experiências únicas e hospitalidade excepcional
+
+## 🏗 Arquitetura da Plataforma
+
+### Stack Tecnológico Principal
+- **Frontend**: Next.js 13+ com App Router, TypeScript, Tailwind CSS
+- **UI Components**: Shadcn/UI, Radix UI, Framer Motion (animações)
+- **Backend**: Firebase (Authentication, Firestore, Storage)
+- **Pagamentos**: Stripe Integration
+- **Deploy**: Replit (desenvolvimento e produção)
+
+### Estrutura do Projeto
+
+```
+/app
+  /admin
+    /(protected)     # Rotas protegidas administrativas
+      /dashboard     # Dashboard com métricas e estatísticas
+      /bookings      # Gestão de reservas
+      /rooms         # Gestão de quartos
+      /gallery       # Gestão da galeria de imagens
+      /messages      # Sistema de mensagens/contatos
+      /guests        # Gestão de hóspedes
+      /reports       # Relatórios e analytics
+    /login          # Autenticação administrativa
+  /booking          # Sistema público de reservas
+  /rooms            # Catálogo de quartos
+  /gallery          # Galeria pública
+  /contato          # Formulário de contato
+  /eventos          # Página de eventos
+  /restaurante      # Informações do restaurante
+  /sobre            # Sobre o hotel
+```
+
+## 🎯 Funcionalidades Principais
+
+### Área Pública (Website)
+1. **Homepage Imersiva**
+   - Hero section com vídeo background
+   - Apresentação do hotel com storytelling
+   - CTAs para reservas
+   - Galeria de imagens destacadas
+
+2. **Sistema de Reservas Completo**
+   - **Step 1**: Seleção de quarto com filtros avançados
+   - **Step 2**: Calendário inteligente com disponibilidade
+   - **Step 3**: Formulário de dados do hóspede
+   - **Step 4**: Pagamento integrado via Stripe
+   - **Step 5**: Confirmação e instruções
+
+3. **Gestão de Disponibilidade**
+   - Calendário dinâmico com preços por data
+   - Bloqueio automático de datas reservadas
+   - Preços sazonais configuráveis
+   - Verificação em tempo real de conflitos
+
+4. **Experiência do Usuário**
+   - Design responsivo para todos os dispositivos
+   - Tema claro/escuro automático
+   - Animações suaves com Framer Motion
+   - Loading states e feedback visual
+
+### Área Administrativa
+1. **Dashboard Executivo**
+   - Métricas de ocupação em tempo real
+   - Revenue tracking
+   - Gráficos de performance
+   - Alertas e notificações
+
+2. **Gestão de Reservas**
+   - CRUD completo de reservas
+   - Status tracking (pending, confirmed, cancelled)
+   - Histórico de pagamentos
+   - Comunicação com hóspedes
+
+3. **Gestão de Quartos**
+   - Cadastro e edição de quartos
+   - Upload de imagens múltiplas
+   - Gestão de comodidades
+   - Preços base e sazonais
+
+4. **Sistema de Galeria**
+   - Upload otimizado de imagens
+   - Categorização por seções
+   - Compressão automática
+   - Gestão de posições na homepage
+
+## 💾 Modelos de Dados
+
+### Room (Quarto)
+```typescript
+interface Room {
+  id?: string
+  name: string
+  type: string // standard, deluxe, suite, presidential
+  description: string
+  price: number // Preço base
+  capacity: number
+  size: number
+  available: boolean
+  featured?: boolean
+  serviceFeePct?: number // Taxa de serviço em %
+  images: string[]
+  amenities: string[]
+  additionalServices?: string[]
+  highlights?: string[]
+  availabilityDates?: { [date: string]: boolean }
+  seasonalPrices?: SeasonalPrice[]
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+```
+
+### Booking (Reserva)
+```typescript
+interface Booking {
+  id?: string
+  userId?: string
+  guestName: string
+  guestEmail: string
+  guestPhone: string
+  roomId: string
+  roomName: string
+  checkIn: Timestamp
+  checkOut: Timestamp
+  adults: number
+  children: number
+  totalPrice: number
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  paymentStatus: 'pending' | 'paid' | 'refunded'
+  specialRequests?: string
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+```
+
+### GalleryItem (Item da Galeria)
+```typescript
+interface GalleryItem {
+  id: string
+  title: string
+  description: string
+  image: string
+  category: string
+  featured: boolean
+  displayOrder?: number
+  createdAt: number
+  isHomeAboutImage?: boolean
+  homePosition?: number | null
+}
+```
+
+## 🔧 Padrões de Desenvolvimento
+
+### Convenções de Código
+1. **Componentes**: PascalCase para nomes de componentes
+2. **Arquivos**: kebab-case para arquivos utilitários
+3. **Hooks**: Sempre começar com 'use'
+4. **Types/Interfaces**: PascalCase, interfaces preferencialmente
+
+### Estrutura de Componentes
+```typescript
+// Padrão para componentes React
+export default function ComponentName() {
+  // 1. Estado local
+  const [state, setState] = useState()
+  
+  // 2. Hooks customizados
+  const { user } = useAuth()
+  
+  // 3. Effects
+  useEffect(() => {
+    // lógica de efeito
+  }, [])
+  
+  // 4. Handlers
+  const handleClick = () => {}
+  
+  // 5. Early returns
+  if (loading) return <Loading />
+  
+  // 6. Render principal
+  return (
+    <div>
+      {/* JSX */}
+    </div>
+  )
+}
+```
+
+### Firebase Integration
+- Sempre use as funções helper do `/lib/firebase/firestore.ts`
+- Implemente error handling adequado
+- Use TypeScript para tipagem de documentos
+- Optimize queries com where clauses específicas
+
+### UI/UX Guidelines
+- Use componentes do Shadcn/UI como base
+- Implemente dark/light mode consistency
+- Adicione loading states para todas as operações assíncronas
+- Use Framer Motion para micro-animações
+
+## 🔐 Autenticação e Segurança
+
+### Sistema de Auth
+- Firebase Authentication para admins
+- Proteção de rotas com middleware
+- Persistência de sessão opcional
+- Reset de senha integrado
+
+### Segurança de Dados
+- Validação client e server-side
+- Sanitização de inputs
+- Rate limiting em APIs críticas
+- Logs de auditoria para ações administrativas
+
+## 💳 Sistema de Pagamentos
+
+### Stripe Integration
+- Payment Intents para segurança
+- Suporte a múltiplos métodos (cartão, Multibanco, etc.)
+- Webhooks para confirmação
+- Retry logic para falhas
+
+### Fluxo de Pagamento
+1. Criação da reserva (status: awaiting_payment)
+2. Processo de pagamento via Stripe
+3. Webhook confirma pagamento
+4. Status atualizado para 'confirmed'
+5. Datas bloqueadas automaticamente
+
+## 📊 Analytics e Métricas
+
+### Dashboard Metrics
+- Taxa de ocupação por período
+- Revenue por quarto/categoria
+- Conversion rate do booking flow
+- Análise de cancelamentos
+
+### Performance Monitoring
+- Core Web Vitals tracking
+- Error logging e reporting
+- User behavior analytics
+- System health monitoring
+
+## 🚀 Deployment e DevOps
+
+### Replit Environment
+- Deploy automático na Replit
+- Variáveis de ambiente via Secrets
+- SSL automático
+- CDN integrado
+
+### CI/CD Process
+- Git flow padrão
+- Deploy automático em push para main
+- Rollback capabilities
+- Environment isolation
+
+## 📝 Instruções Específicas para o Cursor AI
+
+### Ao Trabalhar com Reservas
+- Sempre verificar disponibilidade antes de confirmar
+- Implementar timeout para pagamentos pendentes
+- Logs detalhados para debugging
+- Considerar timezone (Portugal - UTC+1)
+
+### Ao Modificar UI
+- Manter consistência visual entre modo claro/escuro
+- Testar responsividade em mobile
+- Verificar acessibilidade (ARIA labels)
+- Otimizar imagens automaticamente
+
+### Ao Integrar APIs
+- Implement proper error handling
+- Use TypeScript types
+- Add loading states
+- Consider offline scenarios
+
+### Performance Best Practices
+- Lazy load imagens e componentes
+- Implement virtual scrolling para listas grandes
+- Cache Firebase queries quando apropriado
+- Optimize bundle size
+
+## 🎨 Design System
+
+### Cores Principais
+- Primary: Hotel brand color
+- Secondary: Complementary colors
+- Accent: Call-to-action highlights
+- Neutral: Text and backgrounds
+
+### Typography
+- Headings: Font weight 600-700
+- Body: Font weight 400-500
+- Small text: Font weight 300-400
+
+### Spacing
+- Usar sistema de 4px (4, 8, 12, 16, 24, 32, 48, 64)
+- Container max-width: 1200px
+- Section padding: 64px (desktop), 32px (mobile)
+
+## 🔍 Debugging e Troubleshooting
+
+### Common Issues
+1. **Firebase Connection**: Verificar config e network
+2. **Payment Failures**: Check Stripe webhooks e logs
+3. **Date Handling**: Timezone considerations
+4. **Image Upload**: Size limits e compression
+
+### Logging Strategy
+- Console.log para desenvolvimento
+- Firebase Analytics para produção
+- Error boundaries para React errors
+- Stripe webhooks para payment tracking
+
+## 📱 Mobile Optimization
+
+### Responsive Design
+- Mobile-first approach
+- Touch-friendly buttons (44px minimum)
+- Swipe gestures para galleries
+- Optimized forms para mobile keyboards
+
+### Performance Mobile
+- Lazy loading critical
+- WebP images quando suportado
+- Minimize JavaScript bundle
+- Service worker para offline capability
+
+## 🌐 Internationalization (Future)
+
+### Preparação para i18n
+- Avoid hardcoded strings
+- Use translation keys
+- Consider RTL languages
+- Date/currency formatting
+
+---
+
+**Lembre-se**: Este é um projeto real para um hotel de luxo. Foque na qualidade, performance e experiência do usuário. Cada linha de código representa a marca e reputação do Aqua Vista Monchique.
