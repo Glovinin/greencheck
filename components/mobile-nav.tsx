@@ -27,6 +27,7 @@ import {
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/logo'
 
 // Itens na navegação inferior
 const bottomNavItems = [
@@ -185,8 +186,8 @@ export function MobileNav() {
       <nav className={cn(
         "fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-t rounded-t-[2rem] block lg:hidden",
         isDark 
-          ? "bg-black/80 border-white/10" 
-          : "bg-white/80 border-gray-200"
+          ? "bg-[#4F3621]/80 border-[#EED5B9]/20" 
+          : "bg-[#EED5B9]/80 border-[#4F3621]/20"
       )}>
         <div className="flex items-center justify-around px-4 py-4 pb-safe">
           {bottomNavItems.map((item) => {
@@ -199,15 +200,18 @@ export function MobileNav() {
                 className={cn(
                   "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
                   isActive 
-                    ? "text-primary" 
-                    : "text-muted-foreground hover:text-primary"
+                    ? isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
+                    : isDark ? "text-[#EED5B9]/60 hover:text-[#EED5B9]" : "text-[#4F3621]/60 hover:text-[#4F3621]"
                 )}
               >
                 <div className="relative p-2 rounded-2xl transition-all duration-300">
                   {isActive && (
                     <motion.div 
                       layoutId="activeNavBackground"
-                      className="absolute inset-0 bg-primary/10 rounded-2xl -z-10"
+                      className={cn(
+                        "absolute inset-0 rounded-2xl -z-10",
+                        isDark ? "bg-[#EED5B9]/10" : "bg-[#4F3621]/10"
+                      )}
                       transition={{
                         type: "spring",
                         stiffness: 300,
@@ -233,7 +237,7 @@ export function MobileNav() {
             onClick={() => setMenuOpen(true)}
             className={cn(
               "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
-              "text-muted-foreground hover:text-primary"
+              isDark ? "text-[#EED5B9]/60 hover:text-[#EED5B9]" : "text-[#4F3621]/60 hover:text-[#4F3621]"
             )}
           >
             <div className="relative p-2 rounded-2xl transition-all duration-300">
@@ -271,25 +275,29 @@ export function MobileNav() {
             className={cn(
               "fixed inset-0 z-[100] lg:hidden flex flex-col overflow-hidden",
               isDark 
-                ? "bg-black text-white" 
-                : "bg-white text-gray-900"
+                ? "bg-[#4F3621] text-[#EED5B9]" 
+                : "bg-[#EED5B9] text-[#4F3621]"
             )}
             ref={menuRef}
           >
             {/* Cabeçalho do menu */}
             <div className={cn(
               "flex items-center justify-between p-6 border-b",
-              isDark ? "border-white/10" : "border-gray-200"
+              isDark ? "border-[#EED5B9]/20" : "border-[#4F3621]/20"
             )}>
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center sm:h-12 sm:w-12">
-                  <Waves className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
-                </div>
-                <h1 className="text-xl font-bold sm:text-2xl">Aqua Vista</h1>
+                <Logo 
+                  width={160} 
+                  height={24} 
+                  className="transition-all duration-300"
+                />
               </div>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="h-10 w-10 rounded-full flex items-center justify-center transition-all hover:bg-primary/10 sm:h-12 sm:w-12"
+                className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center transition-all sm:h-12 sm:w-12",
+                  isDark ? "hover:bg-[#EED5B9]/10" : "hover:bg-[#4F3621]/10"
+                )}
               >
                 <X className="h-6 w-6 sm:h-7 sm:w-7" />
               </button>
@@ -300,8 +308,8 @@ export function MobileNav() {
               className={cn(
                 "flex-1 overflow-y-auto py-8 px-6 relative",
                 isDark 
-                  ? "bg-black" 
-                  : "bg-white"
+                  ? "bg-[#4F3621]" 
+                  : "bg-[#EED5B9]"
               )} 
               ref={menuContentRef}
             >
@@ -309,16 +317,16 @@ export function MobileNav() {
               <div className={cn(
                 "fixed left-0 right-0 bottom-[72px] h-24 pointer-events-none z-10",
                 isDark 
-                  ? "bg-gradient-to-t from-black to-transparent" 
-                  : "bg-gradient-to-t from-white to-transparent"
+                  ? "bg-gradient-to-t from-[#4F3621] to-transparent" 
+                  : "bg-gradient-to-t from-[#EED5B9] to-transparent"
               )} />
               
               {/* Efeito de fade no topo */}
               <div className={cn(
                 "absolute left-0 right-0 top-0 h-6 pointer-events-none z-10",
                 isDark 
-                  ? "bg-gradient-to-b from-black to-transparent" 
-                  : "bg-gradient-to-b from-white to-transparent"
+                  ? "bg-gradient-to-b from-[#4F3621] to-transparent" 
+                  : "bg-gradient-to-b from-[#EED5B9] to-transparent"
               )} />
               
               <ul ref={menuItemsRef} className="space-y-6 pb-24">
@@ -342,28 +350,35 @@ export function MobileNav() {
                       <Link 
                         href={item.href}
                         className={cn(
-                          "flex items-center py-2 px-3 rounded-xl hover:bg-primary/5 transition-all sm:py-3",
-                          isActive && "bg-primary/5"
+                          "flex items-center py-2 px-3 rounded-xl transition-all sm:py-3",
+                          isActive 
+                            ? isDark ? "bg-[#EED5B9]/10" : "bg-[#4F3621]/10"
+                            : isDark ? "hover:bg-[#EED5B9]/5" : "hover:bg-[#4F3621]/5"
                         )}
                       >
                         <div className={cn(
                           "h-12 w-12 rounded-xl flex items-center justify-center sm:h-14 sm:w-14",
                           isActive 
-                            ? "bg-primary/10 text-primary" 
-                            : "text-foreground"
+                            ? isDark ? "bg-[#EED5B9]/10 text-[#EED5B9]" : "bg-[#4F3621]/10 text-[#4F3621]"
+                            : isDark ? "text-[#EED5B9]/80" : "text-[#4F3621]/80"
                         )}>
                           <ItemIcon weight={isActive ? "fill" : "regular"} className="h-6 w-6 sm:h-7 sm:w-7" />
                         </div>
                         
                         <span className={cn(
-                          "text-lg transition-all sm:text-xl",
-                          isActive ? "font-medium text-primary" : "text-foreground"
+                          "text-lg transition-all sm:text-xl ml-4",
+                          isActive 
+                            ? isDark ? "font-medium text-[#EED5B9]" : "font-medium text-[#4F3621]"
+                            : isDark ? "text-[#EED5B9]/90" : "text-[#4F3621]/90"
                         )}>
                           {item.label}
                         </span>
                         
                         {isActive && (
-                          <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
+                          <div className={cn(
+                            "ml-auto h-2 w-2 rounded-full",
+                            isDark ? "bg-[#EED5B9]" : "bg-[#4F3621]"
+                          )} />
                         )}
                       </Link>
                     </motion.li>
@@ -374,12 +389,20 @@ export function MobileNav() {
               {/* Alternador de tema */}
               <div className={cn(
                 "mt-12 p-6 rounded-2xl border sm:p-8 sm:mt-16",
-                isDark ? "border-white/10 bg-gray-900/50" : "border-gray-200 bg-gray-50/50"
+                isDark 
+                  ? "border-[#EED5B9]/20 bg-[#4F3621]/50" 
+                  : "border-[#4F3621]/20 bg-[#EED5B9]/50"
               )}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium text-lg sm:text-xl">Alternar Tema</h3>
-                    <p className="text-sm text-muted-foreground mt-1 sm:text-base sm:mt-2">Escolha entre modo claro ou escuro</p>
+                    <h3 className={cn(
+                      "font-medium text-lg sm:text-xl",
+                      isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
+                    )}>Alternar Tema</h3>
+                    <p className={cn(
+                      "text-sm mt-1 sm:text-base sm:mt-2",
+                      isDark ? "text-[#EED5B9]/70" : "text-[#4F3621]/70"
+                    )}>Escolha entre modo claro ou escuro</p>
                   </div>
                   <Button 
                     onClick={toggleTheme}
@@ -387,7 +410,9 @@ export function MobileNav() {
                     size="icon" 
                     className={cn(
                       "rounded-full h-12 w-12 sm:h-14 sm:w-14",
-                      isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                      isDark 
+                        ? "bg-[#4F3621] border-[#EED5B9]/30 hover:bg-[#EED5B9]/10" 
+                        : "bg-[#EED5B9] border-[#4F3621]/30 hover:bg-[#4F3621]/10"
                     )}
                   >
                     {isDark ? (
@@ -402,72 +427,44 @@ export function MobileNav() {
 
             {/* Rodapé */}
             <div className={cn(
-              "p-6 border-t sticky bottom-0 backdrop-blur-lg z-20",
-              isDark 
-                ? "bg-black/60 border-white/10" 
-                : "bg-white/60 border-gray-200"
+              "p-6 border-t",
+              isDark ? "border-[#EED5B9]/20" : "border-[#4F3621]/20"
             )}>
-              {/* INDICADOR DE SCROLL - VERSÃO FINAL */}
-              <div className="h-0 relative">
-                <AnimatePresence>
-                  {scrollPosition < 50 && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ 
-                        duration: 0.3,
-                        ease: "easeOut"
-                      }}
-                      className="absolute -top-20 left-0 right-0 flex justify-center pointer-events-auto z-50"
-                      onClick={() => {
-                        if (menuContentRef.current) {
-                          menuContentRef.current.scrollTo({
-                            top: 400,
-                            behavior: 'smooth'
-                          });
-                        }
-                      }}
-                    >
-                      <div className={cn(
-                        "px-5 py-3 rounded-full flex items-center gap-3 shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all",
-                        isDark 
-                          ? "bg-black text-white border-2 border-white/20" 
-                          : "bg-white text-black border-2 border-black/20"
-                      )}>
-                        <span className="text-xs font-medium">Deslize para ver mais opções</span>
-                        <motion.div
-                          animate={{ y: [0, 4, 0] }}
-                          transition={{ 
-                            duration: 1.2, 
-                            repeat: Infinity,
-                            repeatType: "loop" 
-                          }}
-                        >
-                          <CaretDown weight="bold" className="h-4 w-4" />
-                        </motion.div>
-                      </div>
-                    </motion.div>
+              <div className="flex items-center justify-center space-x-6">
+                <a 
+                  href="#" 
+                  className={cn(
+                    "h-10 w-10 rounded-full flex items-center justify-center transition-all sm:h-12 sm:w-12",
+                    isDark 
+                      ? "bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20" 
+                      : "bg-[#4F3621]/10 hover:bg-[#4F3621]/20"
                   )}
-                </AnimatePresence>
-              </div>
-              
-              <div className="flex justify-center space-x-6">
-                <a href="#" className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center transition-all",
-                  isDark ? "bg-white/10 hover:bg-white/20" : "bg-gray-100/80 hover:bg-gray-200/80"
-                )}>
-                  <InstagramLogo className="h-5 w-5 text-muted-foreground" />
+                >
+                  <InstagramLogo className={cn(
+                    "h-5 w-5 sm:h-6 sm:w-6",
+                    isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
+                  )} />
                 </a>
-                <a href="#" className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center transition-all",
-                  isDark ? "bg-white/10 hover:bg-white/20" : "bg-gray-100/80 hover:bg-gray-200/80"
-                )}>
-                  <FacebookLogo className="h-5 w-5 text-muted-foreground" />
+                <a 
+                  href="#" 
+                  className={cn(
+                    "h-10 w-10 rounded-full flex items-center justify-center transition-all sm:h-12 sm:w-12",
+                    isDark 
+                      ? "bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20" 
+                      : "bg-[#4F3621]/10 hover:bg-[#4F3621]/20"
+                  )}
+                >
+                  <FacebookLogo className={cn(
+                    "h-5 w-5 sm:h-6 sm:w-6",
+                    isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
+                  )} />
                 </a>
               </div>
-              <p className="text-center text-xs text-muted-foreground mt-4">
-                © 2025 Aqua Vista Monchique. Todos os direitos reservados.
+              <p className={cn(
+                "text-center text-sm mt-4 sm:text-base",
+                isDark ? "text-[#EED5B9]/70" : "text-[#4F3621]/70"
+              )}>
+                © 2024 Aqua Vista Monchique. Todos os direitos reservados.
               </p>
             </div>
           </motion.div>

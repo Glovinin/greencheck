@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "./ui/button"
-import { Globe, User, Moon, Sun } from "lucide-react"
+import { Globe, User, Moon, Sun, ChevronDown } from "lucide-react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from "next-themes"
@@ -11,7 +11,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "./ui/dropdown-menu"
+import { Logo } from "./logo"
 
 const languages = [
   { code: 'pt-BR', name: 'Português' },
@@ -21,6 +23,21 @@ const languages = [
   { code: 'de', name: 'Deutsch' },
   { code: 'nl', name: 'Nederlands' },
   { code: 'it', name: 'Italiano' },
+]
+
+// Itens principais de navegação (sempre visíveis em desktop)
+const primaryNavItems = [
+  { href: "/", label: "Início" },
+  { href: "/rooms", label: "Quartos" },
+  { href: "/gallery", label: "Galeria" },
+]
+
+// Itens secundários (agrupados em dropdown em telas menores)
+const secondaryNavItems = [
+  { href: "/restaurante", label: "Restaurante" },
+  { href: "/eventos", label: "Eventos" },
+  { href: "/sobre", label: "Sobre Nós" },
+  { href: "/contato", label: "Contato" },
 ]
 
 export const Navbar = () => {
@@ -68,120 +85,147 @@ export const Navbar = () => {
   return (
     <nav className="fixed top-0 w-full z-[100] flex items-center justify-center">
       <div className={`
-        mx-auto my-3 h-12 rounded-full flex items-center justify-between px-5
+        mx-auto my-3 h-12 rounded-full flex items-center justify-between px-3 sm:px-4 lg:px-5
         transition-all duration-300 ease-in-out
         ${isScrolled 
           ? isDark
-            ? 'bg-black/70 backdrop-blur-lg border border-white/10 lg:w-[76%] w-[94%]'
-            : 'bg-white/70 backdrop-blur-lg border border-black/10 lg:w-[76%] w-[94%]'
-          : 'bg-transparent lg:w-[95%] w-[98%]'
+            ? 'bg-[#4F3621]/80 backdrop-blur-lg border border-[#EED5B9]/20 w-[96%] sm:w-[94%] md:w-[88%] lg:w-[82%] xl:w-[76%]'
+            : 'bg-[#EED5B9]/90 backdrop-blur-lg border border-[#4F3621]/20 w-[96%] sm:w-[94%] md:w-[88%] lg:w-[82%] xl:w-[76%]'
+          : 'bg-transparent w-[98%] sm:w-[96%] md:w-[92%] lg:w-[88%] xl:w-[95%]'
         }
       `}>
-        {/* Logo - Visível em todas as telas */}
-        <Link href="/" className="flex items-center">
-          <span className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Aqua Vista
-          </span>
+        {/* Logo - Responsivo */}
+        <Link href="/" className="flex items-center flex-shrink-0">
+          <Logo 
+            width={160} 
+            height={21} 
+            priority={true}
+            className="transition-all duration-300 hover:opacity-80 sm:w-[130px] sm:h-[22px] lg:w-[140px] lg:h-[24px]"
+          />
         </Link>
 
-        {/* Desktop Navigation - Visível apenas em telas grandes (lg:) */}
-        <div className="hidden lg:flex items-center space-x-6">
-          <Link 
-            href="/" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Início
-          </Link>
-          <Link 
-            href="/rooms" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Quartos
-          </Link>
-          <Link 
-            href="/restaurante" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Restaurante
-          </Link>
-          <Link 
-            href="/eventos" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Eventos
-          </Link>
-          <Link 
-            href="/gallery" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Galeria
-          </Link>
-          <Link 
-            href="/sobre" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Sobre Nós
-          </Link>
-          <Link 
-            href="/contato" 
-            className={`${isDark ? 'text-white/90 hover:text-white' : 'text-gray-800/90 hover:text-gray-900'} transition-colors text-[13px] font-medium px-1`}
-          >
-            Contato
-          </Link>
+        {/* Desktop Navigation - Visível apenas em telas grandes (xl:) */}
+        <div className="hidden xl:flex items-center space-x-6">
+          {primaryNavItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.href} 
+              className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[13px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+          {secondaryNavItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.href} 
+              className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[13px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
-        {/* Right Side - Adaptado para Mobile e Desktop */}
-        <div className="flex items-center space-x-2 lg:space-x-4">
+        {/* Medium Screen Navigation - Visível em telas médias (lg: até xl:) */}
+        <div className="hidden lg:flex xl:hidden items-center space-x-4">
+          {primaryNavItems.map((item) => (
+            <Link 
+              key={item.href}
+              href={item.href} 
+              className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[12px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+          
+          {/* Dropdown para itens secundários */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] hover:bg-[#EED5B9]/10' : 'text-[#4F3621]/90 hover:text-[#4F3621] hover:bg-[#4F3621]/10'} text-[12px] font-medium h-8 px-2 flex items-center gap-1`}
+              >
+                Mais <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className={`w-[160px] ${isDark 
+                ? 'bg-[#4F3621]/90 backdrop-blur-lg border-[#EED5B9]/20' 
+                : 'bg-[#EED5B9]/90 backdrop-blur-lg border-[#4F3621]/20'}`}
+            >
+              {secondaryNavItems.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link 
+                    href={item.href}
+                    className={`text-[13px] ${isDark 
+                      ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] focus:text-[#EED5B9]' 
+                      : 'text-[#4F3621]/90 hover:text-[#4F3621] focus:text-[#4F3621]'} ${pathname === item.href ? (isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10') : ''}`}
+                  >
+                    {item.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Right Side - Adaptado para todas as telas */}
+        <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3 flex-shrink-0">
+          {/* Botão Reservar - Visível em todas as telas */}
           <Button 
             variant="ghost" 
-            className={`${isDark ? 'text-white hover:text-white/90' : 'text-gray-900 hover:text-gray-900/90'} text-[13px] font-medium h-8 px-2 lg:px-3`}
+            className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} text-[11px] sm:text-[12px] lg:text-[13px] font-medium h-7 sm:h-8 px-2 sm:px-3`}
             onClick={handleReservar}
           >
-            Reservar
+            <span className="hidden sm:inline">Reservar</span>
+            <span className="sm:hidden">Reserva</span>
           </Button>
-          {/* Linha divisória - visível em Desktop e Mobile */}
-          <div className={`mx-1.5 lg:mx-2 w-px h-3 lg:h-3.5 ${isDark ? 'bg-white/20' : 'bg-gray-400/20'}`} />
+          
+          {/* Linha divisória */}
+          <div className={`w-px h-3 sm:h-3.5 ${isDark ? 'bg-[#EED5B9]/20' : 'bg-[#4F3621]/20'}`} />
           
           {/* Botão de Tema */}
           <Button 
             variant="ghost" 
             size="icon" 
-            className={`${isDark ? 'text-white hover:text-white/90' : 'text-gray-900 hover:text-gray-700'} h-8 w-8`}
+            className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} h-7 w-7 sm:h-8 sm:w-8`}
             onClick={toggleTheme}
             aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
           >
             {isDark ? (
-              <Sun className="h-4 w-4" />
+              <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             ) : (
-              <Moon className="h-4 w-4" />
+              <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             )}
           </Button>
           
+          {/* Dropdown de Idiomas - Visível em todas as telas */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={`${isDark ? 'text-white hover:text-white/90' : 'text-gray-900 hover:text-gray-700'} h-8 w-8`}
+                className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} h-7 w-7 sm:h-8 sm:w-8`}
               >
-                <Globe className="h-4 w-4" />
+                <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="end" 
-              className={`w-[150px] ${isDark 
-                ? 'bg-black/90 backdrop-blur-lg border-white/10' 
-                : 'bg-white/90 backdrop-blur-lg border-gray-200'} max-h-[300px] overflow-y-auto`}
+              className={`w-[140px] sm:w-[150px] ${isDark 
+                ? 'bg-[#4F3621]/90 backdrop-blur-lg border-[#EED5B9]/20' 
+                : 'bg-[#EED5B9]/90 backdrop-blur-lg border-[#4F3621]/20'} max-h-[300px] overflow-y-auto`}
             >
               {languages.map((lang) => (
                 <DropdownMenuItem
                   key={lang.code}
                   className={`
-                    text-[13px] ${isDark 
-                      ? 'text-white/90 hover:text-white focus:text-white' 
-                      : 'text-gray-700 hover:text-gray-900 focus:text-gray-900'}
+                    text-[12px] sm:text-[13px] ${isDark 
+                      ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] focus:text-[#EED5B9]' 
+                      : 'text-[#4F3621]/90 hover:text-[#4F3621] focus:text-[#4F3621]'}
                     ${currentLang === lang.code 
-                      ? isDark ? 'bg-white/10' : 'bg-gray-200/80'
+                      ? isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10'
                       : ''}
                   `}
                   onClick={() => handleLanguageChange(lang.code)}
@@ -192,14 +236,14 @@ export const Navbar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {/* Botão de Admin Login */}
+          {/* Botão de Admin Login - Visível em todas as telas */}
           <Link href="/admin/login">
             <Button 
               variant="ghost" 
               size="icon" 
-              className={`${isDark ? 'text-white hover:text-white/90' : 'text-gray-900 hover:text-gray-700'} h-8 w-8`}
+              className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} h-7 w-7 sm:h-8 sm:w-8`}
             >
-              <User className="h-4 w-4" />
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
           </Link>
         </div>

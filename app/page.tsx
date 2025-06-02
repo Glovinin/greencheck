@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { CTASection } from '@/components/cta-section'
 import { Footer } from '@/components/footer'
+import { MobileNav } from '@/components/mobile-nav'
 import { getDocuments } from "@/lib/firebase/firestore"
 import {
   Sheet,
@@ -215,8 +216,9 @@ export default function Home() {
   const isDark = theme === 'dark'
 
   return (
-    <main className={`min-h-screen overflow-x-hidden ${isDark ? '' : 'bg-gray-50'}`}>
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
       {!sheetOpen && <Navbar />}
+      <MobileNav />
       
       {/* Hero Section */}
       <section className="relative min-h-[100svh] pb-20 md:pb-0">
@@ -242,8 +244,8 @@ export default function Home() {
             style={{ opacity }}
             className={`absolute inset-0 backdrop-blur-[2px] ${
               isDark 
-                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
-                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+                ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
+                : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
             }`} 
           />
           
@@ -251,13 +253,13 @@ export default function Home() {
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
           <div className={`absolute inset-x-0 top-0 h-32 ${
             isDark 
-              ? 'bg-gradient-to-b from-black/60 to-transparent' 
-              : 'bg-gradient-to-b from-white/60 to-transparent'
+              ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
+              : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
           }`} />
           <div className={`absolute inset-x-0 bottom-0 h-32 ${
             isDark 
-              ? 'bg-gradient-to-t from-black/60 to-transparent' 
-              : 'bg-gradient-to-t from-white/60 to-transparent'
+              ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
+              : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
           }`} />
         </div>
         
@@ -275,26 +277,26 @@ export default function Home() {
               <div className="inline-block">
                 <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
                   isDark 
-                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
-                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                    ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
+                    : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
                 } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                   Bem-vindo ao seu refúgio na serra
                 </span>
               </div>
               
               <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
-                isDark ? 'text-white' : 'text-gray-900'
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
               }`}>
                 Aqua Vista
                 <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                  isDark ? 'text-white/80' : 'text-gray-700'
+                  isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
                 }`}>Monchique</span>
               </h1>
               
               <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 h-12 transition-all duration-500 transform ${
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
               } ${
-                isDark ? 'text-white/90' : 'text-gray-800'
+                isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
               }`}>
                 {slogans[currentSlogan]}
               </p>
@@ -305,8 +307,8 @@ export default function Home() {
                   onClick={handleReservar}
                   className={`w-full sm:w-auto rounded-full transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg shadow-lg hover:scale-105 ${
                     isDark 
-                      ? 'bg-white text-black hover:bg-white/90 shadow-white/10 hover:shadow-white/20' 
-                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-300/40 hover:shadow-gray-300/60'
+                      ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 shadow-[#EED5B9]/10 hover:shadow-[#EED5B9]/20' 
+                      : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 shadow-[#4F3621]/40 hover:shadow-[#4F3621]/60'
                   }`}
                 >
                   Reservar Agora <ArrowRight className="ml-2 h-5 w-5" />
@@ -317,8 +319,8 @@ export default function Home() {
                   onClick={handleVerQuartos}
                   className={`w-full sm:w-auto rounded-full transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm hover:scale-105 ${
                     isDark 
-                      ? 'border-white/20 text-white hover:bg-white/10 hover:border-white/40' 
-                      : 'border-gray-400 text-gray-900 hover:bg-gray-200/40 hover:border-gray-500'
+                      ? 'border-[#EED5B9]/20 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/40' 
+                      : 'border-[#4F3621]/40 text-[#4F3621] hover:bg-[#4F3621]/10 hover:border-[#4F3621]/60'
                   }`}
                 >
                   Veja Nossos Quartos
@@ -337,22 +339,24 @@ export default function Home() {
           >
             <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
               isDark 
-                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
-                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+                ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
+                : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
             }`}>
               <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+                isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
               }`} />
             </div>
             <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-              isDark ? 'text-white/80' : 'text-gray-700'
+              isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
             }`}>Explorar</span>
           </motion.div>
         </div>
       </section>
 
       {/* About Section */}
-      <section className="py-24 bg-black relative overflow-hidden">
+      <section className={`py-24 relative overflow-hidden ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
@@ -380,7 +384,9 @@ export default function Home() {
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 viewport={{ once: true }}
-                className="text-4xl font-bold mb-6 tracking-tight text-white"
+                className={`text-4xl font-bold mb-6 tracking-tight ${
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                }`}
               >
                 Seu Refúgio nas Montanhas
               </motion.h2>
@@ -389,7 +395,9 @@ export default function Home() {
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
                 viewport={{ once: true }}
-                className="text-lg text-white/70 mb-8 leading-relaxed"
+                className={`text-lg mb-8 leading-relaxed ${
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+                }`}
               >
                 Localizado nas belas montanhas de Monchique, nosso hotel oferece uma experiência única 
                 de tranquilidade e conexão com a natureza. Com uma piscina refrescante e uma vista 
@@ -421,30 +429,54 @@ export default function Home() {
             >
               <div className="space-y-4">
                 {/* Imagem 1: Superior Esquerda */}
-                <div className="overflow-hidden rounded-3xl shadow-lg shadow-black/20 group relative">
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
+                }`}>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img
                     src={aboutImages.find(img => img.position === 1)?.url || placeholderImage}
                     alt={aboutImages.find(img => img.position === 1)?.alt || 'Imagem de placeholder'}
                     className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {aboutImages.find(img => img.position === 1)?.caption || 'Imagem de placeholder'}
                     </p>
                   </div>
                 </div>
                 
                 {/* Imagem 2: Inferior Esquerda */}
-                <div className="overflow-hidden rounded-3xl shadow-lg shadow-black/20 group relative">
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
+                }`}>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img
                     src={aboutImages.find(img => img.position === 2)?.url || placeholderImage}
                     alt={aboutImages.find(img => img.position === 2)?.alt || 'Imagem de placeholder'}
                     className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {aboutImages.find(img => img.position === 2)?.caption || 'Imagem de placeholder'}
                     </p>
                   </div>
@@ -452,30 +484,54 @@ export default function Home() {
               </div>
               <div className="space-y-4 pt-8">
                 {/* Imagem 3: Superior Direita */}
-                <div className="overflow-hidden rounded-3xl shadow-lg shadow-black/20 group relative">
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
+                }`}>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img
                     src={aboutImages.find(img => img.position === 3)?.url || placeholderImage}
                     alt={aboutImages.find(img => img.position === 3)?.alt || 'Imagem de placeholder'}
                     className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {aboutImages.find(img => img.position === 3)?.caption || 'Imagem de placeholder'}
                     </p>
                   </div>
                 </div>
                 
                 {/* Imagem 4: Inferior Direita */}
-                <div className="overflow-hidden rounded-3xl shadow-lg shadow-black/20 group relative">
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
+                }`}>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img
                     src={aboutImages.find(img => img.position === 4)?.url || placeholderImage}
                     alt={aboutImages.find(img => img.position === 4)?.alt || 'Imagem de placeholder'}
                     className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {aboutImages.find(img => img.position === 4)?.caption || 'Imagem de placeholder'}
                     </p>
                   </div>
@@ -487,7 +543,9 @@ export default function Home() {
       </section>
 
       {/* Features/Amenities Section */}
-      <section className="py-24 bg-black relative overflow-hidden">
+      <section className={`py-24 relative overflow-hidden ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
         
@@ -499,12 +557,16 @@ export default function Home() {
               Nossos Diferenciais
             </span>
             <h2 
-              className="text-4xl font-bold mt-6 mb-4 text-white"
+              className={`text-4xl font-bold mt-6 mb-4 ${
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+              }`}
             >
               Uma Experiência Exclusiva
             </h2>
             <p 
-              className="text-lg text-white/70 max-w-3xl mx-auto"
+              className={`text-lg max-w-3xl mx-auto ${
+                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+              }`}
             >
               O Aqua Vista Monchique oferece comodidades premium para garantir uma estadia memorável, 
               combinando conforto moderno com a beleza natural da serra.
@@ -515,13 +577,23 @@ export default function Home() {
             {amenities.map((amenity, index) => (
               <div
                 key={index}
-                className="bg-black/70 backdrop-blur-sm rounded-3xl p-8 border border-white/10 shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group overflow-hidden hover:scale-105 transform"
+                className={`backdrop-blur-sm p-8 rounded-3xl shadow-lg border transition-all duration-500 group relative overflow-hidden hover:scale-105 transform ${
+                  isDark 
+                    ? 'bg-[#4F3621]/80 border-[#EED5B9]/20 hover:border-[#EED5B9]/40 shadow-[#4F3621]/20' 
+                    : 'bg-[#EED5B9]/80 border-[#4F3621]/30 hover:border-[#4F3621]/50 shadow-[#4F3621]/20'
+                }`}
               >
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
                   {amenity.icon}
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-primary transition-colors duration-300">{amenity.title}</h3>
-                <p className="text-white/70 group-hover:text-white/90 transition-colors duration-300">{amenity.description}</p>
+                <h3 className={`text-xl font-semibold mb-3 transition-colors duration-300 group-hover:text-primary ${
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                }`}>{amenity.title}</h3>
+                <p className={`transition-colors duration-300 ${
+                  isDark 
+                    ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]/90' 
+                    : 'text-[#4F3621]/80 group-hover:text-[#4F3621]/90'
+                }`}>{amenity.description}</p>
               </div>
             ))}
           </div>
@@ -909,7 +981,9 @@ export default function Home() {
       </section>
 
       {/* Enhanced Testimonials */}
-      <section className="py-24 bg-black relative overflow-hidden">
+      <section className={`py-24 relative overflow-hidden ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
         
@@ -921,12 +995,16 @@ export default function Home() {
               Depoimentos
             </span>
             <h2
-              className="text-4xl font-bold mt-6 mb-4 text-white"
+              className={`text-4xl font-bold mt-6 mb-4 ${
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+              }`}
             >
               O que Nossos Hóspedes Dizem
             </h2>
             <p
-              className="text-lg text-white/70 max-w-3xl mx-auto"
+              className={`text-lg max-w-3xl mx-auto ${
+                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+              }`}
             >
               Experiências reais de quem já desfrutou da tranquilidade e do conforto do Aqua Vista Monchique.
             </p>
@@ -936,7 +1014,11 @@ export default function Home() {
             {testimonials.map((testimonial, index) => (
               <div 
                 key={index}
-                className="bg-black/70 backdrop-blur-sm p-8 rounded-3xl shadow-lg border border-white/10 hover:border-primary/20 transition-all duration-500 group relative overflow-hidden hover:scale-105 transform"
+                className={`backdrop-blur-sm p-8 rounded-3xl shadow-lg border transition-all duration-500 group relative overflow-hidden hover:scale-105 transform ${
+                  isDark 
+                    ? 'bg-[#4F3621]/80 border-[#EED5B9]/20 hover:border-[#EED5B9]/40 shadow-[#4F3621]/20' 
+                    : 'bg-[#EED5B9]/80 border-[#4F3621]/30 hover:border-[#4F3621]/50 shadow-[#4F3621]/20'
+                }`}
               >
                 <div className="absolute -top-5 -right-5 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shadow-lg border border-primary/20">
                   <span className="text-2xl text-primary">"</span>
@@ -952,7 +1034,11 @@ export default function Home() {
                     </svg>
                   ))}
                 </div>
-                <p className="text-white/90 mb-8 leading-relaxed italic group-hover:text-white transition-colors duration-300">
+                <p className={`mb-8 leading-relaxed italic transition-colors duration-300 ${
+                  isDark 
+                    ? 'text-[#EED5B9]/90 group-hover:text-[#EED5B9]' 
+                    : 'text-[#4F3621] group-hover:text-[#4F3621]'
+                }`}>
                   "{testimonial.text}"
                 </p>
                 <div className="flex items-center">
@@ -965,8 +1051,14 @@ export default function Home() {
                     />
                   </div>
                   <div className="ml-4">
-                    <p className="font-medium text-white group-hover:text-primary transition-colors duration-300">{testimonial.author}</p>
-                    <p className="text-sm text-white/60">{testimonial.location}</p>
+                    <p className={`font-medium transition-colors duration-300 ${
+                      isDark 
+                        ? 'text-[#EED5B9] group-hover:text-primary' 
+                        : 'text-[#4F3621] group-hover:text-primary'
+                    }`}>{testimonial.author}</p>
+                    <p className={`text-sm ${
+                      isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
+                    }`}>{testimonial.location}</p>
                   </div>
                 </div>
               </div>
@@ -976,7 +1068,9 @@ export default function Home() {
       </section>
       
       {/* Gallery Section */}
-      <section className="py-24 bg-black relative overflow-hidden">
+      <section className={`py-24 relative overflow-hidden ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
         
@@ -988,12 +1082,16 @@ export default function Home() {
               Nossa Galeria
             </span>
             <h2 
-              className="text-4xl font-bold mt-6 mb-4 text-white"
+              className={`text-4xl font-bold mt-6 mb-4 ${
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+              }`}
             >
               Momentos Inesquecíveis
             </h2>
             <p 
-              className="text-lg max-w-3xl mx-auto text-white/70"
+              className={`text-lg max-w-3xl mx-auto ${
+                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+              }`}
             >
               Confira alguns registros de experiências especiais em nosso hotel.
             </p>
@@ -1005,7 +1103,9 @@ export default function Home() {
             </div>
           ) : galleryImages.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-white/70 text-lg mb-6">Ainda não há imagens na galeria.</p>
+              <p className={`text-lg mb-6 ${
+                isDark ? 'text-white/70' : 'text-[#4F3621]/70'
+              }`}>Ainda não há imagens na galeria.</p>
               <Button 
                 className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20" 
                 onClick={handleVerGaleria}

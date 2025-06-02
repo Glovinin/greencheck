@@ -332,7 +332,7 @@ export default function Rooms() {
 
   return (
     <>
-    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} pb-32 md:pb-0`}>
       <Navbar />
       
       {/* Hero Section - Atualizado para corresponder à homepage */}
@@ -359,8 +359,8 @@ export default function Rooms() {
             style={{ opacity }}
             className={`absolute inset-0 backdrop-blur-[2px] ${
               isDark 
-                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
-                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+                ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
+                : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
             }`} 
           />
           
@@ -368,13 +368,13 @@ export default function Rooms() {
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
           <div className={`absolute inset-x-0 top-0 h-32 ${
             isDark 
-              ? 'bg-gradient-to-b from-black/60 to-transparent' 
-              : 'bg-gradient-to-b from-white/60 to-transparent'
+              ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
+              : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
           }`} />
           <div className={`absolute inset-x-0 bottom-0 h-32 ${
             isDark 
-              ? 'bg-gradient-to-t from-black/60 to-transparent' 
-              : 'bg-gradient-to-t from-white/60 to-transparent'
+              ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
+              : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
           }`} />
         </div>
         
@@ -392,24 +392,24 @@ export default function Rooms() {
               <div className="inline-block">
                 <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
                   isDark 
-                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
-                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                    ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
+                    : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
                 } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                   Conforto e elegância
                 </span>
               </div>
               
               <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
-                isDark ? 'text-white' : 'text-gray-900'
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
               }`}>
                 Nossos Quartos
                 <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                  isDark ? 'text-white/80' : 'text-gray-700'
+                  isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
                 }`}>Aqua Vista Monchique</span>
               </h1>
               
               <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
-                isDark ? 'text-white/90' : 'text-gray-800'
+                isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
               }`}>
                 Descubra o conforto e luxo que você merece em nossa seleção exclusiva de acomodações
               </p>
@@ -426,15 +426,15 @@ export default function Rooms() {
           >
             <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
               isDark 
-                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
-                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+                ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
+                : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
             }`}>
               <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+                isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
               }`} />
             </div>
             <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-              isDark ? 'text-white/80' : 'text-gray-700'
+              isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
             }`}>Explorar</span>
           </motion.div>
         </div>
@@ -442,7 +442,7 @@ export default function Rooms() {
 
       {/* Filtros Modernizados */}
       <section className={`py-12 ${
-          isDark ? 'bg-black/60' : 'bg-gray-50/80'
+          isDark ? 'bg-[#4F3621]/60' : 'bg-[#EED5B9]/80'
       }`}>
         <div className="max-w-7xl mx-auto px-4">
             <motion.div
@@ -451,8 +451,8 @@ export default function Rooms() {
               transition={{ duration: 0.5 }}
               className={`${
                 isDark 
-                ? 'bg-black/40 border-white/10' 
-                : 'bg-white/90 border-gray-200/70'
+                ? 'bg-[#4F3621]/40 border-[#EED5B9]/10' 
+                : 'bg-white/90 border-[#4F3621]/20'
               } backdrop-blur-xl rounded-3xl border p-6 md:p-8 shadow-xl`}
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
@@ -461,10 +461,10 @@ export default function Rooms() {
                     <Search className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <h3 className={`text-xl font-semibold ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>
                       Filtrar Quartos
                     </h3>
-                    <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                    <p className={`text-sm ${isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'}`}>
                       Encontre o quarto perfeito para sua estadia
                     </p>
                   </div>
@@ -479,8 +479,8 @@ export default function Rooms() {
                   }}
                   className={`${
                     isDark 
-                      ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white shadow-inner' 
-                      : 'bg-gray-100/80 border-gray-200 hover:bg-gray-200/80 text-gray-800'
+                      ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:bg-[#EED5B9]/10 text-[#EED5B9] shadow-inner' 
+                      : 'bg-[#4F3621]/10 border-[#4F3621]/20 hover:bg-[#4F3621]/20 text-[#4F3621]'
                     } rounded-full transition-all duration-300 group`}
                 >
                   <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
@@ -493,7 +493,7 @@ export default function Rooms() {
                 <div className="space-y-2">
                   <Label 
                     htmlFor="capacidade" 
-                    className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                    className={`block text-sm font-medium ${isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'}`}
                   >
                     Capacidade
                   </Label>
@@ -503,12 +503,12 @@ export default function Rooms() {
                   >
                     <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
                       isDark 
-                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                      : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                      ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/20' 
+                      : 'bg-white border-[#4F3621]/20 text-[#4F3621] hover:border-[#4F3621]/30 hover:bg-[#4F3621]/5'
                     }`}>
                       <SelectValue placeholder="Qualquer capacidade" />
                     </SelectTrigger>
-                    <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                    <SelectContent className={`rounded-xl ${isDark ? 'bg-[#4F3621] border-[#EED5B9]/10' : ''}`}>
                       <SelectItem value="any">Qualquer capacidade</SelectItem>
                       <SelectItem value="1">1 pessoa</SelectItem>
                       <SelectItem value="2">2 pessoas</SelectItem>
@@ -521,7 +521,7 @@ export default function Rooms() {
                 <div className="space-y-2">
                   <Label 
                     htmlFor="tipo" 
-                    className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                    className={`block text-sm font-medium ${isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'}`}
                   >
                     Tipo de Quarto
                   </Label>
@@ -531,12 +531,12 @@ export default function Rooms() {
                   >
                     <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
                       isDark 
-                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                      : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                      ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/20' 
+                      : 'bg-white border-[#4F3621]/20 text-[#4F3621] hover:border-[#4F3621]/30 hover:bg-[#4F3621]/5'
                     }`}>
                       <SelectValue placeholder="Todos os tipos" />
                     </SelectTrigger>
-                    <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                    <SelectContent className={`rounded-xl ${isDark ? 'bg-[#4F3621] border-[#EED5B9]/10' : ''}`}>
                       <SelectItem value="todos">Todos os tipos</SelectItem>
                       <SelectItem value="standard">Standard</SelectItem>
                       <SelectItem value="deluxe">Deluxe</SelectItem>
@@ -551,7 +551,7 @@ export default function Rooms() {
                 <div className="space-y-2">
                   <Label 
                     htmlFor="preco" 
-                    className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                    className={`block text-sm font-medium ${isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'}`}
                   >
                     Preço Máximo
                   </Label>
@@ -561,12 +561,12 @@ export default function Rooms() {
                   >
                     <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
                       isDark 
-                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                      : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                      ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/20' 
+                      : 'bg-white border-[#4F3621]/20 text-[#4F3621] hover:border-[#4F3621]/30 hover:bg-[#4F3621]/5'
                     }`}>
                       <SelectValue placeholder="Sem limite de preço" />
                     </SelectTrigger>
-                    <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                    <SelectContent className={`rounded-xl ${isDark ? 'bg-[#4F3621] border-[#EED5B9]/10' : ''}`}>
                       <SelectItem value="any">Sem limite de preço</SelectItem>
                       <SelectItem value="200">Até €200</SelectItem>
                       <SelectItem value="300">Até €300</SelectItem>
@@ -581,13 +581,13 @@ export default function Rooms() {
       </section>
 
       {/* Lista de Quartos Melhorada */}
-      <section className={`py-16 ${isDark ? 'bg-black' : 'bg-white'}`}>
+      <section className={`py-16 ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center mb-10">
-            <h2 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>
               Nossos Quartos <span className="text-primary">& Suítes</span>
             </h2>
-            <p className={`text-sm md:text-base mt-2 md:mt-0 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+            <p className={`text-sm md:text-base mt-2 md:mt-0 ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>
               Mostrando {quartosFiltrados.length} {quartosFiltrados.length === 1 ? 'opção' : 'opções'} disponíveis
             </p>
           </div>
@@ -598,13 +598,13 @@ export default function Rooms() {
             </div>
           ) : quartosFiltrados.length === 0 ? (
             <div className={`text-center py-16 rounded-3xl border ${
-              isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100'
+              isDark ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10' : 'bg-white/50 border-[#4F3621]/10'
             }`}>
               <div className="max-w-md mx-auto">
-                <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>
                   Nenhum quarto encontrado
                 </h3>
-                <p className={`mb-6 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+                <p className={`mb-6 ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>
                   Tente ajustar seus filtros para encontrar opções disponíveis
                 </p>
                 <Button 
@@ -616,8 +616,8 @@ export default function Rooms() {
                   }}
                   className={`rounded-full ${
                     isDark 
-                      ? 'bg-white/5 border-white/20 hover:bg-white/10 text-white' 
-                      : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-800'
+                      ? 'bg-[#EED5B9]/5 border-[#EED5B9]/20 hover:bg-[#EED5B9]/10 text-[#EED5B9]' 
+                      : 'bg-white border-[#4F3621]/20 hover:bg-[#4F3621]/5 text-[#4F3621]'
                   }`}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -638,7 +638,7 @@ export default function Rooms() {
                   <Card 
                     className={`overflow-hidden group border-0 shadow-lg ${
                       isDark 
-                        ? 'bg-black/60 backdrop-blur-sm ring-1 ring-white/10 hover:ring-primary/20' 
+                        ? 'bg-[#4F3621]/60 backdrop-blur-sm ring-1 ring-[#EED5B9]/10 hover:ring-primary/20' 
                         : 'bg-white hover:shadow-xl'
                     } rounded-2xl cursor-pointer transition-all duration-300`}
                   >
@@ -696,7 +696,7 @@ export default function Rooms() {
                       </div>
                     </div>
                     
-                    <div className={`p-6 space-y-4 ${isDark ? 'text-white' : ''}`}>
+                    <div className={`p-6 space-y-4 ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>
                       <div className="space-y-1">
                         <h3 className="text-xl font-bold tracking-tight">{quarto.nome}</h3>
                         <div className="flex items-center gap-2">
@@ -704,29 +704,29 @@ export default function Rooms() {
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                             <span className="font-semibold">{quarto.avaliacao}</span>
                           </div>
-                          <span className={`text-xs ${isDark ? 'text-white/50' : 'text-muted-foreground'}`}>•</span>
-                          <span className={`text-sm ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
+                          <span className={`text-xs ${isDark ? 'text-[#EED5B9]/50' : 'text-[#4F3621]/50'}`}>•</span>
+                          <span className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>
                             {quarto.numeroAvaliacoes} avaliações
                           </span>
                         </div>
                       </div>
 
-                      <p className={`text-sm line-clamp-2 ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
+                      <p className={`text-sm line-clamp-2 ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>
                         {quarto.descricao}
                       </p>
 
                       <div className={`flex items-center gap-4 p-3 rounded-xl ${
-                        isDark ? 'bg-white/5' : 'bg-muted/50'
+                        isDark ? 'bg-[#EED5B9]/5' : 'bg-[#4F3621]/5'
                       }`}>
                         <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
+                          <div className={`p-1.5 rounded-full ${isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10'}`}>
                             <Square className="h-3.5 w-3.5 text-primary" />
                           </div>
                           <span className="text-sm font-medium">{quarto.metros}m²</span>
                         </div>
-                        <div className="h-4 w-px bg-border/50 dark:bg-white/10"></div>
+                        <div className={`h-4 w-px ${isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10'}`}></div>
                         <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
+                          <div className={`p-1.5 rounded-full ${isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10'}`}>
                             <Users className="h-3.5 w-3.5 text-primary" />
                           </div>
                           <span className="text-sm font-medium">Até {quarto.capacidade} pessoas</span>
@@ -740,8 +740,8 @@ export default function Rooms() {
                             variant="outline" 
                             className={`rounded-full text-xs ${
                               isDark 
-                                ? 'bg-white/5 border-white/10 text-white' 
-                                : 'bg-background border-primary/20'
+                                ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9]' 
+                                : 'bg-[#4F3621]/5 border-[#4F3621]/20 text-[#4F3621]'
                             }`}
                           >
                             {amenidade}
@@ -752,8 +752,8 @@ export default function Rooms() {
                             variant="outline" 
                             className={`rounded-full text-xs ${
                               isDark 
-                                ? 'bg-white/5 border-white/10 text-white' 
-                                : 'bg-background border-primary/20'
+                                ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9]' 
+                                : 'bg-[#4F3621]/5 border-[#4F3621]/20 text-[#4F3621]'
                             }`}
                           >
                             +{quarto.amenidades.length - 3}
@@ -764,8 +764,8 @@ export default function Rooms() {
                       <Button 
                         className={`w-full rounded-full transition-all duration-300 group ${
                           isDark
-                            ? 'bg-white text-black hover:bg-white/90 shadow-white/10 hover:shadow-white/20' 
-                            : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 hover:shadow-primary/30'
+                            ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 shadow-[#EED5B9]/10 hover:shadow-[#EED5B9]/20' 
+                            : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 shadow-[#4F3621]/20 hover:shadow-[#4F3621]/30'
                         } hover:scale-105 shadow-lg py-3 text-sm font-semibold`}
                         onClick={() => handleVerDetalhes(quarto.id)}
                       >
@@ -782,56 +782,74 @@ export default function Rooms() {
       </section>
 
       {/* Informações Adicionais Melhoradas */}
-      <section className="py-16 bg-gradient-to-b from-muted/30 to-background border-t border-primary/10">
+      <section className={`py-16 border-t border-primary/10 ${
+        isDark ? 'bg-gradient-to-b from-[#4F3621]/30 to-[#4F3621]' : 'bg-gradient-to-b from-[#EED5B9]/30 to-[#EED5B9]'
+      }`}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-center space-y-3 p-8 rounded-2xl bg-background/50 backdrop-blur-sm border border-primary/10 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              className={`text-center space-y-3 p-8 rounded-2xl backdrop-blur-sm border transition-all duration-300 ${
+                isDark 
+                  ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:border-[#EED5B9]/30 hover:shadow-lg' 
+                  : 'bg-white/50 border-[#4F3621]/10 hover:border-[#4F3621]/30 hover:shadow-lg'
+              }`}
             >
               <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto">
                 <Wifi className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg">Wi-Fi Gratuito</h3>
-              <p className="text-sm text-muted-foreground">Internet de alta velocidade em todos os quartos</p>
+              <h3 className={`font-semibold text-lg ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Wi-Fi Gratuito</h3>
+              <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Internet de alta velocidade em todos os quartos</p>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-center space-y-3 p-8 rounded-2xl bg-background/50 backdrop-blur-sm border border-primary/10 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              className={`text-center space-y-3 p-8 rounded-2xl backdrop-blur-sm border transition-all duration-300 ${
+                isDark 
+                  ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:border-[#EED5B9]/30 hover:shadow-lg' 
+                  : 'bg-white/50 border-[#4F3621]/10 hover:border-[#4F3621]/30 hover:shadow-lg'
+              }`}
             >
               <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto">
                 <Coffee className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg">Café da Manhã</h3>
-              <p className="text-sm text-muted-foreground">Buffet completo incluso em todas as diárias</p>
+              <h3 className={`font-semibold text-lg ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Café da Manhã</h3>
+              <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Buffet completo incluso em todas as diárias</p>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-center space-y-3 p-8 rounded-2xl bg-background/50 backdrop-blur-sm border border-primary/10 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              className={`text-center space-y-3 p-8 rounded-2xl backdrop-blur-sm border transition-all duration-300 ${
+                isDark 
+                  ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:border-[#EED5B9]/30 hover:shadow-lg' 
+                  : 'bg-white/50 border-[#4F3621]/10 hover:border-[#4F3621]/30 hover:shadow-lg'
+              }`}
             >
               <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto">
                 <Bath className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg">Amenidades Premium</h3>
-              <p className="text-sm text-muted-foreground">Produtos de banho de alta qualidade</p>
+              <h3 className={`font-semibold text-lg ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Amenidades Premium</h3>
+              <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Produtos de banho de alta qualidade</p>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="text-center space-y-3 p-8 rounded-2xl bg-background/50 backdrop-blur-sm border border-primary/10 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              className={`text-center space-y-3 p-8 rounded-2xl backdrop-blur-sm border transition-all duration-300 ${
+                isDark 
+                  ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:border-[#EED5B9]/30 hover:shadow-lg' 
+                  : 'bg-white/50 border-[#4F3621]/10 hover:border-[#4F3621]/30 hover:shadow-lg'
+              }`}
             >
               <div className="p-3 bg-primary/10 rounded-full w-fit mx-auto">
                 <Tv className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg">Entretenimento</h3>
-              <p className="text-sm text-muted-foreground">Smart TVs com streaming incluso</p>
+              <h3 className={`font-semibold text-lg ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Entretenimento</h3>
+              <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Smart TVs com streaming incluso</p>
             </motion.div>
           </div>
         </div>

@@ -35,7 +35,9 @@ export function CTASection({
   }
   
   return (
-    <section className="py-24 bg-black relative overflow-hidden">
+    <section className={`py-24 relative overflow-hidden ${
+      isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+    }`}>
       <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
       <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
@@ -45,8 +47,8 @@ export function CTASection({
         <div 
           className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 border shadow-2xl overflow-hidden group hover:scale-[1.02] transform transition-all duration-500 ${
             isDark 
-              ? 'bg-gradient-to-br from-black/80 to-black/60 border-white/10' 
-              : 'bg-gradient-to-br from-white/90 to-white/70 border-gray-200'
+              ? 'bg-gradient-to-br from-[#4F3621]/80 to-[#4F3621]/60 border-[#EED5B9]/10' 
+              : 'bg-gradient-to-br from-white/90 to-white/70 border-[#4F3621]/20'
           }`}
         >
           <div className={`absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 rounded-full blur-3xl opacity-70 group-hover:opacity-100 transition-opacity duration-700 ${
@@ -60,14 +62,14 @@ export function CTASection({
             <div className="md:max-w-xl mb-8 md:mb-0">
               <h2 
                 className={`text-3xl md:text-4xl font-bold mb-4 ${
-                  isDark ? 'text-white' : 'text-gray-900'
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`}
               >
                 {title}
               </h2>
               <p 
                 className={`text-lg mb-6 ${
-                  isDark ? 'text-white/70' : 'text-gray-600'
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                 }`}
               >
                 {subtitle}
@@ -76,7 +78,7 @@ export function CTASection({
                 className="flex flex-col md:flex-row gap-4 md:gap-8 mb-8"
               >
                 <li className={`flex items-center text-sm ${
-                  isDark ? 'text-white/80 group/item' : 'text-gray-600 group/item'
+                  isDark ? 'text-[#EED5B9]/80 group/item' : 'text-[#4F3621]/80 group/item'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 transition-colors duration-300 ${
                     isDark 
@@ -88,11 +90,11 @@ export function CTASection({
                     </svg>
                   </div>
                   <span className={`transition-colors duration-300 ${
-                    isDark ? 'group-hover/item:text-white' : 'group-hover/item:text-gray-900'
+                    isDark ? 'group-hover/item:text-[#EED5B9]' : 'group-hover/item:text-[#4F3621]'
                   }`}>Cancelamento gratuito</span>
                 </li>
                 <li className={`flex items-center text-sm ${
-                  isDark ? 'text-white/80 group/item' : 'text-gray-600 group/item'
+                  isDark ? 'text-[#EED5B9]/80 group/item' : 'text-[#4F3621]/80 group/item'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 transition-colors duration-300 ${
                     isDark 
@@ -104,11 +106,11 @@ export function CTASection({
                     </svg>
                   </div>
                   <span className={`transition-colors duration-300 ${
-                    isDark ? 'group-hover/item:text-white' : 'group-hover/item:text-gray-900'
+                    isDark ? 'group-hover/item:text-[#EED5B9]' : 'group-hover/item:text-[#4F3621]'
                   }`}>Café da manhã incluso</span>
                 </li>
                 <li className={`flex items-center text-sm ${
-                  isDark ? 'text-white/80 group/item' : 'text-gray-600 group/item'
+                  isDark ? 'text-[#EED5B9]/80 group/item' : 'text-[#4F3621]/80 group/item'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 transition-colors duration-300 ${
                     isDark 
@@ -120,7 +122,7 @@ export function CTASection({
                     </svg>
                   </div>
                   <span className={`transition-colors duration-300 ${
-                    isDark ? 'group-hover/item:text-white' : 'group-hover/item:text-gray-900'
+                    isDark ? 'group-hover/item:text-[#EED5B9]' : 'group-hover/item:text-[#4F3621]'
                   }`}>Experiências exclusivas</span>
                 </li>
               </ul>
@@ -132,7 +134,11 @@ export function CTASection({
               <Button 
                 size="lg" 
                 onClick={handlePrimaryAction}
-                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 h-14 min-w-[200px] shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105"
+                className={`rounded-full transition-all duration-300 h-14 min-w-[200px] shadow-lg hover:scale-105 ${
+                  isDark
+                    ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 shadow-[#EED5B9]/20 hover:shadow-[#EED5B9]/30' 
+                    : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 shadow-[#4F3621]/20 hover:shadow-[#4F3621]/30'
+                }`}
               >
                 {buttonText}
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -143,8 +149,8 @@ export function CTASection({
                 onClick={handleSecondaryAction}
                 className={`rounded-full transition-all duration-300 h-14 min-w-[200px] hover:scale-105 ${
                   isDark 
-                    ? 'border-white/20 text-white hover:bg-white/10 hover:border-white/40' 
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-100/60 hover:border-gray-400'
+                    ? 'border-[#EED5B9]/20 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/40' 
+                    : 'border-[#4F3621]/30 text-[#4F3621] hover:bg-[#4F3621]/10 hover:border-[#4F3621]/50'
                 }`}
               >
                 {secondaryButtonText}
@@ -171,7 +177,9 @@ export function CTABookingSection() {
   }
   
   return (
-    <section className="py-24 bg-black relative overflow-hidden">
+    <section className={`py-24 relative overflow-hidden ${
+      isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+    }`}>
       <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
       <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
@@ -181,8 +189,8 @@ export function CTABookingSection() {
         <div 
           className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 border shadow-2xl overflow-hidden group hover:scale-[1.02] transform transition-all duration-500 ${
             isDark 
-              ? 'bg-gradient-to-br from-black/80 to-black/60 border-white/10' 
-              : 'bg-gradient-to-br from-white/90 to-white/70 border-gray-200'
+              ? 'bg-gradient-to-br from-[#4F3621]/80 to-[#4F3621]/60 border-[#EED5B9]/10' 
+              : 'bg-gradient-to-br from-white/90 to-white/70 border-[#4F3621]/20'
           }`}
         >
           <div className={`absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 rounded-full blur-3xl opacity-70 group-hover:opacity-100 transition-opacity duration-700 ${
@@ -196,14 +204,14 @@ export function CTABookingSection() {
             <div className="md:max-w-xl mb-8 md:mb-0">
               <h2 
                 className={`text-3xl md:text-4xl font-bold mb-4 ${
-                  isDark ? 'text-white' : 'text-gray-900'
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`}
               >
                 Precisa de mais informações?
               </h2>
               <p 
                 className={`text-lg mb-6 ${
-                  isDark ? 'text-white/70' : 'text-gray-600'
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                 }`}
               >
                 Entre em contato com nossa equipe para esclarecer dúvidas ou solicitar serviços adicionais para sua estadia.
@@ -212,7 +220,7 @@ export function CTABookingSection() {
                 className="flex flex-col md:flex-row gap-4 md:gap-8 mb-8"
               >
                 <li className={`flex items-center text-sm ${
-                  isDark ? 'text-white/80 group/item' : 'text-gray-600 group/item'
+                  isDark ? 'text-[#EED5B9]/80 group/item' : 'text-[#4F3621]/80 group/item'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 transition-colors duration-300 ${
                     isDark 
@@ -224,11 +232,11 @@ export function CTABookingSection() {
                     </svg>
                   </div>
                   <span className={`transition-colors duration-300 ${
-                    isDark ? 'group-hover/item:text-white' : 'group-hover/item:text-gray-900'
+                    isDark ? 'group-hover/item:text-[#EED5B9]' : 'group-hover/item:text-[#4F3621]'
                   }`}>Suporte personalizado</span>
                 </li>
                 <li className={`flex items-center text-sm ${
-                  isDark ? 'text-white/80 group/item' : 'text-gray-600 group/item'
+                  isDark ? 'text-[#EED5B9]/80 group/item' : 'text-[#4F3621]/80 group/item'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 transition-colors duration-300 ${
                     isDark 
@@ -240,11 +248,11 @@ export function CTABookingSection() {
                     </svg>
                   </div>
                   <span className={`transition-colors duration-300 ${
-                    isDark ? 'group-hover/item:text-white' : 'group-hover/item:text-gray-900'
+                    isDark ? 'group-hover/item:text-[#EED5B9]' : 'group-hover/item:text-[#4F3621]'
                   }`}>Serviços exclusivos</span>
                 </li>
                 <li className={`flex items-center text-sm ${
-                  isDark ? 'text-white/80 group/item' : 'text-gray-600 group/item'
+                  isDark ? 'text-[#EED5B9]/80 group/item' : 'text-[#4F3621]/80 group/item'
                 }`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 transition-colors duration-300 ${
                     isDark 
@@ -256,7 +264,7 @@ export function CTABookingSection() {
                     </svg>
                   </div>
                   <span className={`transition-colors duration-300 ${
-                    isDark ? 'group-hover/item:text-white' : 'group-hover/item:text-gray-900'
+                    isDark ? 'group-hover/item:text-[#EED5B9]' : 'group-hover/item:text-[#4F3621]'
                   }`}>Atendimento rápido</span>
                 </li>
               </ul>
@@ -268,7 +276,11 @@ export function CTABookingSection() {
               <Button 
                 size="lg" 
                 onClick={handleContato}
-                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 h-14 min-w-[200px] shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105"
+                className={`rounded-full transition-all duration-300 h-14 min-w-[200px] shadow-lg hover:scale-105 ${
+                  isDark
+                    ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 shadow-[#EED5B9]/20 hover:shadow-[#EED5B9]/30' 
+                    : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 shadow-[#4F3621]/20 hover:shadow-[#4F3621]/30'
+                }`}
               >
                 Fale Conosco
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -279,8 +291,8 @@ export function CTABookingSection() {
                 onClick={handleVerGaleria}
                 className={`rounded-full transition-all duration-300 h-14 min-w-[200px] hover:scale-105 ${
                   isDark 
-                    ? 'border-white/20 text-white hover:bg-white/10 hover:border-white/40' 
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-100/60 hover:border-gray-400'
+                    ? 'border-[#EED5B9]/20 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/40' 
+                    : 'border-[#4F3621]/30 text-[#4F3621] hover:bg-[#4F3621]/10 hover:border-[#4F3621]/50'
                 }`}
               >
                 Ver Galeria
