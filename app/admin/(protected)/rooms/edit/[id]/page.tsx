@@ -96,7 +96,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     price: 0,
     description: ""
   })
-  
+
   const [formData, setFormData] = useState({
     name: "",
     type: "standard",
@@ -117,16 +117,16 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     try {
       setIsLoading(true)
       const roomData = await getRoomById(id)
-      
+
       if (!roomData) {
         toast.error("Quarto não encontrado")
         router.push('/admin/rooms')
         return
       }
-      
+
       // Log para depuração
       console.log("Valor de serviceFeePct carregado:", roomData.serviceFeePct)
-      
+
       setFormData({
         name: roomData.name || "",
         type: roomData.type || "standard",
@@ -137,13 +137,13 @@ export default function EditRoom({ params }: EditRoomPageProps) {
         available: roomData.available !== undefined ? roomData.available : true,
         serviceFeePct: roomData.serviceFeePct !== undefined ? roomData.serviceFeePct : 10,
       })
-      
+
       setExistingImages(roomData.images || [])
       setAmenities(roomData.amenities || [])
       setAdditionalServices(roomData.additionalServices || [])
       setHighlights(roomData.highlights || [])
       setSeasonalPrices(roomData.seasonalPrices || [])
-      
+
       // Carregar dados de disponibilidade
       if (roomData.availabilityDates) {
         setAvailabilityDates(roomData.availabilityDates)
@@ -171,7 +171,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    
+
     // Tratamento especial para o campo serviceFeePct para garantir que o valor 0 seja tratado corretamente
     if (name === "serviceFeePct") {
       const parsedValue = parseFloat(value)
@@ -208,21 +208,21 @@ export default function EditRoom({ params }: EditRoomPageProps) {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const remainingSlots = 10 - (existingImages.length + imageFiles.length);
-      
+
       if (remainingSlots <= 0) {
         toast.error("Você já atingiu o limite máximo de 10 imagens.");
         return;
       }
-      
+
       const newFiles = Array.from(e.target.files).slice(0, remainingSlots);
-      
+
       // Calcular tamanho total antes da compressão
       const originalSize = newFiles.reduce((total, file) => total + file.size, 0);
       const originalSizeMB = (originalSize / (1024 * 1024)).toFixed(2);
-      
+
       // Mostrar indicador de carregamento
       const loadingToast = toast.loading("Processando imagens... 0%");
-      
+
       try {
         // Comprimir as imagens com monitoramento de progresso
         const compressedFiles = await compressImages(
@@ -235,19 +235,19 @@ export default function EditRoom({ params }: EditRoomPageProps) {
             });
           }
         );
-        
+
         // Calcular tamanho total após a compressão
         const compressedSize = compressedFiles.reduce((total, file) => total + file.size, 0);
         const compressedSizeMB = (compressedSize / (1024 * 1024)).toFixed(2);
         const reductionPercentage = ((1 - compressedSize / originalSize) * 100).toFixed(0);
-        
+
         // Criar URLs de preview
         const newPreviewUrls = compressedFiles.map(file => URL.createObjectURL(file));
-        
+
         // Atualizar o estado
         setImageFiles([...imageFiles, ...compressedFiles]);
         setImagePreviewUrls([...imagePreviewUrls, ...newPreviewUrls]);
-        
+
         // Mostrar mensagem de sucesso
         toast.success(
           `Imagens processadas com sucesso! Tamanho reduzido de ${originalSizeMB}MB para ${compressedSizeMB}MB (${reductionPercentage}% menor)`,
@@ -255,7 +255,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
             id: loadingToast
           }
         );
-        
+
         if (newFiles.length < e.target.files.length) {
           toast.warning(`Apenas ${newFiles.length} imagens foram adicionadas. O limite máximo é de 10 imagens.`);
         }
@@ -271,7 +271,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
   const removeNewImage = (index: number) => {
     // Revoke the object URL to avoid memory leaks
     URL.revokeObjectURL(imagePreviewUrls[index])
-    
+
     setImageFiles(imageFiles.filter((_, i) => i !== index))
     setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index))
   }
@@ -316,19 +316,19 @@ export default function EditRoom({ params }: EditRoomPageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name || !formData.description || formData.price <= 0) {
       toast.error("Por favor, preencha todos os campos obrigatórios.")
       return
     }
-    
+
     // Validar preços sazonais
     const invalidSeasonalPrices = seasonalPrices.filter(period => period.price <= 0)
     if (invalidSeasonalPrices.length > 0) {
       toast.error("Um ou mais períodos sazonais têm preços inválidos.")
       return
     }
-    
+
     // Verificar conflitos entre períodos sazonais
     const hasConflicts = checkForSeasonalPriceConflicts()
     if (hasConflicts) {
@@ -337,7 +337,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     }
 
     setIsSubmitting(true)
-    
+
     try {
       // Excluir imagens marcadas para exclusão
       if (imagesToDelete.length > 0) {
@@ -346,13 +346,13 @@ export default function EditRoom({ params }: EditRoomPageProps) {
         await Promise.all(deletePromises);
         toast.success(`${imagesToDelete.length} imagens excluídas com sucesso!`);
       }
-      
+
       // Upload das novas imagens com progresso
       let uploadedImageUrls: string[] = [];
-      
+
       if (imageFiles.length > 0) {
         const loadingToast = toast.loading(`Enviando ${imageFiles.length} imagens... 0%`);
-        
+
         uploadedImageUrls = await uploadMultipleImagesWithProgress(
           imageFiles,
           `rooms/${id}`,
@@ -363,18 +363,18 @@ export default function EditRoom({ params }: EditRoomPageProps) {
             });
           }
         );
-        
+
         toast.success(`${imageFiles.length} imagens enviadas com sucesso!`, {
           id: loadingToast
         });
       }
-      
+
       // Combinar URLs existentes com as novas
       const allImageUrls = [...existingImages, ...uploadedImageUrls];
-      
+
       // Atualizar o quarto com todas as imagens
       toast.loading("Atualizando informações do quarto...");
-      
+
       // Atualizar os dados do quarto com as imagens existentes e novas
       const roomData = {
         ...formData,
@@ -385,9 +385,9 @@ export default function EditRoom({ params }: EditRoomPageProps) {
         seasonalPrices,
         updatedAt: new Date()
       }
-      
+
       await updateRoom(id, roomData);
-      
+
       toast.success("Quarto atualizado com sucesso!");
       router.push("/admin/rooms");
     } catch (error) {
@@ -404,9 +404,9 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       // No modo de intervalo, apenas atualiza o estado do intervalo
       return;
     }
-    
+
     const dateStr = date.toISOString().split('T')[0]
-    
+
     setAvailabilityDates(prev => {
       const newAvailability = { ...prev }
       // Toggle: se já estiver marcado como indisponível, torna disponível e vice-versa
@@ -414,55 +414,55 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       return newAvailability
     })
   }
-  
+
   // Função para aplicar disponibilidade a um intervalo de datas
   const handleApplyRangeAvailability = (makeAvailable: boolean) => {
     if (!dateRange.from || !dateRange.to) {
       toast.error("Selecione um intervalo de datas primeiro");
       return;
     }
-    
+
     // Gerar array de datas no intervalo
     const dateStrings = getDatesInRange(dateRange.from, dateRange.to);
-    
+
     setAvailabilityDates(prev => {
       const newAvailability = { ...prev };
-      
+
       // Aplicar a mesma disponibilidade para todas as datas no intervalo
       dateStrings.forEach(dateStr => {
         newAvailability[dateStr] = makeAvailable;
       });
-      
+
       return newAvailability;
     });
-    
+
     // Resetar o modo de intervalo
     setRangeMode(false);
     setDateRange({ from: new Date(), to: undefined });
-    
+
     toast.success(`${dateStrings.length} datas foram ${makeAvailable ? 'desbloqueadas' : 'bloqueadas'}`);
   }
-  
+
   // Verificar se uma data está marcada como indisponível
   const isDateUnavailable = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0]
     return availabilityDates[dateStr] === false
   }
-  
+
   // Navegar para o próximo ou mês anterior
   const navigateMonth = (forward: boolean) => {
     setSelectedMonth(current => 
       forward ? addMonths(current, 1) : addMonths(current, -1)
     )
   }
-  
+
   // Salvar mudanças na disponibilidade
   const handleSaveAvailability = async () => {
     try {
       setIsAvailabilitySubmitting(true)
-      
+
       const success = await updateRoomAvailability(id, availabilityDates)
-      
+
       if (success) {
         toast.success("Disponibilidade atualizada com sucesso")
       } else {
@@ -482,12 +482,12 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       const period1 = seasonalPrices[i]
       const start1 = new Date(period1.startDate)
       const end1 = new Date(period1.endDate)
-      
+
       for (let j = i + 1; j < seasonalPrices.length; j++) {
         const period2 = seasonalPrices[j]
         const start2 = new Date(period2.startDate)
         const end2 = new Date(period2.endDate)
-        
+
         // Verificar se há sobreposição
         if (
           (isWithinInterval(start1, { start: start2, end: end2 }) || 
@@ -501,31 +501,31 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     }
     return false
   }
-  
+
   // Função para adicionar ou atualizar um preço sazonal
   const handleSaveSeasonalPrice = () => {
     if (!seasonalPriceForm.name || !seasonalPriceForm.startDate || !seasonalPriceForm.endDate || seasonalPriceForm.price <= 0) {
       toast.error("Preencha todos os campos obrigatórios.")
       return
     }
-    
+
     const startDate = new Date(seasonalPriceForm.startDate)
     const endDate = new Date(seasonalPriceForm.endDate)
-    
+
     if (isBefore(endDate, startDate)) {
       toast.error("A data final deve ser posterior à data inicial.")
       return
     }
-    
+
     // Verificar conflitos apenas com outros períodos (excluindo o atual se estiver editando)
     const periodsToCheck = editingSeasonalPrice 
       ? seasonalPrices.filter(p => p.id !== editingSeasonalPrice.id) 
       : seasonalPrices
-      
+
     const hasConflict = periodsToCheck.some(period => {
       const periodStart = new Date(period.startDate)
       const periodEnd = new Date(period.endDate)
-      
+
       return (
         isWithinInterval(startDate, { start: periodStart, end: periodEnd }) || 
         isWithinInterval(endDate, { start: periodStart, end: periodEnd }) ||
@@ -533,12 +533,12 @@ export default function EditRoom({ params }: EditRoomPageProps) {
         isWithinInterval(periodEnd, { start: startDate, end: endDate })
       )
     })
-    
+
     if (hasConflict) {
       toast.error("Este período conflita com outro período já cadastrado.")
       return
     }
-    
+
     if (editingSeasonalPrice) {
       // Editar período existente
       setSeasonalPrices(prices => prices.map(price => 
@@ -555,7 +555,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       ])
       toast.success("Período sazonal adicionado.")
     }
-    
+
     // Resetar formulário
     setSeasonalPriceForm({
       name: "",
@@ -567,7 +567,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     setEditingSeasonalPrice(null)
     setSeasonalPriceDialogOpen(false)
   }
-  
+
   // Função para iniciar a edição de um preço sazonal
   const handleEditSeasonalPrice = (price: SeasonalPrice) => {
     setEditingSeasonalPrice(price)
@@ -580,7 +580,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
     })
     setSeasonalPriceDialogOpen(true)
   }
-  
+
   // Função para remover um preço sazonal
   const handleRemoveSeasonalPrice = (id: string) => {
     setSeasonalPrices(prices => prices.filter(price => price.id !== id))
@@ -622,7 +622,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
             <TabsTrigger value="availability">Disponibilidade</TabsTrigger>
             <TabsTrigger value="bookings">Reservas</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="info">
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -643,7 +643,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="type">Tipo de Quarto</Label>
                       <Select 
@@ -662,7 +662,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="description">Descrição *</Label>
                       <Textarea 
@@ -677,7 +677,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Detalhes e Preço</CardTitle>
@@ -701,7 +701,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         Este é o preço padrão que será cobrado quando nenhum preço sazonal estiver ativo.
                       </p>
                     </div>
-                    
+
                     {/* Preços Sazonais */}
                     <div className="space-y-3 pt-4 border-t">
                       <div className="flex items-center justify-between">
@@ -731,7 +731,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                           Adicionar Período
                         </Button>
                       </div>
-                      
+
                       {seasonalPrices.length === 0 ? (
                         <div className="py-4 text-center text-sm text-muted-foreground bg-muted/30 rounded-md">
                           Nenhum preço sazonal cadastrado. O preço base será usado para todas as datas.
@@ -783,7 +783,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="serviceFeePct">Taxa de Serviço (%)</Label>
                       <div className="space-y-3">
@@ -799,7 +799,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                             }}
                           />
                         </div>
-                        
+
                         {formData.serviceFeePct > 0 && (
                           <Input 
                             id="serviceFeePct" 
@@ -813,7 +813,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                             onChange={handleInputChange}
                           />
                         )}
-                        
+
                         <p className="text-xs text-muted-foreground">
                           {formData.serviceFeePct > 0 
                             ? `Taxa de ${formData.serviceFeePct}% sobre o valor da diária.` 
@@ -821,7 +821,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="capacity">Capacidade (pessoas)</Label>
@@ -835,7 +835,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                           onChange={handleInputChange}
                         />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="size">Tamanho (m²)</Label>
                         <Input 
@@ -848,7 +848,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-2">
                       <Label htmlFor="available">Disponível para Reservas</Label>
                       <Switch 
@@ -860,7 +860,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                   </CardContent>
                 </Card>
               </div>
-              
+
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Comodidades</CardTitle>
@@ -886,7 +886,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="flex gap-2 mb-4">
                     <Input 
                       placeholder="Adicionar comodidade..." 
@@ -928,7 +928,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Serviços Adicionais</CardTitle>
@@ -954,7 +954,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="flex gap-2 mb-4">
                     <Input 
                       placeholder="Adicionar serviço adicional..." 
@@ -996,7 +996,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Destaques do Quarto</CardTitle>
@@ -1022,7 +1022,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="flex gap-2 mb-4">
                     <Input 
                       placeholder="Adicionar destaque..." 
@@ -1064,7 +1064,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Imagens</CardTitle>
@@ -1081,7 +1081,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         : `Você pode adicionar mais ${10 - (existingImages.length + imageFiles.length)} imagens`}
                     </Badge>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {/* Existing Images */}
                     {existingImages.map((url, index) => (
@@ -1102,7 +1102,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         </Button>
                       </div>
                     ))}
-                    
+
                     {/* New Images */}
                     {imagePreviewUrls.map((url, index) => (
                       <div key={`new-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
@@ -1124,7 +1124,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         </div>
                       </div>
                     ))}
-                    
+
                     {/* Upload Button */}
                     {existingImages.length + imageFiles.length < 10 && (
                       <label className="flex flex-col items-center justify-center border border-dashed rounded-md aspect-square cursor-pointer hover:bg-muted/50 transition-colors">
@@ -1179,7 +1179,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
               </div>
             </form>
           </TabsContent>
-          
+
           <TabsContent value="availability">
             <Card>
               <CardHeader>
@@ -1195,7 +1195,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                     Isso é especialmente útil quando o quarto está listado em outras plataformas como Booking e AirBnB.</p>
                     <p className="mt-2">Para marcar uma data como indisponível, clique nela no calendário abaixo. Clique novamente para torná-la disponível.</p>
                   </div>
-                  
+
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-semibold text-base">
                       {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
@@ -1217,7 +1217,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Switch
@@ -1232,7 +1232,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                         </div>
                       </Label>
                     </div>
-                    
+
                     {rangeMode && (
                       <div className="flex gap-2">
                         <Button 
@@ -1254,7 +1254,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="rounded-md border">
                     {rangeMode ? (
                       <Calendar
@@ -1303,7 +1303,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                           DayContent: (props) => {
                             const isUnavailable = isDateUnavailable(props.date);
                             const isToday = new Date().toDateString() === props.date.toDateString();
-                            
+
                             return (
                               <div 
                                 className={cn(
@@ -1332,7 +1332,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                       />
                     )}
                   </div>
-                  
+
                   <div className="mt-6 space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
                     <h4 className="font-medium text-sm">Legenda:</h4>
                     <div className="flex flex-col gap-2">
@@ -1379,7 +1379,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
               </CardFooter>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="bookings">
             <Card>
               <CardHeader>
@@ -1449,7 +1449,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                     </Table>
                   </div>
                 )}
-                
+
                 <div className="mt-6 space-y-1">
                   <h4 className="text-sm font-medium">Legenda Status:</h4>
                   <div className="flex flex-wrap gap-3 text-sm">
@@ -1476,7 +1476,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
           </TabsContent>
         </Tabs>
       )}
-      
+
       {/* Modal de preço sazonal */}
       <Dialog open={seasonalPriceDialogOpen} onOpenChange={setSeasonalPriceDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -1496,7 +1496,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                 placeholder="Ex: Alta Temporada, Natal, Verão"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Data Inicial *</Label>
@@ -1507,7 +1507,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                   onChange={(e) => setSeasonalPriceForm({...seasonalPriceForm, startDate: e.target.value})}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="endDate">Data Final *</Label>
                 <Input 
@@ -1518,7 +1518,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="seasonPrice">Preço por Noite (€) *</Label>
               <Input 
@@ -1531,7 +1531,7 @@ export default function EditRoom({ params }: EditRoomPageProps) {
                 placeholder="0.00"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="seasonDescription">Descrição (opcional)</Label>
               <Textarea 
@@ -1562,4 +1562,4 @@ export default function EditRoom({ params }: EditRoomPageProps) {
       </Dialog>
     </>
   )
-} 
+}

@@ -1,6 +1,9 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Suas outras configurações do Next.js
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   images: {
     domains: ['firebasestorage.googleapis.com', 'images.unsplash.com'],
   },

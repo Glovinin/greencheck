@@ -72,45 +72,45 @@ const optimizeImage = async (file: File, maxWidth = 1920, quality = 0.8): Promis
       console.log('Imagem já é pequena o suficiente, pulando otimização');
       return resolve(file);
     }
-    
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
       const img = new Image();
       img.src = event.target?.result as string;
-      
+
       img.onload = () => {
         // Definir dimensões mantendo a proporção
         let width = img.width;
         let height = img.height;
-        
+
         if (width > maxWidth) {
           const ratio = maxWidth / width;
           width = maxWidth;
           height = height * ratio;
         }
-        
+
         // Criar canvas para redimensionamento
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         if (!ctx) {
           return reject(new Error('Não foi possível criar contexto de canvas'));
         }
-        
+
         // Desenhar imagem redimensionada
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Converter para blob
         canvas.toBlob(
           (blob) => {
             if (!blob) {
               return reject(new Error('Falha ao gerar blob'));
             }
-            
+
             // Criar arquivo a partir do blob
             const optimizedFile = new File(
               [blob], 
@@ -120,7 +120,7 @@ const optimizeImage = async (file: File, maxWidth = 1920, quality = 0.8): Promis
                 lastModified: Date.now() 
               }
             );
-            
+
             console.log(`Imagem otimizada: ${(file.size / 1024).toFixed(2)}KB → ${(optimizedFile.size / 1024).toFixed(2)}KB`);
             resolve(optimizedFile);
           },
@@ -128,12 +128,12 @@ const optimizeImage = async (file: File, maxWidth = 1920, quality = 0.8): Promis
           quality
         );
       };
-      
+
       img.onerror = () => {
         reject(new Error('Erro ao carregar imagem para otimização'));
       };
     };
-    
+
     reader.onerror = () => {
       reject(new Error('Erro ao ler arquivo para otimização'));
     };
@@ -144,7 +144,7 @@ export default function GalleryManagement() {
   const router = useRouter()
   const { theme } = useTheme()
   const isDark = theme === "dark"
-  
+
   // Estados para gerenciamento de imagens
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
   const [filteredItems, setFilteredItems] = useState<GalleryItem[]>([])
@@ -155,7 +155,7 @@ export default function GalleryManagement() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [activeTab, setActiveTab] = useState("gallery")
   const [aboutUsImages, setAboutUsImages] = useState<GalleryItem[]>([])
-  
+
   // Estados para o formulário de adição/edição
   const [isEditMode, setIsEditMode] = useState(false)
   const [currentItem, setCurrentItem] = useState<GalleryItem | null>(null)
@@ -167,12 +167,12 @@ export default function GalleryManagement() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isHomeAboutImage, setIsHomeAboutImage] = useState(false)
   const [homePosition, setHomePosition] = useState<number | null>(null)
-  
+
   // Estados para otimização de imagem
   const [imageQuality, setImageQuality] = useState(0.8)
   const [maxWidth, setMaxWidth] = useState(1920)
   const [optimizationStats, setOptimizationStats] = useState<OptimizationStats | null>(null)
-  
+
   // Carregar dados da galeria do Firebase
   useEffect(() => {
     const fetchGalleryItems = async () => {
@@ -184,18 +184,18 @@ export default function GalleryManagement() {
           // Primeiro por destaque
           if (a.featured && !b.featured) return -1
           if (!a.featured && b.featured) return 1
-          
+
           // Depois por ordem personalizada (se existir)
           if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
             return a.displayOrder - b.displayOrder
           }
-          
+
           // Por fim, por data de criação (mais recente primeiro)
           return b.createdAt - a.createdAt
         })
-        
+
         setGalleryItems(sortedItems)
-        
+
         // Identificar imagens da seção "Sobre Nós"
         const aboutImages = sortedItems.filter(item => item.isHomeAboutImage)
         setAboutUsImages(aboutImages)
@@ -206,10 +206,10 @@ export default function GalleryManagement() {
         setIsLoading(false)
       }
     }
-    
+
     fetchGalleryItems()
   }, [])
-  
+
   // Filtrar itens quando a categoria selecionada mudar
   useEffect(() => {
     if (selectedCategory === 'todas') {
@@ -220,43 +220,43 @@ export default function GalleryManagement() {
       setFilteredItems(galleryItems.filter(item => item.category === selectedCategory))
     }
   }, [selectedCategory, galleryItems])
-  
+
   // Gerar preview da imagem selecionada
   useEffect(() => {
     if (selectedFiles && selectedFiles.length > 0) {
       const file = selectedFiles[0]
       const reader = new FileReader()
-      
+
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string)
       }
-      
+
       reader.readAsDataURL(file)
     } else if (!isEditMode) {
       setPreviewUrl(null)
     }
   }, [selectedFiles, isEditMode])
-  
+
   // Otimizar imagem quando selecionada
   useEffect(() => {
     const optimizeSelectedImage = async () => {
       if (selectedFiles && selectedFiles.length > 0) {
         const file = selectedFiles[0]
-        
+
         // Se a imagem for muito grande, mostrar toast informando que será otimizada
         if (file.size > 1024 * 1024) { // Maior que 1MB
           toast.info(`Imagem grande detectada (${(file.size / (1024 * 1024)).toFixed(2)}MB). Será otimizada automaticamente.`)
         }
-        
+
         // Exibir preview normal, mas preparar estatísticas de otimização
         try {
           const optimizedFile = await optimizeImage(file, maxWidth, imageQuality)
-          
+
           // Calcular estatísticas
           const originalSizeKB = file.size / 1024
           const optimizedSizeKB = optimizedFile.size / 1024
           const compressionRatio = (1 - (optimizedFile.size / file.size)) * 100
-          
+
           setOptimizationStats({
             originalSize: originalSizeKB,
             optimizedSize: optimizedSizeKB,
@@ -270,22 +270,22 @@ export default function GalleryManagement() {
         setOptimizationStats(null)
       }
     }
-    
+
     optimizeSelectedImage()
   }, [selectedFiles, maxWidth, imageQuality])
-  
+
   // Lidar com a seleção de arquivos
   const handleFileChange = (files: FileList | null) => {
     if (!files || files.length === 0) return
 
     const file = files[0]
-    
+
     // Validação de tipo
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor, selecione apenas arquivos de imagem.')
       return
     }
-    
+
     // Validação de tamanho (máximo 10MB)
     const maxSizeInMB = 10
     const maxSizeInBytes = maxSizeInMB * 1024 * 1024
@@ -293,15 +293,15 @@ export default function GalleryManagement() {
       toast.error(`Arquivo muito grande. O tamanho máximo é ${maxSizeInMB}MB.`)
       return
     }
-    
+
     setSelectedFiles(files)
-    
+
     // Mostrar informação sobre otimização se necessário
     if (file.size > 1024 * 1024) { // Maior que 1MB
       toast.info(`Arquivo grande detectado (${(file.size / (1024 * 1024)).toFixed(2)}MB). Será otimizado automaticamente.`)
     }
   }
-  
+
   // Resetar o formulário
   const resetForm = () => {
     setTitle("")
@@ -316,13 +316,13 @@ export default function GalleryManagement() {
     setIsHomeAboutImage(false)
     setHomePosition(null)
   }
-  
+
   // Abrir o painel para adicionar novo item
   const openAddPanel = () => {
     resetForm()
     setIsPanelOpen(true)
   }
-  
+
   // Abrir o painel para adicionar imagem para a seção Sobre Nós
   const openAddAboutUsPanel = (position?: number) => {
     resetForm()
@@ -332,13 +332,13 @@ export default function GalleryManagement() {
     }
     setIsPanelOpen(true)
   }
-  
+
   // Abrir o painel para editar um item existente
   const openEditPanel = (item: GalleryItem) => {
     setIsEditMode(true)
     setIsPanelOpen(true)
     setCurrentItem(item)
-    
+
     // Preencher o formulário com os dados do item
     setTitle(item.title)
     setDescription(item.description)
@@ -348,34 +348,34 @@ export default function GalleryManagement() {
     setIsHomeAboutImage(item.isHomeAboutImage || false)
     setHomePosition(item.homePosition || null)
   }
-  
+
   // Lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!title.trim()) {
       toast.error('O título é obrigatório')
       return
     }
-    
+
     if (!category && !isHomeAboutImage) {
       toast.error('Selecione uma categoria')
       return
     }
-    
+
     if (isHomeAboutImage && !homePosition) {
       toast.error('Selecione a posição da imagem na seção Sobre Nós')
       return
     }
-    
+
     if (!isEditMode && (!selectedFiles || selectedFiles.length === 0)) {
       toast.error('Selecione uma imagem')
       return
     }
-    
+
     setIsUploading(true)
     setUploadProgress(0)
-    
+
     try {
       // Se estiver em modo de edição e não houver nova imagem, apenas atualize os metadados
       if (isEditMode && (!selectedFiles || selectedFiles.length === 0)) {
@@ -390,7 +390,7 @@ export default function GalleryManagement() {
               homePosition: isHomeAboutImage ? homePosition : null,
               updatedAt: Date.now()
             })
-            
+
             // Atualizar a lista localmente
             setGalleryItems(prev => prev.map(item => 
               item.id === currentItem.id 
@@ -406,19 +406,19 @@ export default function GalleryManagement() {
                   }
                 : item
             ))
-            
+
             // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
             if (isHomeAboutImage && homePosition) {
               const existingItemInSamePosition = galleryItems.find(
                 item => item.isHomeAboutImage && item.homePosition === homePosition && item.id !== currentItem.id
               )
-              
+
               if (existingItemInSamePosition) {
                 await updateDocument('gallery', existingItemInSamePosition.id, {
                   isHomeAboutImage: false,
                   homePosition: null
                 })
-                
+
                 // Atualizar a lista localmente
                 setGalleryItems(prev => prev.map(item => 
                   item.id === existingItemInSamePosition.id 
@@ -429,11 +429,11 @@ export default function GalleryManagement() {
                       }
                     : item
                 ))
-                
-                toast.info(`A imagem "${existingItemInSamePosition.title}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+
+                toast.info(`A imagem &quot;${existingItemInSamePosition.title}&quot; foi removida da posição ${homePosition} da seção Sobre Nós`)
               }
             }
-            
+
             toast.success('Item atualizado com sucesso')
           } catch (error) {
             console.error('Erro ao atualizar metadados:', error)
@@ -443,26 +443,26 @@ export default function GalleryManagement() {
       } else {
         // Caso contrário, faça upload da imagem
         if (!selectedFiles || selectedFiles.length === 0) return
-        
+
         // Converter FileList para Array
         const filesArray = Array.from(selectedFiles)
-        
+
         // Otimizar as imagens antes do upload
         toast.info('Otimizando imagens...')
-        
+
         // Mostrar progresso de otimização 
         let currentFileIndex = 0
         const totalFiles = filesArray.length
-        
+
         console.log("Iniciando otimização de", filesArray.length, "arquivos")
-        
+
         const optimizedFiles = await Promise.all(
           filesArray.map(async (file) => {
             try {
               currentFileIndex++
               setUploadProgress((currentFileIndex / totalFiles) * 50) // Primeira metade do progresso é para otimização
               console.log(`Otimizando arquivo ${currentFileIndex}/${totalFiles}: ${file.name}`)
-              
+
               return await optimizeImage(file, maxWidth, imageQuality)
             } catch (error) {
               console.error('Erro ao otimizar imagem, usando original:', error)
@@ -470,18 +470,18 @@ export default function GalleryManagement() {
             }
           })
         )
-        
+
         // Toast com informações sobre a otimização
         const originalSize = filesArray.reduce((acc, file) => acc + file.size, 0) / 1024
         const optimizedSize = optimizedFiles.reduce((acc, file) => acc + file.size, 0) / 1024
         const reduction = Math.round((1 - (optimizedSize / originalSize)) * 100)
-        
+
         if (reduction > 0) {
           toast.success(`Imagens otimizadas: ${originalSize.toFixed(0)}KB → ${optimizedSize.toFixed(0)}KB (${reduction}% menor)`)
         }
-        
+
         console.log(`Iniciando upload de ${optimizedFiles.length} arquivos otimizados`)
-        
+
         try {
           // Upload da imagem com monitoramento de progresso
           const imageUrls = await uploadMultipleImagesWithProgress(
@@ -493,34 +493,34 @@ export default function GalleryManagement() {
               console.log(`Progresso do upload: ${progress}%`)
             }
           )
-          
+
           console.log("Upload completo. URLs geradas:", imageUrls)
-          
+
           // Se estiver editando, exclua a imagem antiga primeiro
           if (isEditMode && currentItem) {
             try {
               // Extrair o caminho da URL para excluir
               const imageUrlPath = new URL(currentItem.image).pathname
               const imagePath = decodeURIComponent(imageUrlPath.split('/o/')[1].split('?')[0])
-              
+
               console.log(`Excluindo imagem antiga: ${imagePath}`)
               await deleteImage(currentItem.image)
             } catch (error) {
               console.error('Erro ao excluir imagem antiga:', error)
             }
-            
+
             // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
             if (isHomeAboutImage && homePosition) {
               const existingItemInSamePosition = galleryItems.find(
                 item => item.isHomeAboutImage && item.homePosition === homePosition && item.id !== currentItem.id
               )
-              
+
               if (existingItemInSamePosition) {
                 await updateDocument('gallery', existingItemInSamePosition.id, {
                   isHomeAboutImage: false,
                   homePosition: null
                 })
-                
+
                 // Atualizar a lista localmente
                 setGalleryItems(prev => prev.map(item => 
                   item.id === existingItemInSamePosition.id 
@@ -531,11 +531,11 @@ export default function GalleryManagement() {
                       }
                     : item
                 ))
-                
-                toast.info(`A imagem "${existingItemInSamePosition.title}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+
+                toast.info(`A imagem &quot;${existingItemInSamePosition.title}&quot; foi removida da posição ${homePosition} da seção Sobre Nós`)
               }
             }
-            
+
             // Atualizar o documento
             await updateDocument('gallery', currentItem.id, {
               title,
@@ -547,7 +547,7 @@ export default function GalleryManagement() {
               homePosition: isHomeAboutImage ? homePosition : null,
               updatedAt: Date.now()
             })
-            
+
             // Atualizar a lista localmente
             setGalleryItems(prev => prev.map(item => 
               item.id === currentItem.id 
@@ -564,23 +564,23 @@ export default function GalleryManagement() {
                   }
                 : item
             ))
-            
+
             toast.success('Item atualizado com sucesso')
           } else {
             // Adicionar novo documento
-            
+
             // Se for uma imagem do Sobre Nós, verificar se há outra imagem na mesma posição
             if (isHomeAboutImage && homePosition) {
               const existingItemInSamePosition = galleryItems.find(
                 item => item.isHomeAboutImage && item.homePosition === homePosition
               )
-              
+
               if (existingItemInSamePosition) {
                 await updateDocument('gallery', existingItemInSamePosition.id, {
                   isHomeAboutImage: false,
                   homePosition: null
                 })
-                
+
                 // Atualizar a lista localmente
                 setGalleryItems(prev => prev.map(item => 
                   item.id === existingItemInSamePosition.id 
@@ -591,11 +591,11 @@ export default function GalleryManagement() {
                       }
                     : item
                 ))
-                
-                toast.info(`A imagem "${existingItemInSamePosition.title}" foi removida da posição ${homePosition} da seção Sobre Nós`)
+
+                toast.info(`A imagem &quot;${existingItemInSamePosition.title}&quot; foi removida da posição ${homePosition} da seção Sobre Nós`)
               }
             }
-            
+
             const newItem: Omit<GalleryItem, 'id'> = {
               title,
               description,
@@ -607,9 +607,9 @@ export default function GalleryManagement() {
               createdAt: Date.now(),
               displayOrder: galleryItems.length + 1
             }
-            
+
             const docId = await createDocument('gallery', newItem)
-            
+
             // Adicionar à lista local
             if (docId) {
               setGalleryItems(prev => [
@@ -617,26 +617,26 @@ export default function GalleryManagement() {
                 ...prev
               ])
             }
-            
+
             toast.success('Item adicionado com sucesso')
           }
         } catch (uploadError) {
           console.error('Erro durante o upload de imagem:', uploadError)
           let errorMessage = 'Erro ao fazer upload da imagem'
-          
+
           if (uploadError instanceof Error) {
             errorMessage += ': ' + uploadError.message
           }
-          
+
           if (window.location.hostname === 'localhost') {
             errorMessage += '. Está usando a versão de desenvolvimento que contorna problemas de CORS.'
           }
-          
+
           toast.error(errorMessage)
           return
         }
       }
-      
+
       // Atualizar lista de imagens da seção "Sobre Nós"
       if (isHomeAboutImage) {
         setAboutUsImages(prev => {
@@ -644,29 +644,29 @@ export default function GalleryManagement() {
           return updated
         })
       }
-      
+
       resetForm()
     } catch (error) {
       console.error('Erro geral no processo de upload:', error)
       let errorMessage = 'Ocorreu um erro ao salvar o item'
-      
+
       if (error instanceof Error) {
         errorMessage += ': ' + error.message
       }
-      
+
       toast.error(errorMessage)
     } finally {
       setIsUploading(false)
       setUploadProgress(0)
     }
   }
-  
+
   // Excluir um item
   const handleDeleteItem = async (item: GalleryItem) => {
     try {
       // Excluir do Firestore
       await deleteDocument('gallery', item.id)
-      
+
       // Excluir a imagem do Storage
       try {
         const imageUrlPath = new URL(item.image).pathname
@@ -675,17 +675,17 @@ export default function GalleryManagement() {
       } catch (error) {
         console.error('Erro ao excluir imagem:', error)
       }
-      
+
       // Atualizar a lista local
       setGalleryItems(prev => prev.filter(i => i.id !== item.id))
-      
+
       toast.success('Item excluído com sucesso')
     } catch (error) {
       console.error('Erro ao excluir item:', error)
       toast.error('Erro ao excluir o item')
     }
   }
-  
+
   // Navegar de volta
   const handleBack = () => {
     router.push('/admin');
@@ -711,13 +711,13 @@ export default function GalleryManagement() {
             </Button>
             <h1 className="text-2xl font-bold">Gerenciamento da Galeria</h1>
           </div>
-          
+
           <Button onClick={handleAddImage}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Imagem
           </Button>
         </div>
-        
+
         {/* Filtro de categorias */}
         <div className="flex flex-wrap gap-2">
           {galleryCategories.map(category => (
@@ -731,7 +731,7 @@ export default function GalleryManagement() {
             </Button>
           ))}
         </div>
-        
+
         {/* Lista de imagens */}
         {isLoading ? (
           <div className="flex items-center justify-center h-60">
@@ -840,7 +840,7 @@ export default function GalleryManagement() {
             {/* Upload de imagem */}
             <div className="space-y-4">
               <Label>Imagem {!isEditMode && '*'}</Label>
-              
+
               {previewUrl && (
                 <div className="relative w-full h-48 rounded-lg overflow-hidden border">
                   <img 
@@ -864,7 +864,7 @@ export default function GalleryManagement() {
                   )}
                 </div>
               )}
-              
+
               {!previewUrl && (
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8">
                   <div className="text-center">
@@ -1039,4 +1039,4 @@ export default function GalleryManagement() {
       </Dialog>
     </div>
   )
-} 
+}
