@@ -89,7 +89,7 @@ export default function Contato() {
 
   return (
     <>
-      <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
+      <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} pb-32 md:pb-0`}>
         <Navbar />
         <Toaster position="top-right" richColors />
         
@@ -111,8 +111,8 @@ export default function Contato() {
               style={{ opacity }}
               className={`absolute inset-0 backdrop-blur-[2px] ${
                 isDark 
-                  ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
-                  : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+                  ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
+                  : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
               }`} 
             />
             
@@ -120,13 +120,13 @@ export default function Contato() {
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
             <div className={`absolute inset-x-0 top-0 h-32 ${
               isDark 
-                ? 'bg-gradient-to-b from-black/60 to-transparent' 
-                : 'bg-gradient-to-b from-white/60 to-transparent'
+                ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
+                : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
             }`} />
             <div className={`absolute inset-x-0 bottom-0 h-32 ${
               isDark 
-                ? 'bg-gradient-to-t from-black/60 to-transparent' 
-                : 'bg-gradient-to-t from-white/60 to-transparent'
+                ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
+                : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
             }`} />
           </div>
           
@@ -144,24 +144,24 @@ export default function Contato() {
                 <div className="inline-block">
                   <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
                     isDark 
-                      ? 'text-primary/90 bg-primary/10 border-primary/20' 
-                      : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                      ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
+                      : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
                   } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                     Estamos à sua disposição
                   </span>
                 </div>
                 
                 <h1 className={`text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none ${
-                  isDark ? 'text-white' : 'text-gray-900'
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`}>
                   Entre em Contato
                   <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                    isDark ? 'text-white/80' : 'text-gray-700'
+                    isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
                   }`}>com o Aqua Vista Monchique</span>
                 </h1>
                 
                 <p className={`text-lg sm:text-xl md:text-2xl font-light mb-8 md:mb-12 max-w-4xl mx-auto ${
-                  isDark ? 'text-white/90' : 'text-gray-800'
+                  isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
                 }`}>
                   Estamos aqui para ajudar. Entre em contato conosco para qualquer dúvida ou solicitação.
                 </p>
@@ -178,22 +178,22 @@ export default function Contato() {
             >
               <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
                 isDark 
-                  ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
-                  : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+                  ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
+                  : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
               }`}>
                 <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                  isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+                  isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
                 }`} />
               </div>
               <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-                isDark ? 'text-white/80' : 'text-gray-700'
+                isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
               }`}>Explorar</span>
             </motion.div>
           </div>
         </section>
 
         {/* Contact Section */}
-        <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+        <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
           <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
           <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
@@ -202,16 +202,18 @@ export default function Contato() {
           <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8">
             {/* Contact Form */}
             <Card className={`p-6 shadow-xl backdrop-blur-sm ${
-              isDark ? 'border-white/10' : 'border-gray-200'
+              isDark 
+                ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                : 'bg-[#EED5B9]/80 border-[#4F3621]/30'
             }`}>
               <form onSubmit={handleSubmit}>
                 <CardHeader>
-                  <CardTitle>Envie sua Mensagem</CardTitle>
-                  <CardDescription>Preencha o formulário abaixo e entraremos em contato em breve.</CardDescription>
+                  <CardTitle className={isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}>Envie sua Mensagem</CardTitle>
+                  <CardDescription className={isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}>Preencha o formulário abaixo e entraremos em contato em breve.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Nome Completo</label>
+                    <label className={`text-sm font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Nome Completo</label>
                     <Input
                       name="nome"
                       placeholder="Digite seu nome"
@@ -221,7 +223,7 @@ export default function Contato() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Email</label>
+                    <label className={`text-sm font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Email</label>
                     <Input
                       name="email"
                       type="email"
@@ -232,7 +234,7 @@ export default function Contato() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Telefone</label>
+                    <label className={`text-sm font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Telefone</label>
                     <Input
                       name="telefone"
                       placeholder="Digite seu telefone"
@@ -242,7 +244,7 @@ export default function Contato() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Mensagem</label>
+                    <label className={`text-sm font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Mensagem</label>
                     <Textarea
                       name="mensagem"
                       placeholder="Digite sua mensagem"
@@ -277,11 +279,13 @@ export default function Contato() {
             {/* Contact Info */}
             <div className="space-y-8">
               <Card className={`p-6 shadow-xl backdrop-blur-sm ${
-                isDark ? 'border-white/10' : 'border-gray-200'
+                isDark 
+                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                  : 'bg-[#EED5B9]/80 border-[#4F3621]/30'
               }`}>
                 <CardHeader>
-                  <CardTitle>Informações de Contato</CardTitle>
-                  <CardDescription>Escolha a melhor forma de nos contatar</CardDescription>
+                  <CardTitle className={isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}>Informações de Contato</CardTitle>
+                  <CardDescription className={isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}>Escolha a melhor forma de nos contatar</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-start space-x-4">
@@ -289,8 +293,8 @@ export default function Contato() {
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Endereço</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Endereço</h3>
+                      <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>
                         Estrada da Foia, 8550-257<br />
                         Monchique, Portugal
                       </p>
@@ -301,8 +305,8 @@ export default function Contato() {
                       <Phone className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Telefone</h3>
-                      <p className="text-sm text-muted-foreground">+351 282 249 728</p>
+                      <h3 className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Telefone</h3>
+                      <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>+351 282 249 728</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -310,8 +314,8 @@ export default function Contato() {
                       <Mail className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Email</h3>
-                      <p className="text-sm text-muted-foreground">contato@aquavista.com</p>
+                      <h3 className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Email</h3>
+                      <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>contato@aquavista.com</p>
                     </div>
                   </div>
                 </CardContent>
@@ -319,11 +323,13 @@ export default function Contato() {
 
               {/* Map */}
               <Card className={`p-6 shadow-xl backdrop-blur-sm ${
-                isDark ? 'border-white/10' : 'border-gray-200'
+                isDark 
+                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                  : 'bg-[#EED5B9]/80 border-[#4F3621]/30'
               }`}>
                 <CardHeader>
-                  <CardTitle>Nossa Localização</CardTitle>
-                  <CardDescription>Venha nos visitar</CardDescription>
+                  <CardTitle className={isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}>Nossa Localização</CardTitle>
+                  <CardDescription className={isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}>Venha nos visitar</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="aspect-video rounded-lg overflow-hidden">
@@ -344,7 +350,7 @@ export default function Contato() {
         </section>
 
         {/* CTA Section */}
-        <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+        <section className={`py-24 relative overflow-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
           <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
@@ -353,7 +359,9 @@ export default function Contato() {
           
           <div className="relative max-w-5xl mx-auto px-4 text-center">
             <div className={`backdrop-blur-sm rounded-3xl p-10 md:p-16 shadow-2xl border ${
-              isDark ? 'bg-black/30 border-white/10' : 'bg-white/70 border-gray-200'
+              isDark 
+                ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                : 'bg-[#EED5B9]/80 border-[#4F3621]/30'
             }`}>
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
@@ -361,7 +369,7 @@ export default function Contato() {
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
                 className={`text-3xl md:text-4xl font-bold mb-6 ${
-                  isDark ? 'text-white' : 'text-gray-900'
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`}
               >
                 Pronto para uma Experiência Única?
@@ -372,7 +380,7 @@ export default function Contato() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 viewport={{ once: true }}
                 className={`text-lg max-w-2xl mx-auto mb-8 ${
-                  isDark ? 'text-white/70' : 'text-gray-700'
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                 }`}
               >
                 Reserve agora e desfrute de momentos inesquecíveis no Aqua Vista Hotel.
@@ -388,8 +396,8 @@ export default function Contato() {
                   onClick={() => router.push('/booking')}
                   className={`rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
                     isDark
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                      ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90'
+                      : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90'
                   }`}
                 >
                   Fazer Reserva

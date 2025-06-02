@@ -42,6 +42,12 @@ interface GalleryItem {
 const GalleryImage = ({ src, alt }: { src: string, alt: string }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     // Carregar imagem
@@ -57,20 +63,33 @@ const GalleryImage = ({ src, alt }: { src: string, alt: string }) => {
     };
   }, [src]);
 
+  if (!mounted) return null;
+  const isDark = theme === 'dark'
+
   if (isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 animate-pulse">
-        <ImageIcon className="w-10 h-10 text-gray-400 dark:text-gray-600" />
+      <div className={`w-full h-full flex items-center justify-center animate-pulse ${
+        isDark ? 'bg-[#4F3621]/60' : 'bg-[#EED5B9]/60'
+      }`}>
+        <ImageIcon className={`w-10 h-10 ${
+          isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
+        }`} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800">
+      <div className={`w-full h-full flex items-center justify-center ${
+        isDark ? 'bg-[#4F3621]/60' : 'bg-[#EED5B9]/60'
+      }`}>
         <div className="text-center">
-          <ImageIcon className="w-10 h-10 mx-auto text-gray-400 dark:text-gray-600" />
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Imagem não disponível</p>
+          <ImageIcon className={`w-10 h-10 mx-auto ${
+            isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
+          }`} />
+          <p className={`text-sm mt-2 ${
+            isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
+          }`}>Imagem não disponível</p>
         </div>
       </div>
     );
@@ -165,7 +184,7 @@ export default function Gallery() {
 
   return (
     <>
-      <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+      <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
         <Navbar />
         
         {/* Hero Section */}
@@ -192,8 +211,8 @@ export default function Gallery() {
               style={{ opacity }}
               className={`absolute inset-0 backdrop-blur-[2px] ${
                 isDark 
-                  ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
-                  : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+                  ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
+                  : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
               }`} 
             />
             
@@ -201,13 +220,13 @@ export default function Gallery() {
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
             <div className={`absolute inset-x-0 top-0 h-32 ${
               isDark 
-                ? 'bg-gradient-to-b from-black/60 to-transparent' 
-                : 'bg-gradient-to-b from-white/60 to-transparent'
+                ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
+                : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
             }`} />
             <div className={`absolute inset-x-0 bottom-0 h-32 ${
               isDark 
-                ? 'bg-gradient-to-t from-black/60 to-transparent' 
-                : 'bg-gradient-to-t from-white/60 to-transparent'
+                ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
+                : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
             }`} />
           </div>
           
@@ -225,24 +244,24 @@ export default function Gallery() {
                 <div className="inline-block">
                   <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
                     isDark 
-                      ? 'text-primary/90 bg-primary/10 border-primary/20' 
-                      : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                      ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
+                      : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
                   } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                     Nossa Galeria
                   </span>
                 </div>
                 
                 <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
-                  isDark ? 'text-white' : 'text-gray-900'
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`}>
                   Momentos Inesquecíveis
                   <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                    isDark ? 'text-white/80' : 'text-gray-700'
+                    isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
                   }`}>Aqua Vista Monchique</span>
                 </h1>
                 
                 <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
-                  isDark ? 'text-white/90' : 'text-gray-800'
+                  isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
                 }`}>
                   Conheça um pouco mais do Aqua Vista Monchique através das nossas imagens
                 </p>
@@ -259,62 +278,60 @@ export default function Gallery() {
             >
               <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
                 isDark 
-                  ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
-                  : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+                  ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
+                  : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
               }`}>
                 <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                  isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+                  isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
                 }`} />
               </div>
               <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-                isDark ? 'text-white/80' : 'text-gray-700'
+                isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
               }`}>Explorar</span>
             </motion.div>
           </div>
         </section>
 
         {/* Category Filter */}
-        <section className="py-8 md:py-12 sticky top-0 z-30 backdrop-blur-lg border-b transition-all duration-300 shadow-sm">
-          <div className={`${
-            isDark 
-              ? 'bg-black border-white/10' 
-              : 'bg-white/90 border-gray-200'
-          }`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`px-4 py-2 rounded-full text-sm md:text-base transition-all duration-300 ${
-                      selectedCategory === category.id
-                        ? isDark
-                          ? 'bg-white text-black font-medium shadow-md'
-                          : 'bg-gray-900 text-white font-medium shadow-lg shadow-gray-900/20'
-                        : isDark
-                          ? 'bg-black text-white/80 hover:bg-white/10 hover:text-white border border-white/10'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {category.label}
-                  </button>
-                ))}
-              </div>
+        <section className={`py-8 md:py-12 sticky top-0 z-30 backdrop-blur-lg border-b transition-all duration-300 shadow-sm ${
+          isDark 
+            ? 'bg-[#4F3621]/95 border-[#EED5B9]/10' 
+            : 'bg-[#EED5B9]/90 border-[#4F3621]/20'
+        }`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm md:text-base transition-all duration-300 ${
+                    selectedCategory === category.id
+                      ? isDark
+                        ? 'bg-[#EED5B9] text-[#4F3621] font-medium shadow-md'
+                        : 'bg-[#4F3621] text-[#EED5B9] font-medium shadow-lg shadow-[#4F3621]/20'
+                      : isDark
+                        ? 'bg-[#4F3621]/60 text-[#EED5B9]/80 hover:bg-[#EED5B9]/10 hover:text-[#EED5B9] border border-[#EED5B9]/10'
+                        : 'bg-[#EED5B9]/80 text-[#4F3621]/80 hover:bg-[#4F3621]/10 hover:text-[#4F3621] border border-[#4F3621]/20'
+                  }`}
+                >
+                  {category.label}
+                </button>
+              ))}
             </div>
           </div>
         </section>
 
         {/* Gallery Grid */}
-        <section className={`py-12 md:py-20 ${isDark ? 'bg-black' : 'bg-white'}`}>
+        <section className={`py-12 md:py-20 ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {[...Array(6)].map((_, i) => (
                   <div 
                     key={i} 
-                    className={`aspect-square rounded-lg ${
-                      isDark ? 'bg-gray-900' : 'bg-gray-200'
-                    } animate-pulse`}
+                    className={`aspect-square rounded-lg animate-pulse ${
+                      isDark ? 'bg-[#4F3621]/60' : 'bg-[#EED5B9]/60'
+                    }`}
                   />
                 ))}
               </div>
@@ -338,12 +355,12 @@ export default function Gallery() {
                     <div className={`absolute inset-0 flex flex-col justify-end p-6 
                       transition-all duration-500 ${
                         isDark 
-                          ? 'bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-80 hover:opacity-100' 
-                          : 'bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 hover:opacity-90'
+                          ? 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/40 to-transparent opacity-80 hover:opacity-100' 
+                          : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/30 to-transparent opacity-70 hover:opacity-90'
                       }`}>
-                      <h3 className="text-xl md:text-2xl font-bold text-white">{item.title}</h3>
+                      <h3 className="text-xl md:text-2xl font-bold text-[#EED5B9]">{item.title}</h3>
                       {item.description && (
-                        <p className="text-white/90 mt-2 line-clamp-2">{item.description}</p>
+                        <p className="text-[#EED5B9]/90 mt-2 line-clamp-2">{item.description}</p>
                       )}
                     </div>
                   </motion.div>
@@ -352,27 +369,30 @@ export default function Gallery() {
             ) : (
               <div className={`text-center py-20 rounded-lg border-2 ${
                 isDark 
-                  ? 'border-gray-800 bg-gray-900/30' 
-                  : 'border-gray-200 bg-gray-50'
+                  ? 'border-[#EED5B9]/10 bg-[#4F3621]/60' 
+                  : 'border-[#4F3621]/20 bg-[#EED5B9]/60'
               }`}>
                 <ImageIcon className={`w-16 h-16 mx-auto ${
-                  isDark ? 'text-gray-700' : 'text-gray-400'
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/60'
                 }`} />
                 <h3 className={`mt-4 text-xl font-medium ${
-                  isDark ? 'text-white' : 'text-gray-900'
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`}>
                   Nenhuma imagem encontrada
                 </h3>
                 <p className={`mt-2 ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                 }`}>
                   Não encontramos imagens na categoria selecionada.
                 </p>
                 {selectedCategory !== 'todas' && (
                   <Button
                     onClick={() => setSelectedCategory('todas')}
-                    className="mt-6"
-                    variant={isDark ? 'outline' : 'default'}
+                    className={`mt-6 rounded-full ${
+                      isDark
+                        ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90'
+                        : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90'
+                    }`}
                   >
                     Ver todas as imagens
                   </Button>

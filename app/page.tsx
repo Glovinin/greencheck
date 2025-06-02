@@ -10,7 +10,6 @@ import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { CTASection } from '@/components/cta-section'
 import { Footer } from '@/components/footer'
-import { MobileNav } from '@/components/mobile-nav'
 import { getDocuments } from "@/lib/firebase/firestore"
 import {
   Sheet,
@@ -218,7 +217,6 @@ export default function Home() {
   return (
     <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
       {!sheetOpen && <Navbar />}
-      <MobileNav />
       
       {/* Hero Section */}
       <section className="relative min-h-[100svh] pb-20 md:pb-0">
@@ -1104,7 +1102,7 @@ export default function Home() {
           ) : galleryImages.length === 0 ? (
             <div className="text-center py-16">
               <p className={`text-lg mb-6 ${
-                isDark ? 'text-white/70' : 'text-[#4F3621]/70'
+                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
               }`}>Ainda não há imagens na galeria.</p>
               <Button 
                 className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20" 
@@ -1124,16 +1122,28 @@ export default function Home() {
                   viewport={{ once: true }}
                   className="col-span-2 row-span-2 relative overflow-hidden rounded-3xl group"
                 >
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img 
                     src={galleryImages[0].image} 
                     alt={galleryImages[0].title} 
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-6 z-20">
+                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-6 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
+                  }`}>
                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      <p className="text-white font-medium text-xl">{galleryImages[0].title}</p>
-                      <p className="text-white text-sm mt-2 max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <p className={`font-medium text-xl ${
+                        isDark ? 'text-white' : 'text-[#EED5B9]'
+                      }`}>{galleryImages[0].title}</p>
+                      <p className={`text-sm mt-2 max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
+                        isDark ? 'text-white/70' : 'text-[#EED5B9]/70'
+                      }`}>
                         {galleryImages[0].description || galleryImages[0].title}
                       </p>
                     </div>
@@ -1149,14 +1159,24 @@ export default function Home() {
                   viewport={{ once: true }}
                   className="relative overflow-hidden rounded-3xl group"
                 >
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img 
                     src={galleryImages[1].image} 
                     alt={galleryImages[1].title} 
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {galleryImages[1].title}
                     </p>
                   </div>
@@ -1171,14 +1191,24 @@ export default function Home() {
                   viewport={{ once: true }}
                   className="relative overflow-hidden rounded-3xl group"
                 >
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img 
                     src={galleryImages[2].image} 
                     alt={galleryImages[2].title} 
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {galleryImages[2].title}
                     </p>
                   </div>
@@ -1193,14 +1223,24 @@ export default function Home() {
                   viewport={{ once: true }}
                   className="relative overflow-hidden rounded-3xl group"
                 >
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img 
                     src={galleryImages[3].image} 
                     alt={galleryImages[3].title} 
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {galleryImages[3].title}
                     </p>
                   </div>
@@ -1215,14 +1255,24 @@ export default function Home() {
                   viewport={{ once: true }}
                   className="relative overflow-hidden rounded-3xl group"
                 >
-                  <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-black/10 transition-colors duration-500"></div>
+                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                    isDark 
+                      ? 'bg-black/20 group-hover:bg-black/10' 
+                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                  }`}></div>
                   <img 
                     src={galleryImages[4].image} 
                     alt={galleryImages[4].title} 
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20">
-                    <p className="text-white font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                    isDark 
+                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
+                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
+                  }`}>
+                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    }`}>
                       {galleryImages[4].title}
                     </p>
                   </div>

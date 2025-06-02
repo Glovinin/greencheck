@@ -1734,7 +1734,7 @@ export default function Booking() {
   };
   
   return shouldRender ? (
-    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-black' : 'bg-gray-50'} pb-32 md:pb-0`}>
+    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} pb-32 md:pb-0`}>
       <Navbar />
       
       {/* Hero Section - Compatível com a homepage */}
@@ -1761,8 +1761,8 @@ export default function Booking() {
             style={{ opacity: opacityTransform }}
             className={`absolute inset-0 backdrop-blur-[2px] ${
               isDark 
-                ? 'bg-gradient-to-b from-black/70 via-black/50 to-black/80' 
-                : 'bg-gradient-to-b from-white/80 via-white/60 to-white/90'
+                ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
+                : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
             }`}
           />
           
@@ -1770,13 +1770,13 @@ export default function Booking() {
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
           <div className={`absolute inset-x-0 top-0 h-32 ${
             isDark 
-              ? 'bg-gradient-to-b from-black/60 to-transparent' 
-              : 'bg-gradient-to-b from-white/60 to-transparent'
+              ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
+              : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
           }`} />
           <div className={`absolute inset-x-0 bottom-0 h-32 ${
             isDark 
-              ? 'bg-gradient-to-t from-black/60 to-transparent' 
-              : 'bg-gradient-to-t from-white/60 to-transparent'
+              ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
+              : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
           }`} />
         </div>
         
@@ -1794,24 +1794,24 @@ export default function Booking() {
               <div className="inline-block">
                 <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
                   isDark 
-                    ? 'text-primary/90 bg-primary/10 border-primary/20' 
-                    : 'text-gray-900 bg-gray-200/80 border-gray-300'
+                    ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
+                    : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
                 } px-4 py-2 rounded-full backdrop-blur-sm border`}>
                   Reserve sua experiência única
                 </span>
               </div>
               
               <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
-                isDark ? 'text-white' : 'text-gray-900'
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
               }`}>
                 Faça sua Reserva
                 <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                  isDark ? 'text-white/80' : 'text-gray-700'
+                  isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
                 }`}>Aqua Vista Monchique</span>
               </h1>
               
               <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
-                isDark ? 'text-white/90' : 'text-gray-800'
+                isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
               }`}>
                 Escolha seu quarto ideal, verifique a disponibilidade e prepare-se para momentos extraordinários.
               </p>
@@ -1828,30 +1828,28 @@ export default function Booking() {
           >
             <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
               isDark 
-                ? 'border-2 border-white/30 bg-white/10 hover:bg-white/20' 
-                : 'border-2 border-gray-400/60 bg-gray-300/40 hover:bg-gray-300/60'
+                ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
+                : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
             }`}>
               <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                isDark ? 'text-white/80 group-hover:text-white' : 'text-gray-800 group-hover:text-gray-900'
+                isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
               }`} />
             </div>
             <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-              isDark ? 'text-white/80' : 'text-gray-700'
+              isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
             }`}>Explorar</span>
           </motion.div>
         </div>
       </section>
 
       {/* Conteúdo principal - Seção de Reserva */}
-      <section className={`py-24 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`}>
+      <section className={`py-24 relative overflow-hidden ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        {isDark && (
-          <>
-            <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-          </>
-        )}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           {/* Indicador de Etapas - Reintroduzido com estilo refinado */}
@@ -1861,19 +1859,18 @@ export default function Booking() {
             transition={{ delay: 0.2 }}
             className="flex justify-center mb-16"
           >
-            <div className={`flex flex-wrap items-center justify-center gap-4 ${
+            <div className={`flex flex-wrap items-center justify-center gap-4 backdrop-blur-lg p-4 rounded-2xl shadow-lg border max-w-full overflow-x-auto mx-auto ${
               isDark 
-                ? 'bg-black/60 border-white/10' 
-                : 'bg-white/80 border-gray-200/70'
-              } backdrop-blur-lg p-4 rounded-2xl shadow-lg border max-w-full overflow-x-auto mx-auto`}
-            >
+                ? 'bg-[#4F3621]/60 border-[#EED5B9]/10' 
+                : 'bg-[#EED5B9]/80 border-[#4F3621]/20'
+            }`}>
               <div className="flex items-center">
                 <motion.div 
                   whileHover={{ scale: 1.05 }}
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
                     step >= 1 ? "bg-primary text-primary-foreground scale-110" : 
-                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
+                    isDark ? "bg-[#EED5B9]/10 text-[#EED5B9]/70" : "bg-[#4F3621]/20 text-[#4F3621]/70"
                   )}
                   onClick={() => step > 1 && setStep(1)}
                 >
@@ -1882,7 +1879,7 @@ export default function Booking() {
                 <div className={cn(
                   "h-1 w-8 transition-all duration-500 mx-1",
                   step >= 2 ? "bg-primary scale-x-100" : 
-                  isDark ? "bg-white/20 scale-x-90" : "bg-gray-200 scale-x-90"
+                  isDark ? "bg-[#EED5B9]/20 scale-x-90" : "bg-[#4F3621]/20 scale-x-90"
                 )} />
               </div>
               
@@ -1892,7 +1889,7 @@ export default function Booking() {
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
                     step >= 2 ? "bg-primary text-primary-foreground scale-110" : 
-                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
+                    isDark ? "bg-[#EED5B9]/10 text-[#EED5B9]/70" : "bg-[#4F3621]/20 text-[#4F3621]/70"
                   )}
                   onClick={() => step > 2 && setStep(2)}
                 >
@@ -1901,7 +1898,7 @@ export default function Booking() {
                 <div className={cn(
                   "h-1 w-8 transition-all duration-500 mx-1",
                   step >= 3 ? "bg-primary scale-x-100" : 
-                  isDark ? "bg-white/20 scale-x-90" : "bg-gray-200 scale-x-90"
+                  isDark ? "bg-[#EED5B9]/20 scale-x-90" : "bg-[#4F3621]/20 scale-x-90"
                 )} />
               </div>
               
@@ -1911,7 +1908,7 @@ export default function Booking() {
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
                     step >= 3 ? "bg-primary text-primary-foreground scale-110" : 
-                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
+                    isDark ? "bg-[#EED5B9]/10 text-[#EED5B9]/70" : "bg-[#4F3621]/20 text-[#4F3621]/70"
                   )}
                   onClick={() => step > 3 && setStep(3)}
                 >
@@ -1920,7 +1917,7 @@ export default function Booking() {
                 <div className={cn(
                   "h-1 w-8 transition-all duration-500 mx-1",
                   step >= 4 ? "bg-primary scale-x-100" : 
-                  isDark ? "bg-white/20 scale-x-90" : "bg-gray-200 scale-x-90"
+                  isDark ? "bg-[#EED5B9]/20 scale-x-90" : "bg-[#4F3621]/20 scale-x-90"
                 )} />
               </div>
               
@@ -1930,7 +1927,7 @@ export default function Booking() {
                   className={cn(
                     "min-w-[3rem] h-12 rounded-full flex items-center justify-center transition-all duration-500 transform cursor-pointer",
                     step >= 4 ? "bg-primary text-primary-foreground scale-110" : 
-                    isDark ? "bg-white/10 text-white/70" : "bg-gray-200 text-gray-500"
+                    isDark ? "bg-[#EED5B9]/10 text-[#EED5B9]/70" : "bg-[#4F3621]/20 text-[#4F3621]/70"
                   )}
                 >
                   <CreditCard className="h-5 w-5" />
@@ -1963,7 +1960,9 @@ export default function Booking() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
-                    className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                    className={`text-4xl font-bold mb-4 tracking-tight ${
+                      isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                    }`}
                   >
                     Escolha seu Quarto
                   </motion.h2>
@@ -1971,7 +1970,9 @@ export default function Booking() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-8`}
+                    className={`text-lg mb-8 ${
+                      isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+                    }`}
                   >
             Selecione o quarto que melhor atende às suas necessidades
                   </motion.p>
@@ -1983,11 +1984,11 @@ export default function Booking() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className={`${
+                    className={`backdrop-blur-xl rounded-3xl border p-6 md:p-8 shadow-xl ${
                       isDark 
-                      ? 'bg-black/40 border-white/10' 
-                      : 'bg-white/90 border-gray-200/70'
-                    } backdrop-blur-xl rounded-3xl border p-6 md:p-8 shadow-xl`}
+                      ? 'bg-[#4F3621]/40 border-[#EED5B9]/10' 
+                      : 'bg-[#EED5B9]/90 border-[#4F3621]/20'
+                    }`}
                   >
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
                       <div className="flex items-center mb-4 md:mb-0">
@@ -1995,10 +1996,14 @@ export default function Booking() {
                           <Search className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          <h3 className={`text-xl font-semibold ${
+                            isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                          }`}>
                             Filtrar Quartos
                           </h3>
-                          <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                          <p className={`text-sm ${
+                            isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
+                          }`}>
                             Encontre o quarto perfeito para sua estadia
                           </p>
                         </div>
@@ -2013,11 +2018,11 @@ export default function Booking() {
                             precoMaximo: 'any'
                           });
                         }}
-                        className={`${
+                        className={`rounded-full transition-all duration-300 group ${
                           isDark 
-                            ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white shadow-inner' 
-                            : 'bg-gray-100/80 border-gray-200 hover:bg-gray-200/80 text-gray-800'
-                          } rounded-full transition-all duration-300 group`}
+                            ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:bg-[#EED5B9]/10 text-[#EED5B9] shadow-inner' 
+                            : 'bg-[#4F3621]/10 border-[#4F3621]/20 hover:bg-[#4F3621]/20 text-[#4F3621]'
+                        }`}
                       >
                         <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
                         Limpar filtros
@@ -2029,7 +2034,9 @@ export default function Booking() {
                       <div className="space-y-2">
                         <Label 
                           htmlFor="capacidade" 
-                          className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                          className={`block text-sm font-medium ${
+                            isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
+                          }`}
                         >
                           Capacidade
                         </Label>
@@ -2039,12 +2046,14 @@ export default function Booking() {
                         >
                           <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
                             isDark 
-                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                            ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/20' 
+                            : 'bg-[#EED5B9] border-[#4F3621]/20 text-[#4F3621] hover:border-[#4F3621]/30 hover:bg-[#EED5B9]/80'
                           }`}>
                             <SelectValue placeholder="Qualquer capacidade" />
                           </SelectTrigger>
-                          <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                          <SelectContent className={`rounded-xl ${
+                            isDark ? 'bg-[#4F3621] border-[#EED5B9]/10' : 'bg-[#EED5B9] border-[#4F3621]/20'
+                          }`}>
                             <SelectItem value="any">Qualquer capacidade</SelectItem>
                             <SelectItem value="1">1 pessoa</SelectItem>
                             <SelectItem value="2">2 pessoas</SelectItem>
@@ -2057,7 +2066,9 @@ export default function Booking() {
                       <div className="space-y-2">
                         <Label 
                           htmlFor="tipo" 
-                          className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                          className={`block text-sm font-medium ${
+                            isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
+                          }`}
                         >
                           Tipo de Quarto
                         </Label>
@@ -2067,12 +2078,14 @@ export default function Booking() {
                         >
                           <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
                             isDark 
-                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                            ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/20' 
+                            : 'bg-[#EED5B9] border-[#4F3621]/20 text-[#4F3621] hover:border-[#4F3621]/30 hover:bg-[#EED5B9]/80'
                           }`}>
                             <SelectValue placeholder="Todos os tipos" />
                           </SelectTrigger>
-                          <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                          <SelectContent className={`rounded-xl ${
+                            isDark ? 'bg-[#4F3621] border-[#EED5B9]/10' : 'bg-[#EED5B9] border-[#4F3621]/20'
+                          }`}>
                             <SelectItem value="todos">Todos os tipos</SelectItem>
                             <SelectItem value="standard">Standard</SelectItem>
                             <SelectItem value="deluxe">Deluxe</SelectItem>
@@ -2086,7 +2099,9 @@ export default function Booking() {
                       <div className="space-y-2">
                         <Label 
                           htmlFor="preco" 
-                          className={`block text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
+                          className={`block text-sm font-medium ${
+                            isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
+                          }`}
                         >
                           Preço Máximo
                         </Label>
@@ -2096,12 +2111,14 @@ export default function Booking() {
                         >
                           <SelectTrigger className={`w-full transition-all duration-300 rounded-xl h-12 ${
                             isDark 
-                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20' 
-                            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300 hover:bg-gray-50/50'
+                            ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/20' 
+                            : 'bg-[#EED5B9] border-[#4F3621]/20 text-[#4F3621] hover:border-[#4F3621]/30 hover:bg-[#EED5B9]/80'
                           }`}>
                             <SelectValue placeholder="Sem limite de preço" />
                           </SelectTrigger>
-                          <SelectContent className={`rounded-xl ${isDark ? 'bg-gray-900 border-white/10' : ''}`}>
+                          <SelectContent className={`rounded-xl ${
+                            isDark ? 'bg-[#4F3621] border-[#EED5B9]/10' : 'bg-[#EED5B9] border-[#4F3621]/20'
+                          }`}>
                             <SelectItem value="any">Sem limite de preço</SelectItem>
                             <SelectItem value="200">Até €200</SelectItem>
                             <SelectItem value="300">Até €300</SelectItem>
@@ -2118,15 +2135,21 @@ export default function Booking() {
                 {loading || loadingQuartos ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 className="h-12 w-12 text-primary animate-spin mb-6" />
-                    <p className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'}`}>Carregando quartos disponíveis...</p>
+                    <p className={`text-lg ${
+                      isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+                    }`}>Carregando quartos disponíveis...</p>
                   </div>
                 ) : quartosFiltrados.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-100 text-yellow-600 mb-4">
                       <AlertTriangle className="h-8 w-8" />
                     </div>
-                    <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Nenhum quarto encontrado</h3>
-                    <p className={`${isDark ? 'text-white/70' : 'text-gray-600'} max-w-md mx-auto mb-6`}>
+                    <h3 className={`text-xl font-semibold mb-2 ${
+                      isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                    }`}>Nenhum quarto encontrado</h3>
+                    <p className={`max-w-md mx-auto mb-6 ${
+                      isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+                    }`}>
                       Não encontramos quartos com os filtros selecionados. Tente ajustar os critérios de busca.
                     </p>
                     <Button 
@@ -2140,9 +2163,9 @@ export default function Booking() {
                       }}
                       className={`${
                         isDark 
-                          ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' 
-                          : 'bg-gray-100 border-gray-200 hover:bg-gray-200 text-gray-800'
-                        }`}
+                          ? 'bg-[#EED5B9]/5 border-[#EED5B9]/10 hover:bg-[#EED5B9]/10 text-[#EED5B9]' 
+                          : 'bg-[#4F3621]/10 border-[#4F3621]/20 hover:bg-[#4F3621]/20 text-[#4F3621]'
+                      }`}
                     >
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Limpar filtros
