@@ -962,7 +962,7 @@ export default function Booking() {
           const manualNightlyPrices = [];
           
           for (let i = 0; i < nights; i++) {
-            const currentDate = new Date(date.from);
+            const currentDate: Date = new Date(date.from);
             currentDate.setDate(date.from.getDate() + i);
             const dateStr = format(currentDate, "yyyy-MM-dd");
             
