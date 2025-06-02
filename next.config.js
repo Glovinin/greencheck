@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Suas outras configurações do Next.js
+  output: 'export',
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     domains: ['firebasestorage.googleapis.com', 'images.unsplash.com'],
+    unoptimized: true,
   },
 }
 

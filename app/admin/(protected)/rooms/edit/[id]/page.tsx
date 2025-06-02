@@ -1,5 +1,9 @@
 "use client"
 
+export async function generateStaticParams() {
+  return []
+}
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"

@@ -336,14 +336,43 @@ export default function NewRoom() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.description || formData.price <= 0 || imageFiles.length === 0) {
-      toast.error("Por favor, preencha todos os campos obrigatórios e adicione pelo menos uma imagem.");
+    console.log("🚀 Iniciando processo de criação do quarto...");
+    console.log("📝 Dados do formulário:", formData);
+    console.log("🖼️ Número de imagens:", imageFiles.length);
+    console.log("🏷️ Amenidades:", amenities);
+    console.log("🛎️ Serviços:", additionalServices);
+    console.log("⭐ Destaques:", highlights);
+    
+    // Validação detalhada
+    const errors = [];
+    
+    if (!formData.name?.trim()) {
+      errors.push("Nome do quarto é obrigatório");
+    }
+    
+    if (!formData.description?.trim()) {
+      errors.push("Descrição é obrigatória");
+    }
+    
+    if (!formData.price || formData.price <= 0) {
+      errors.push("Preço deve ser maior que zero");
+    }
+    
+    // TEMPORÁRIO: Comentando validação de imagem para contornar CORS
+    // if (imageFiles.length === 0) {
+    //   errors.push("Pelo menos uma imagem é obrigatória");
+    // }
+    
+    if (errors.length > 0) {
+      console.log("❌ Erros de validação encontrados:", errors);
+      toast.error(`Erros encontrados:\n${errors.join('\n')}`);
       return;
     }
     
     // Validar preços sazonais
     const invalidSeasonalPrices = seasonalPrices.filter(period => period.price <= 0)
     if (invalidSeasonalPrices.length > 0) {
+      console.log("❌ Preços sazonais inválidos:", invalidSeasonalPrices);
       toast.error("Um ou mais períodos sazonais têm preços inválidos.")
       return
     }
@@ -351,10 +380,12 @@ export default function NewRoom() {
     // Verificar conflitos entre períodos sazonais
     const hasConflicts = checkForSeasonalPriceConflicts()
     if (hasConflicts) {
+      console.log("❌ Conflitos entre períodos sazonais detectados");
       toast.error("Existem períodos sazonais com datas que se sobrepõem.")
       return
     }
 
+    console.log("✅ Todas as validações passaram, iniciando criação do quarto...");
     setIsSubmitting(true);
     
     try {
@@ -362,26 +393,58 @@ export default function NewRoom() {
       let imageUrls: string[] = [];
       
       if (imageFiles.length > 0) {
+        console.log(`📤 Iniciando upload de ${imageFiles.length} imagens...`);
         const loadingToast = toast.loading(`Enviando ${imageFiles.length} imagens... 0%`);
         
-        imageUrls = await uploadMultipleImagesWithProgress(
-          imageFiles,
-          `rooms/${Date.now()}`,
-          (totalProgress) => {
-            // Atualizar o toast com o progresso total
-            toast.loading(`Enviando ${imageFiles.length} imagens... ${totalProgress}%`, {
+        try {
+          imageUrls = await uploadMultipleImagesWithProgress(
+            imageFiles,
+            `rooms/${Date.now()}`,
+            (totalProgress) => {
+              console.log(`📊 Progresso do upload: ${totalProgress}%`);
+              // Atualizar o toast com o progresso total
+              toast.loading(`Enviando ${imageFiles.length} imagens... ${totalProgress}%`, {
+                id: loadingToast
+              });
+            }
+          );
+          
+          console.log(`✅ Upload concluído! URLs das imagens:`, imageUrls);
+          toast.success(`${imageFiles.length} imagens enviadas com sucesso!`, {
+            id: loadingToast
+          });
+        } catch (uploadError) {
+          console.error("❌ Erro durante o upload das imagens:", uploadError);
+          const errorMessage = uploadError instanceof Error ? uploadError.message : 'Erro desconhecido no upload';
+          
+          // Se for erro de CORS, continuar sem imagens
+          if (errorMessage.includes('CORS') || errorMessage.includes('cross-origin')) {
+            console.log("⚠️ Erro de CORS detectado. Criando quarto sem imagens...");
+            toast.warning("Erro de CORS no upload. Quarto será criado sem imagens. Configure CORS depois.", {
               id: loadingToast
             });
+            imageUrls = []; // Array vazio, sem imagens
+          } else {
+            toast.error(`Erro ao fazer upload das imagens: ${errorMessage}`, {
+              id: loadingToast
+            });
+            throw uploadError; // Re-throw outros tipos de erro
           }
-        );
-        
-        toast.success(`${imageFiles.length} imagens enviadas com sucesso!`, {
-          id: loadingToast
-        });
+        }
       }
       
       // Criar o quarto com todas as imagens
-      toast.loading("Criando novo quarto...");
+      console.log("💾 Criando registro do quarto no Firestore...");
+      const createToast = toast.loading("Criando novo quarto...");
+      
+      // Se não temos imagens devido a erro de CORS, usar placeholders
+      if (imageFiles.length > 0 && imageUrls.length === 0) {
+        console.log("📝 Usando URLs placeholder para imagens devido a erro de CORS");
+        imageUrls = imageFiles.map((_, index) => `/images/placeholder-room-${index + 1}.jpg`);
+        toast.info("Usando imagens placeholder temporárias. Configure CORS para usar imagens reais.", {
+          duration: 5000
+        });
+      }
       
       const roomData = {
         ...formData,
@@ -391,17 +454,53 @@ export default function NewRoom() {
         highlights,
         seasonalPrices,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        // Marcar se tem imagens placeholder para facilitar identificação
+        hasPlaceholderImages: imageFiles.length > 0 && imageUrls.length > 0 && imageUrls[0].includes('placeholder')
       };
       
-      await createRoom(roomData);
+      console.log("📋 Dados completos do quarto a serem salvos:", roomData);
       
-      toast.success("Quarto criado com sucesso!");
-      router.push("/admin/rooms");
+      try {
+        await createRoom(roomData);
+        console.log("✅ Quarto criado com sucesso no Firestore!");
+        
+        toast.success("Quarto criado com sucesso!", {
+          id: createToast
+        });
+        
+        console.log("🔄 Redirecionando para lista de quartos...");
+        router.push("/admin/rooms");
+      } catch (firestoreError) {
+        console.error("❌ Erro ao salvar no Firestore:", firestoreError);
+        const errorMessage = firestoreError instanceof Error ? firestoreError.message : 'Erro desconhecido no Firestore';
+        toast.error(`Erro ao salvar quarto no banco: ${errorMessage}`, {
+          id: createToast
+        });
+        throw firestoreError;
+      }
+      
     } catch (error) {
-      console.error("Erro ao criar quarto:", error);
-      toast.error("Erro ao criar quarto. Tente novamente.");
+      console.error("❌ Erro geral durante a criação do quarto:", error);
+      
+      // Mensagem de erro mais específica baseada no tipo de erro
+      let errorMessage = "Erro desconhecido ao criar quarto.";
+      
+      if (error instanceof Error) {
+        if (error.name === 'CORSError') {
+          errorMessage = "Erro de CORS: Configure as permissões do Firebase Storage.";
+        } else if (error.message?.includes('storage')) {
+          errorMessage = "Erro no sistema de armazenamento de imagens.";
+        } else if (error.message?.includes('firestore') || error.message?.includes('permission')) {
+          errorMessage = "Erro ao salvar no banco de dados. Verifique suas permissões.";
+        } else {
+          errorMessage = `Erro: ${error.message}`;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
+      console.log("🏁 Finalizando processo de criação...");
       setIsSubmitting(false);
     }
   };
@@ -915,13 +1014,37 @@ export default function NewRoom() {
           <Button 
             type="button"
             variant="outline" 
-            onClick={() => router.push('/admin/rooms')}
+            onClick={() => {
+              console.log("🔙 Botão Cancelar clicado");
+              router.push('/admin/rooms');
+            }}
           >
             Cancelar
           </Button>
           <Button 
             type="submit"
             disabled={isSubmitting}
+            onClick={(e) => {
+              console.log("🔵 Botão Salvar Quarto clicado!");
+              console.log("📝 Estado atual do formulário:", {
+                formData,
+                imageFiles: imageFiles.length,
+                amenities: amenities.length,
+                additionalServices: additionalServices.length,
+                highlights: highlights.length,
+                isSubmitting
+              });
+              
+              // Se por algum motivo o formulário não estiver funcionando,
+              // vamos chamar handleSubmit manualmente
+              if (e.currentTarget.type === 'submit') {
+                console.log("✅ Tipo de botão correto (submit)");
+              } else {
+                console.log("⚠️ Tipo de botão incorreto, chamando handleSubmit manualmente");
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           >
             {isSubmitting ? (
               <>

@@ -88,6 +88,8 @@ function PaymentStatusChecker() {
   const stripe = useStripe()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   
   const [isLoading, setIsLoading] = useState(true)
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'processing' | 'error'>('processing')
@@ -96,7 +98,38 @@ function PaymentStatusChecker() {
   const [reservationNumber, setReservationNumber] = useState<string>('')
   const [paymentMethod, setPaymentMethod] = useState<string>('')
   const [showConfetti, setShowConfetti] = useState(false)
-  const theme = useTheme().theme
+
+  // Fix viewport height for mobile to prevent browser UI from hiding
+  useEffect(() => {
+    const setViewportHeight = () => {
+      // Get the viewport height and multiply by 1% to get a value for a vh unit
+      const vh = window.innerHeight * 0.01;
+      // Set the value in the --vh custom property to the root of the document
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Set initial viewport height
+    setViewportHeight();
+
+    // Listen for resize events (orientation change, etc.)
+    const handleResize = () => {
+      setViewportHeight();
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  // After mounting, we can safely show the UI that depends on the theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Formatar data
   const formatDate = (timestamp: any) => {
@@ -116,6 +149,13 @@ function PaymentStatusChecker() {
       currency: 'EUR'
     }).format(price);
   }
+  
+  // Evita flash de conteúdo não hidratado
+  if (!mounted) {
+    return null
+  }
+
+  const isDark = theme === 'dark'
   
   useEffect(() => {
     if (!stripe) {
@@ -477,50 +517,50 @@ function PaymentStatusChecker() {
           const { entity, reference, amount } = JSON.parse(multibancoData);
           
           return (
-            <div className={`my-6 p-4 rounded-lg ${
-              theme === 'dark' 
-                ? 'bg-zinc-800' 
-                : 'bg-white border border-gray-200'
+            <div className={`my-6 p-4 sm:p-6 rounded-xl shadow-sm border transition-all duration-300 ${
+              isDark 
+                ? 'bg-[#4F3621]/80 border-[#EED5B9]/20 text-[#EED5B9]' 
+                : 'bg-white border-[#4F3621]/20 text-[#4F3621]'
             }`}>
-              <h4 className="text-center font-medium mb-4">Detalhes do Pagamento Multibanco</h4>
+              <h4 className="text-center font-medium mb-4 text-lg">Detalhes do Pagamento Multibanco</h4>
               
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div className="text-center">
                   <p className={`text-sm mb-1 ${
-                    theme === 'dark' 
-                      ? 'text-zinc-400' 
-                      : 'text-gray-500'
+                    isDark 
+                      ? 'text-[#EED5B9]/70' 
+                      : 'text-[#4F3621]/70'
                   }`}>Entidade:</p>
                   <p className="text-lg font-medium">{entity}</p>
                 </div>
                 <div className="text-center">
                   <p className={`text-sm mb-1 ${
-                    theme === 'dark' 
-                      ? 'text-zinc-400' 
-                      : 'text-gray-500'
+                    isDark 
+                      ? 'text-[#EED5B9]/70' 
+                      : 'text-[#4F3621]/70'
                   }`}>Referência:</p>
                   <p className="text-lg font-medium">{reference}</p>
                 </div>
               </div>
               
-              <div className="text-center">
+              <div className="text-center mb-4">
                 <p className={`text-sm mb-1 ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>Valor:</p>
                 <p className="text-xl font-semibold">€{amount?.toFixed(2)}</p>
               </div>
               
-              <div className={`mt-4 pt-4 border-t ${
-                theme === 'dark' 
-                  ? 'border-zinc-700' 
-                  : 'border-gray-200'
+              <div className={`pt-4 border-t ${
+                isDark 
+                  ? 'border-[#EED5B9]/20' 
+                  : 'border-[#4F3621]/20'
               }`}>
-                <p className={`text-sm ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                <p className={`text-sm text-center ${
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>
                   Por favor, efetue o pagamento no prazo de 48 horas para garantir sua reserva. 
                   Você pode utilizar qualquer terminal Multibanco ou serviço de homebanking.
@@ -534,66 +574,66 @@ function PaymentStatusChecker() {
         
       case 'bank_transfer':
         return (
-          <div className={`my-6 p-4 rounded-lg ${
-            theme === 'dark' 
-              ? 'bg-zinc-800' 
-              : 'bg-white border border-gray-200'
+          <div className={`my-6 p-4 sm:p-6 rounded-xl shadow-sm border transition-all duration-300 ${
+            isDark 
+              ? 'bg-[#4F3621]/80 border-[#EED5B9]/20 text-[#EED5B9]' 
+              : 'bg-white border-[#4F3621]/20 text-[#4F3621]'
           }`}>
-            <h4 className="text-center font-medium mb-4">Detalhes da Transferência Bancária</h4>
+            <h4 className="text-center font-medium mb-4 text-lg">Detalhes da Transferência Bancária</h4>
             
             <div className="space-y-3 mb-4">
               <div>
                 <p className={`text-sm ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>IBAN:</p>
                 <p className="font-medium">PT50XXXX XXXX XXXX XXXX XXXX X</p>
               </div>
               <div>
                 <p className={`text-sm ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>BIC/SWIFT:</p>
                 <p className="font-medium">XXXXXXXX</p>
               </div>
               <div>
                 <p className={`text-sm ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>Beneficiário:</p>
                 <p className="font-medium">Aqua Vista Monchique</p>
               </div>
               <div>
                 <p className={`text-sm ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>Referência:</p>
                 <p className="font-medium">{reservationNumber}</p>
               </div>
               <div>
                 <p className={`text-sm ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                  isDark 
+                    ? 'text-[#EED5B9]/70' 
+                    : 'text-[#4F3621]/70'
                 }`}>Valor:</p>
                 <p className="text-xl font-semibold">{bookingDetails && 
                   formatPrice(bookingDetails.totalPrice)}</p>
               </div>
             </div>
             
-            <div className={`mt-4 pt-4 border-t ${
-              theme === 'dark' 
-                ? 'border-zinc-700' 
-                : 'border-gray-200'
+            <div className={`pt-4 border-t ${
+              isDark 
+                ? 'border-[#EED5B9]/20' 
+                : 'border-[#4F3621]/20'
             }`}>
-              <p className={`text-sm ${
-                theme === 'dark' 
-                  ? 'text-zinc-400' 
-                  : 'text-gray-500'
+              <p className={`text-sm text-center ${
+                isDark 
+                  ? 'text-[#EED5B9]/70' 
+                  : 'text-[#4F3621]/70'
               }`}>
                 Por favor, efetue a transferência no prazo de 48 horas para garantir sua reserva.
                 Não se esqueça de incluir o código de referência na descrição da transferência.
@@ -607,16 +647,16 @@ function PaymentStatusChecker() {
       case 'klarna':
         if (paymentStatus === 'processing') {
           return (
-            <div className={`my-6 p-4 rounded-lg ${
-              theme === 'dark' 
-                ? 'bg-zinc-800 text-zinc-300' 
-                : 'bg-amber-50 border border-amber-200 text-amber-800'
+            <div className={`my-6 p-4 sm:p-6 rounded-xl shadow-sm border transition-all duration-300 ${
+              isDark 
+                ? 'bg-amber-900/30 border-amber-600/30 text-amber-200' 
+                : 'bg-amber-50 border-amber-200 text-amber-800'
             }`}>
-              <div className="flex items-center mb-2">
+              <div className="flex items-center justify-center mb-2">
                 <Clock className="h-5 w-5 mr-2" />
                 <h4 className="font-medium">Pagamento em Processamento</h4>
               </div>
-              <p className="text-sm">
+              <p className="text-sm text-center">
                 Seu pagamento via {paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)} 
                 está sendo processado. Isso pode levar alguns instantes.
                 Você receberá a confirmação por email quando for concluído.
@@ -634,15 +674,27 @@ function PaymentStatusChecker() {
   // Versão simplificada
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className={`min-h-screen-fixed flex items-center justify-center p-4 ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
         <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex justify-center mb-6">
+            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center ${
+              isDark 
+                ? 'bg-[#EED5B9]/10 border border-[#EED5B9]/20' 
+                : 'bg-[#4F3621]/10 border border-[#4F3621]/20'
+            }`}>
+              <Loader2 className={`h-8 w-8 sm:h-10 sm:w-10 animate-spin ${
+                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+              }`} />
             </div>
           </div>
-          <h2 className="text-2xl font-semibold">Verificando Pagamento...</h2>
-          <p className="text-muted-foreground mt-2">Aguarde enquanto confirmamos seu pagamento</p>
+          <h2 className={`text-xl sm:text-2xl font-semibold mb-2 ${
+            isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+          }`}>Verificando Pagamento...</h2>
+          <p className={`text-sm sm:text-base ${
+            isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+          }`}>Aguarde enquanto confirmamos seu pagamento</p>
         </div>
       </div>
     );
@@ -650,25 +702,43 @@ function PaymentStatusChecker() {
   
   if (paymentStatus === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md border-none shadow-xl overflow-hidden">
+      <div className={`min-h-screen-fixed flex items-center justify-center p-4 ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
+        <Card className={`w-full max-w-md border-none shadow-xl overflow-hidden ${
+          isDark 
+            ? 'bg-[#4F3621]/90 text-[#EED5B9] shadow-black/20' 
+            : 'bg-white text-[#4F3621] shadow-[#4F3621]/20'
+        }`}>
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <X className="h-8 w-8 text-red-600 dark:text-red-500" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                isDark 
+                  ? 'bg-red-900/30 border border-red-600/30' 
+                  : 'bg-red-100 border border-red-200'
+              }`}>
+                <X className={`h-8 w-8 ${
+                  isDark ? 'text-red-400' : 'text-red-600'
+                }`} />
               </div>
             </div>
-            <CardTitle className="text-2xl">Problema no Pagamento</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Problema no Pagamento</CardTitle>
           </CardHeader>
           <CardContent className="text-center pt-2 pb-6">
-            <p className="text-muted-foreground mb-6">
+            <p className={`mb-6 text-sm sm:text-base ${
+              isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+            }`}>
               {error || 'Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.'}
             </p>
           </CardContent>
           <CardFooter className="flex justify-center pb-6">
             <Button 
               onClick={() => router.push('/booking')}
-              className="px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+              className={`px-6 sm:px-8 py-2 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto ${
+                isDark 
+                  ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 border-[#EED5B9]/20' 
+                  : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 border-[#4F3621]/20'
+              }`}
             >
               Tentar Novamente
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -681,18 +751,32 @@ function PaymentStatusChecker() {
   
   if (paymentStatus === 'processing') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md border-none shadow-xl overflow-hidden">
+      <div className={`min-h-screen-fixed flex items-center justify-center p-4 ${
+        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      }`}>
+        <Card className={`w-full max-w-md border-none shadow-xl overflow-hidden ${
+          isDark 
+            ? 'bg-[#4F3621]/90 text-[#EED5B9] shadow-black/20' 
+            : 'bg-white text-[#4F3621] shadow-[#4F3621]/20'
+        }`}>
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-amber-600 dark:text-amber-500" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                isDark 
+                  ? 'bg-amber-900/30 border border-amber-600/30' 
+                  : 'bg-amber-100 border border-amber-200'
+              }`}>
+                <Loader2 className={`h-8 w-8 animate-spin ${
+                  isDark ? 'text-amber-400' : 'text-amber-600'
+                }`} />
               </div>
             </div>
-            <CardTitle className="text-2xl">Processando Pagamento...</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Processando Pagamento...</CardTitle>
           </CardHeader>
           <CardContent className="text-center pt-2 pb-6">
-            <p className="text-muted-foreground mb-6">
+            <p className={`mb-6 text-sm sm:text-base ${
+              isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+            }`}>
               Seu pagamento está sendo processado. Isso pode levar alguns minutos.
               Você receberá um email quando for confirmado.
             </p>
@@ -700,7 +784,11 @@ function PaymentStatusChecker() {
           <CardFooter className="flex justify-center pb-6">
             <Button 
               onClick={() => router.push('/')}
-              className="px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+              className={`px-6 sm:px-8 py-2 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto ${
+                isDark 
+                  ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 border-[#EED5B9]/20'
+                  : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 border-[#4F3621]/20'
+              }`}
             >
               Voltar para a Página Inicial
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -712,7 +800,9 @@ function PaymentStatusChecker() {
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className={`min-h-screen-fixed flex items-center justify-center p-4 ${
+      isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+    }`}>
       {showConfetti && <Confetti />}
       
       <AnimatePresence>
@@ -723,36 +813,32 @@ function PaymentStatusChecker() {
           className="w-full max-w-2xl"
         >
           <Card className={`border-none shadow-xl overflow-hidden ${
-            theme === 'dark' 
-              ? 'bg-black text-white' 
-              : 'bg-white text-gray-900'
+            isDark 
+              ? 'bg-[#4F3621]/90 text-[#EED5B9] shadow-black/20' 
+              : 'bg-white text-[#4F3621] shadow-[#4F3621]/20'
           }`}>
-            <div className="flex flex-col items-center pt-10 pb-5">
+            <div className="flex flex-col items-center pt-8 sm:pt-10 pb-5">
               <motion.div 
-                className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 ${
-                  theme === 'dark' 
-                    ? 'bg-zinc-800' 
-                    : 'bg-primary/10'
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-6 sm:mb-8 ${
+                  isDark 
+                    ? 'bg-[#EED5B9]/10 border border-[#EED5B9]/20' 
+                    : 'bg-[#4F3621]/10 border border-[#4F3621]/20'
                 }`}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 20 }}
               >
-                <Check className={`h-10 w-10 ${
-                  theme === 'dark' 
-                    ? 'text-white' 
-                    : 'text-primary'
+                <Check className={`h-8 w-8 sm:h-10 sm:w-10 ${
+                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
                 }`} />
               </motion.div>
               
-              <CardTitle className="text-center text-3xl mb-4">
+              <CardTitle className="text-center text-2xl sm:text-3xl mb-4 px-4">
                 Reserva Confirmada!
               </CardTitle>
               
-              <p className={`text-center max-w-md mx-auto px-4 ${
-                theme === 'dark' 
-                  ? 'text-zinc-400' 
-                  : 'text-gray-500'
+              <p className={`text-center max-w-md mx-auto px-4 text-sm sm:text-base ${
+                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
               }`}>
                 {paymentStatus === 'success' 
                   ? 'Seu pagamento foi processado com sucesso e sua reserva está garantida.'
@@ -760,126 +846,108 @@ function PaymentStatusChecker() {
               </p>
             </div>
             
-            <div className={`px-6 py-8 ${
-              theme === 'dark' 
-                ? 'bg-zinc-900/80' 
-                : 'bg-gray-50'
+            <div className={`px-4 sm:px-6 py-6 sm:py-8 ${
+              isDark 
+                ? 'bg-[#4F3621]/60' 
+                : 'bg-[#EED5B9]/30'
             }`}>
-              <h3 className="text-center text-xl font-medium mb-5">Detalhes da Reserva</h3>
+              <h3 className="text-center text-lg sm:text-xl font-medium mb-5">Detalhes da Reserva</h3>
               
               <div className="flex flex-col items-center mb-6">
-                <div className={`py-3 px-6 rounded-lg mb-6 ${
-                  theme === 'dark' 
-                    ? 'bg-zinc-800' 
-                    : 'bg-white border border-gray-200'
+                <div className={`py-3 px-4 sm:px-6 rounded-xl mb-6 shadow-sm border ${
+                  isDark 
+                    ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                    : 'bg-white border-[#4F3621]/20'
                 }`}>
                   <p className={`text-center text-sm mb-1 ${
-                    theme === 'dark' 
-                      ? 'text-zinc-400' 
-                      : 'text-gray-500'
+                    isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                   }`}>Código da Reserva:</p>
-                  <p className="text-center text-xl font-semibold">{reservationNumber}</p>
+                  <p className="text-center text-lg sm:text-xl font-semibold">{reservationNumber}</p>
                 </div>
                 
                 {/* Adicionar informações específicas do método de pagamento */}
                 {renderPaymentMethodInfo()}
                 
-                <div className={`flex items-center justify-center text-sm mb-6 ${
-                  theme === 'dark' 
-                    ? 'text-zinc-400' 
-                    : 'text-gray-500'
+                <div className={`flex items-center justify-center text-xs sm:text-sm mb-6 px-4 text-center ${
+                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                 }`}>
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span>Um email de confirmação foi enviado para: <span className={
-                    theme === 'dark' 
-                      ? 'text-white' 
-                      : 'text-gray-900 font-medium'
-                  }>{bookingDetails?.guestEmail || 'seu email cadastrado'}</span></span>
+                  <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span>Um email de confirmação foi enviado para: <span className={`${
+                    isDark ? 'text-[#EED5B9]' : 'text-[#4F3621] font-medium'
+                  }`}>{bookingDetails?.guestEmail || 'seu email cadastrado'}</span></span>
                 </div>
               </div>
               
-              <h3 className="text-center text-xl font-medium mb-5">Próximos Passos</h3>
+              <h3 className="text-center text-lg sm:text-xl font-medium mb-5">Próximos Passos</h3>
               
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <div className="flex items-start">
                   <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mr-3 ${
-                    theme === 'dark' 
-                      ? 'bg-zinc-800' 
-                      : 'bg-primary/10'
+                    isDark 
+                      ? 'bg-[#EED5B9]/10 border border-[#EED5B9]/20' 
+                      : 'bg-[#4F3621]/10 border border-[#4F3621]/20'
                   }`}>
-                    <span className={
-                      theme === 'dark' 
-                        ? 'text-white' 
-                        : 'text-primary'
-                    }>1</span>
+                    <span className={`text-sm font-medium ${
+                      isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                    }`}>1</span>
                   </div>
                   <div>
-                    <h4 className="font-medium mb-1">Prepare-se para sua estadia</h4>
-                    <p className={`text-sm ${
-                      theme === 'dark' 
-                        ? 'text-zinc-400' 
-                        : 'text-gray-500'
+                    <h4 className="font-medium mb-1 text-sm sm:text-base">Prepare-se para sua estadia</h4>
+                    <p className={`text-xs sm:text-sm ${
+                      isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                     }`}>Lembre-se de trazer um documento com foto para o check-in</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start">
                   <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mr-3 ${
-                    theme === 'dark' 
-                      ? 'bg-zinc-800' 
-                      : 'bg-primary/10'
+                    isDark 
+                      ? 'bg-[#EED5B9]/10 border border-[#EED5B9]/20' 
+                      : 'bg-[#4F3621]/10 border border-[#4F3621]/20'
                   }`}>
-                    <span className={
-                      theme === 'dark' 
-                        ? 'text-white' 
-                        : 'text-primary'
-                    }>2</span>
+                    <span className={`text-sm font-medium ${
+                      isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                    }`}>2</span>
                   </div>
                   <div>
-                    <h4 className="font-medium mb-1">Check-in entre 14:00 e 20:00</h4>
-                    <p className={`text-sm ${
-                      theme === 'dark' 
-                        ? 'text-zinc-400' 
-                        : 'text-gray-500'
+                    <h4 className="font-medium mb-1 text-sm sm:text-base">Check-in entre 14:00 e 20:00</h4>
+                    <p className={`text-xs sm:text-sm ${
+                      isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                     }`}>Nossa equipe estará aguardando sua chegada</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start">
                   <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mr-3 ${
-                    theme === 'dark' 
-                      ? 'bg-zinc-800' 
-                      : 'bg-primary/10'
+                    isDark 
+                      ? 'bg-[#EED5B9]/10 border border-[#EED5B9]/20' 
+                      : 'bg-[#4F3621]/10 border border-[#4F3621]/20'
                   }`}>
-                    <span className={
-                      theme === 'dark' 
-                        ? 'text-white' 
-                        : 'text-primary'
-                    }>3</span>
+                    <span className={`text-sm font-medium ${
+                      isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                    }`}>3</span>
                   </div>
                   <div>
-                    <h4 className="font-medium mb-1">Aproveite sua experiência</h4>
-                    <p className={`text-sm ${
-                      theme === 'dark' 
-                        ? 'text-zinc-400' 
-                        : 'text-gray-500'
+                    <h4 className="font-medium mb-1 text-sm sm:text-base">Aproveite sua experiência</h4>
+                    <p className={`text-xs sm:text-sm ${
+                      isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
                     }`}>Desfrute de todos os nossos serviços exclusivos</p>
                   </div>
                 </div>
               </div>
             </div>
             
-            <CardFooter className={`flex justify-center py-6 ${
-              theme === 'dark' 
-                ? 'bg-black' 
+            <CardFooter className={`flex justify-center py-4 sm:py-6 ${
+              isDark 
+                ? 'bg-[#4F3621]/90' 
                 : 'bg-white'
             }`}>
               <Button 
                 onClick={() => router.push('/')}
-                className={`w-full py-6 text-base font-medium border shadow-md rounded-md ${
-                  theme === 'dark'
-                    ? 'bg-white text-black hover:bg-zinc-200 border-zinc-200'
-                    : 'bg-black text-white hover:bg-zinc-800 border-zinc-800'
+                className={`w-full mx-4 sm:mx-6 py-2 sm:py-3 text-sm sm:text-base font-medium border shadow-md rounded-full transition-all duration-300 hover:scale-105 ${
+                  isDark
+                    ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 border-[#EED5B9]/20'
+                    : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 border-[#4F3621]/20'
                 }`}
               >
                 Retornar à Página Inicial

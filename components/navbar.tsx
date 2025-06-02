@@ -14,39 +14,30 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu"
 import { Logo } from "./logo"
-
-const languages = [
-  { code: 'pt-BR', name: 'Português' },
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Español' },
-  { code: 'fr', name: 'Français' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'nl', name: 'Nederlands' },
-  { code: 'it', name: 'Italiano' },
-]
+import { useTranslation } from "@/contexts/LanguageContext"
 
 // Itens principais de navegação (sempre visíveis em desktop)
 const primaryNavItems = [
-  { href: "/", label: "Início" },
-  { href: "/rooms", label: "Quartos" },
-  { href: "/gallery", label: "Galeria" },
+  { href: "/", labelKey: "home" as const },
+  { href: "/rooms", labelKey: "rooms" as const },
+  { href: "/gallery", labelKey: "gallery" as const },
 ]
 
 // Itens secundários (agrupados em dropdown em telas menores)
 const secondaryNavItems = [
-  { href: "/restaurante", label: "Restaurante" },
-  { href: "/eventos", label: "Eventos" },
-  { href: "/sobre", label: "Sobre Nós" },
-  { href: "/contato", label: "Contato" },
+  { href: "/restaurante", labelKey: "restaurant" as const },
+  { href: "/eventos", labelKey: "events" as const },
+  { href: "/sobre", labelKey: "about" as const },
+  { href: "/contato", labelKey: "contact" as const },
 ]
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
-  const [currentLang, setCurrentLang] = useState('pt-BR')
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const { language, setLanguage, t } = useTranslation()
 
   // After mounting, we can safely show the UI that depends on the theme
   useEffect(() => {
@@ -62,9 +53,8 @@ export const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const handleLanguageChange = (langCode: string) => {
-    setCurrentLang(langCode)
-    // Aqui você pode adicionar lógica adicional de mudança de idioma se necessário
+  const handleLanguageChange = (langCode: 'pt' | 'en') => {
+    setLanguage(langCode)
   }
 
   const handleReservar = () => {
@@ -81,6 +71,12 @@ export const Navbar = () => {
   }
 
   const isDark = theme === 'dark'
+
+  // Array de idiomas disponíveis
+  const languages = [
+    { code: 'pt' as const, name: t('portuguese') },
+    { code: 'en' as const, name: t('english') },
+  ]
 
   return (
     <nav className="fixed top-0 w-full z-[100] flex items-center justify-center">
@@ -112,7 +108,7 @@ export const Navbar = () => {
               href={item.href} 
               className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[13px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
           {secondaryNavItems.map((item) => (
@@ -121,7 +117,7 @@ export const Navbar = () => {
               href={item.href} 
               className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[13px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
         </div>
@@ -134,7 +130,7 @@ export const Navbar = () => {
               href={item.href} 
               className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[12px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
           
@@ -162,7 +158,7 @@ export const Navbar = () => {
                       ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] focus:text-[#EED5B9]' 
                       : 'text-[#4F3621]/90 hover:text-[#4F3621] focus:text-[#4F3621]'} ${pathname === item.href ? (isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10') : ''}`}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </DropdownMenuItem>
               ))}
@@ -178,8 +174,8 @@ export const Navbar = () => {
             className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} text-[11px] sm:text-[12px] lg:text-[13px] font-medium h-7 sm:h-8 px-2 sm:px-3`}
             onClick={handleReservar}
           >
-            <span className="hidden sm:inline">Reservar</span>
-            <span className="sm:hidden">Reserva</span>
+            <span className="hidden sm:inline">{t('reserve')}</span>
+            <span className="sm:hidden">{t('reserve')}</span>
           </Button>
           
           {/* Linha divisória */}
@@ -224,7 +220,7 @@ export const Navbar = () => {
                     text-[12px] sm:text-[13px] ${isDark 
                       ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] focus:text-[#EED5B9]' 
                       : 'text-[#4F3621]/90 hover:text-[#4F3621] focus:text-[#4F3621]'}
-                    ${currentLang === lang.code 
+                    ${language === lang.code 
                       ? isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10'
                       : ''}
                   `}

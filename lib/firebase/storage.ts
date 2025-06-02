@@ -270,20 +270,49 @@ export const uploadImageWithProgress = async (
           }
         },
         (error) => {
-          // Lidar com erros
+          // Lidar com erros específicos
           console.error('Erro durante o upload:', error);
-          reject(error);
+          
+          // Verificar se é um erro de CORS
+          if (error.message?.includes('CORS') || 
+              error.message?.includes('cross-origin') ||
+              error.code === 'storage/unauthorized') {
+            const corsError = new Error('Erro de CORS: O Firebase Storage não está configurado para aceitar uploads do seu domínio. Configure as regras CORS no Firebase Console.');
+            corsError.name = 'CORSError';
+            reject(corsError);
+          } else if (error.code === 'storage/quota-exceeded') {
+            const quotaError = new Error('Cota de armazenamento excedida. Verifique o plano do Firebase.');
+            quotaError.name = 'QuotaError';
+            reject(quotaError);
+          } else {
+            reject(error);
+          }
         },
         async () => {
-          // Upload concluído com sucesso
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log(`Upload concluído com sucesso! URL: ${downloadURL}`);
-          resolve(downloadURL);
+          try {
+            // Upload concluído com sucesso
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log(`Upload concluído com sucesso! URL: ${downloadURL}`);
+            resolve(downloadURL);
+          } catch (error) {
+            console.error('Erro ao obter URL de download:', error);
+            reject(error);
+          }
         }
       );
     });
   } catch (error) {
     console.error('Erro ao fazer upload da imagem:', error);
+    
+    // Melhorar mensagens de erro
+    if (error instanceof Error) {
+      if (error.message?.includes('CORS') || error.message?.includes('cross-origin')) {
+        throw new Error('Erro de CORS: Configure as permissões do Firebase Storage para este domínio.');
+      } else if (error.message?.includes('permission') || error.message?.includes('unauthorized')) {
+        throw new Error('Erro de permissão: Verifique as regras de segurança do Firebase Storage.');
+      }
+    }
+    
     throw error;
   }
 }
@@ -309,36 +338,59 @@ export const uploadMultipleImagesWithProgress = async (
   const urls: string[] = [];
   let totalProgress = 0;
   
-  // Processar cada arquivo sequencialmente para melhor controle
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    console.log(`Processando arquivo ${i+1}/${files.length}: ${file.name}`);
-    
-    // Fazer upload do arquivo atual com monitoramento de progresso
-    const url = await uploadImageWithProgress(
-      file,
-      basePath,
-      (progress) => {
-        // Reportar progresso do arquivo atual
-        if (onFileProgress) {
-          onFileProgress(i, progress);
+  try {
+    // Processar cada arquivo sequencialmente para melhor controle
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      console.log(`Processando arquivo ${i+1}/${files.length}: ${file.name}`);
+      
+      // Fazer upload do arquivo atual com monitoramento de progresso
+      const url = await uploadImageWithProgress(
+        file,
+        basePath,
+        (progress) => {
+          // Reportar progresso do arquivo atual
+          if (onFileProgress) {
+            onFileProgress(i, progress);
+          }
+          
+          // Calcular e reportar progresso total
+          if (onTotalProgress) {
+            // Cada arquivo representa uma fração do progresso total
+            const fileWeight = 1 / files.length;
+            // Progresso anterior + progresso atual ponderado
+            totalProgress = (i / files.length) * 100 + (progress * fileWeight);
+            onTotalProgress(Math.round(totalProgress));
+          }
         }
-        
-        // Calcular e reportar progresso total
-        if (onTotalProgress) {
-          // Cada arquivo representa uma fração do progresso total
-          const fileWeight = 1 / files.length;
-          // Progresso anterior + progresso atual ponderado
-          totalProgress = (i / files.length) * 100 + (progress * fileWeight);
-          onTotalProgress(Math.round(totalProgress));
+      );
+      
+      urls.push(url);
+      console.log(`URL obtida para o arquivo ${i+1}: ${url}`);
+    }
+    
+    console.log(`Upload múltiplo concluído! ${urls.length} arquivos enviados.`);
+    return urls;
+  } catch (error) {
+    console.error('Erro durante upload múltiplo:', error);
+    
+    // Se alguns arquivos já foram enviados, tentar limpar
+    if (urls.length > 0) {
+      console.log(`Tentando limpar ${urls.length} arquivos já enviados...`);
+      for (const url of urls) {
+        try {
+          await deleteImage(url);
+        } catch (deleteError) {
+          console.error('Erro ao limpar arquivo após falha:', deleteError);
         }
       }
-    );
+    }
     
-    urls.push(url);
-    console.log(`URL obtida para o arquivo ${i+1}: ${url}`);
+    // Re-lançar o erro com mais contexto
+    if (error instanceof Error && error.name === 'CORSError') {
+      throw new Error(`Falha no upload de múltiplas imagens devido a erro de CORS. Arquivo ${urls.length + 1} de ${files.length} falhou. Configure as regras CORS no Firebase Storage.`);
+    }
+    
+    throw error;
   }
-  
-  console.log(`Upload múltiplo concluído! ${urls.length} arquivos enviados.`);
-  return urls;
 } 

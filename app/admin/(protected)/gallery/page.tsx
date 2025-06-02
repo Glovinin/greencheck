@@ -274,6 +274,34 @@ export default function GalleryManagement() {
     optimizeSelectedImage()
   }, [selectedFiles, maxWidth, imageQuality])
   
+  // Lidar com a seleção de arquivos
+  const handleFileChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+
+    const file = files[0]
+    
+    // Validação de tipo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione apenas arquivos de imagem.')
+      return
+    }
+    
+    // Validação de tamanho (máximo 10MB)
+    const maxSizeInMB = 10
+    const maxSizeInBytes = maxSizeInMB * 1024 * 1024
+    if (file.size > maxSizeInBytes) {
+      toast.error(`Arquivo muito grande. O tamanho máximo é ${maxSizeInMB}MB.`)
+      return
+    }
+    
+    setSelectedFiles(files)
+    
+    // Mostrar informação sobre otimização se necessário
+    if (file.size > 1024 * 1024) { // Maior que 1MB
+      toast.info(`Arquivo grande detectado (${(file.size / (1024 * 1024)).toFixed(2)}MB). Será otimizado automaticamente.`)
+    }
+  }
+  
   // Resetar o formulário
   const resetForm = () => {
     setTitle("")
@@ -665,8 +693,8 @@ export default function GalleryManagement() {
 
   // Exibir mensagem para adicionar nova imagem
   const handleAddImage = () => {
-    toast.info('Funcionalidade sendo implementada. Volte em breve!');
-  };
+    openAddPanel()
+  }
 
   return (
     <div className="container py-8 max-w-7xl mx-auto">
@@ -719,12 +747,64 @@ export default function GalleryManagement() {
                     alt={item.title}
                     className="w-full h-full object-cover"
                   />
+                  {/* Overlay com botões de ação */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => openEditPanel(item)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive">
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir a imagem "{item.title}"? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteItem(item)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
                 <CardContent className="p-4">
-                  <h3 className="font-medium line-clamp-1">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                    {item.description}
-                  </p>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium line-clamp-1">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {item.description}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        {item.featured && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">
+                            Destaque
+                          </span>
+                        )}
+                        {item.isHomeAboutImage && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                            Sobre Nós
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -741,6 +821,222 @@ export default function GalleryManagement() {
           </div>
         )}
       </div>
+
+      {/* Dialog para adicionar/editar imagem */}
+      <Dialog open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditMode ? 'Editar Imagem' : 'Adicionar Nova Imagem'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditMode 
+                ? 'Atualize as informações da imagem.' 
+                : 'Adicione uma nova imagem à galeria com todos os detalhes.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Upload de imagem */}
+            <div className="space-y-4">
+              <Label>Imagem {!isEditMode && '*'}</Label>
+              
+              {previewUrl && (
+                <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  {!isEditMode && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => {
+                        setSelectedFiles(null)
+                        setPreviewUrl(null)
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              {!previewUrl && (
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8">
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                    <div className="mt-4">
+                      <Label htmlFor="image-upload" className="cursor-pointer">
+                        <span className="mt-2 block text-sm font-medium text-primary hover:text-primary/80">
+                          Clique para selecionar uma imagem
+                        </span>
+                      </Label>
+                      <Input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileChange(e.target.files)}
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        PNG, JPG, WEBP até 10MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Estatísticas de otimização */}
+              {optimizationStats && (
+                <div className="p-3 bg-muted/50 rounded-md text-sm">
+                  <p className="font-medium mb-1">Otimização de imagem:</p>
+                  <p>Tamanho original: {optimizationStats.originalSize.toFixed(1)}KB</p>
+                  <p>Tamanho otimizado: {optimizationStats.optimizedSize.toFixed(1)}KB</p>
+                  <p className="text-green-600 dark:text-green-400">
+                    Redução: {optimizationStats.compressionRatio.toFixed(0)}%
+                  </p>
+                </div>
+              )}
+
+              {/* Progresso de upload */}
+              {isUploading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Enviando imagem...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} className="w-full" />
+                </div>
+              )}
+            </div>
+
+            {/* Título */}
+            <div className="space-y-2">
+              <Label htmlFor="title">Título *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Digite o título da imagem"
+                required
+              />
+            </div>
+
+            {/* Descrição */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Digite uma descrição para a imagem"
+                rows={3}
+              />
+            </div>
+
+            {/* Configurações especiais para Sobre Nós */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isHomeAboutImage"
+                  checked={isHomeAboutImage}
+                  onCheckedChange={(checked) => {
+                    setIsHomeAboutImage(checked as boolean)
+                    if (!checked) {
+                      setHomePosition(null)
+                    }
+                  }}
+                />
+                <Label htmlFor="isHomeAboutImage">
+                  Usar na seção "Sobre Nós" da página inicial
+                </Label>
+              </div>
+
+              {isHomeAboutImage && (
+                <div className="space-y-2">
+                  <Label>Posição na seção Sobre Nós *</Label>
+                  <Select 
+                    value={homePosition?.toString() || ""} 
+                    onValueChange={(value) => setHomePosition(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a posição" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aboutUsPositions.map(position => (
+                        <SelectItem key={position.id} value={position.id.toString()}>
+                          Posição {position.id}: {position.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Categoria (apenas se não for Sobre Nós) */}
+            {!isHomeAboutImage && (
+              <div className="space-y-2">
+                <Label>Categoria *</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {galleryCategories
+                      .filter(cat => cat.id !== 'todas' && cat.id !== 'sobre_nos')
+                      .map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Destaque */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="featured"
+                checked={featured}
+                onCheckedChange={(checked) => setFeatured(checked as boolean)}
+              />
+              <Label htmlFor="featured">
+                Marcar como destaque (aparecerá em primeiro lugar)
+              </Label>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPanelOpen(false)}
+                disabled={isUploading}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isUploading || (!selectedFiles && !isEditMode) || !title.trim()}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {uploadProgress < 50 ? 'Otimizando...' : 'Enviando...'}
+                  </>
+                ) : (
+                  isEditMode ? 'Atualizar' : 'Adicionar'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

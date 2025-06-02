@@ -44,8 +44,8 @@ const slogans = [
   "Conforto com Vista para o Paraíso"
 ]
 
-// Placeholder genérico para quando não houver imagens
-const placeholderImage = "/images/placeholder.jpg";
+// Placeholder genérico para quando não houver imagens - removido para evitar 404
+// const placeholderImage = "/placeholder-user.jpg";
 
 const amenities = [
   {
@@ -110,6 +110,33 @@ export default function Home() {
   const videoY = useTransform(scrollY, [0, 500], [0, 150])
   const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
 
+  // Fix viewport height for mobile to prevent browser UI from hiding
+  useEffect(() => {
+    const setViewportHeight = () => {
+      // Get the viewport height and multiply by 1% to get a value for a vh unit
+      const vh = window.innerHeight * 0.01;
+      // Set the value in the --vh custom property to the root of the document
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Set initial viewport height
+    setViewportHeight();
+
+    // Listen for resize events (orientation change, etc.)
+    const handleResize = () => {
+      setViewportHeight();
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   // After mounting, we can safely show the UI that depends on the theme
   useEffect(() => {
     setMounted(true)
@@ -143,20 +170,26 @@ export default function Home() {
           setAboutImages([])
         }
         
-        // Filtrar imagens para a seção de galeria na homepage
-        // Obter imagens featured ou mostrar as 5 primeiras
-        const galleryImagesFromDB = items
-          .filter(item => !item.isHomeAboutImage) // Excluir imagens da seção sobre nós
-          .sort((a, b) => {
-            // Priorizar imagens featured
-            if (a.featured && !b.featured) return -1
-            if (!a.featured && b.featured) return 1
-            // Depois ordenar pelas mais recentes
-            return b.createdAt - a.createdAt
-          })
-          .slice(0, 5) // Limitar a 5 imagens
+        // Usar a mesma lógica da página da galeria para ordenação
+        // Ordenar exatamente como na página da galeria (categoria "todas")
+        const sortedGalleryItems = items.sort((a: GalleryItem, b: GalleryItem) => {
+          // Primeiro por destaque
+          if (a.featured && !b.featured) return -1
+          if (!a.featured && b.featured) return 1
+          
+          // Depois por ordem personalizada (se existir)
+          if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
+            return a.displayOrder - b.displayOrder
+          }
+          
+          // Por fim, por data de criação (mais recente primeiro)
+          return b.createdAt - a.createdAt
+        })
         
-        setGalleryImages(galleryImagesFromDB)
+        // Pegar as primeiras 5 imagens para exibir na homepage (mesmo que aparecem na galeria)
+        const galleryImagesForHomepage = sortedGalleryItems.slice(0, 5)
+        
+        setGalleryImages(galleryImagesForHomepage)
         
       } catch (error) {
         console.error('Erro ao carregar imagens:', error)
@@ -215,11 +248,11 @@ export default function Home() {
   const isDark = theme === 'dark'
 
   return (
-    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
+    <main className={`min-h-screen-fixed overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
       {!sheetOpen && <Navbar />}
       
       {/* Hero Section */}
-      <section className="relative min-h-[100svh] pb-20 md:pb-0">
+      <section className="relative min-h-screen-fixed pb-20 md:pb-0">
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             style={{ 
@@ -261,7 +294,7 @@ export default function Home() {
           }`} />
         </div>
         
-        <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
+        <div className="relative min-h-screen-fixed flex flex-col justify-center items-center pt-16 md:pt-0">
           <motion.div 
             style={{ opacity }}
             className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
@@ -427,113 +460,121 @@ export default function Home() {
             >
               <div className="space-y-4">
                 {/* Imagem 1: Superior Esquerda */}
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src={aboutImages.find(img => img.position === 1)?.url || placeholderImage}
-                    alt={aboutImages.find(img => img.position === 1)?.alt || 'Imagem de placeholder'}
-                    className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                {aboutImages.find(img => img.position === 1)?.url && (
+                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
                   }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                      isDark 
+                        ? 'bg-black/20 group-hover:bg-black/10' 
+                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                    }`}></div>
+                    <img
+                      src={aboutImages.find(img => img.position === 1)?.url}
+                      alt={aboutImages.find(img => img.position === 1)?.alt || 'Imagem do hotel'}
+                      className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                      isDark 
+                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
                     }`}>
-                      {aboutImages.find(img => img.position === 1)?.caption || 'Imagem de placeholder'}
-                    </p>
+                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                        isDark ? 'text-white' : 'text-[#EED5B9]'
+                      }`}>
+                        {aboutImages.find(img => img.position === 1)?.caption}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
                 
                 {/* Imagem 2: Inferior Esquerda */}
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src={aboutImages.find(img => img.position === 2)?.url || placeholderImage}
-                    alt={aboutImages.find(img => img.position === 2)?.alt || 'Imagem de placeholder'}
-                    className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                {aboutImages.find(img => img.position === 2)?.url && (
+                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
                   }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                      isDark 
+                        ? 'bg-black/20 group-hover:bg-black/10' 
+                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                    }`}></div>
+                    <img
+                      src={aboutImages.find(img => img.position === 2)?.url}
+                      alt={aboutImages.find(img => img.position === 2)?.alt || 'Imagem do hotel'}
+                      className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                      isDark 
+                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
                     }`}>
-                      {aboutImages.find(img => img.position === 2)?.caption || 'Imagem de placeholder'}
-                    </p>
+                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                        isDark ? 'text-white' : 'text-[#EED5B9]'
+                      }`}>
+                        {aboutImages.find(img => img.position === 2)?.caption}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               <div className="space-y-4 pt-8">
                 {/* Imagem 3: Superior Direita */}
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src={aboutImages.find(img => img.position === 3)?.url || placeholderImage}
-                    alt={aboutImages.find(img => img.position === 3)?.alt || 'Imagem de placeholder'}
-                    className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                {aboutImages.find(img => img.position === 3)?.url && (
+                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
                   }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                      isDark 
+                        ? 'bg-black/20 group-hover:bg-black/10' 
+                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                    }`}></div>
+                    <img
+                      src={aboutImages.find(img => img.position === 3)?.url}
+                      alt={aboutImages.find(img => img.position === 3)?.alt || 'Imagem do hotel'}
+                      className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                      isDark 
+                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
                     }`}>
-                      {aboutImages.find(img => img.position === 3)?.caption || 'Imagem de placeholder'}
-                    </p>
+                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                        isDark ? 'text-white' : 'text-[#EED5B9]'
+                      }`}>
+                        {aboutImages.find(img => img.position === 3)?.caption}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
                 
                 {/* Imagem 4: Inferior Direita */}
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src={aboutImages.find(img => img.position === 4)?.url || placeholderImage}
-                    alt={aboutImages.find(img => img.position === 4)?.alt || 'Imagem de placeholder'}
-                    className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
+                {aboutImages.find(img => img.position === 4)?.url && (
+                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
+                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
                   }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
+                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
+                      isDark 
+                        ? 'bg-black/20 group-hover:bg-black/10' 
+                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
+                    }`}></div>
+                    <img
+                      src={aboutImages.find(img => img.position === 4)?.url}
+                      alt={aboutImages.find(img => img.position === 4)?.alt || 'Imagem do hotel'}
+                      className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
+                      isDark 
+                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
+                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
                     }`}>
-                      {aboutImages.find(img => img.position === 4)?.caption || 'Imagem de placeholder'}
-                    </p>
+                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
+                        isDark ? 'text-white' : 'text-[#EED5B9]'
+                      }`}>
+                        {aboutImages.find(img => img.position === 4)?.caption}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -953,19 +994,11 @@ export default function Home() {
                         <ul className="space-y-3">
                           <li className="flex items-start gap-2">
                             <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Inglês</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Espanhol</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Francês</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                             <span>Português</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                            <span>Inglês</span>
                           </li>
                         </ul>
                       </div>

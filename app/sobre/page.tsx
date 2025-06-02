@@ -38,7 +38,7 @@ export default function Sobre() {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative min-h-[100svh] pb-20 md:pb-0">
+      <section className="relative min-h-screen pb-20 md:pb-0">
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             style={{ 
@@ -80,7 +80,7 @@ export default function Sobre() {
           }`} />
         </div>
         
-        <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
+        <div className="relative min-h-screen flex flex-col justify-center items-center pt-16 md:pt-0">
           <motion.div 
             style={{ opacity }}
             className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"

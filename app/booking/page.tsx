@@ -844,7 +844,7 @@ export default function Booking() {
         // Gerar preços temporários baseados nos preços diários já carregados
         const startDate = new Date(range.from);
         for (let i = 0; i < noites; i++) {
-          const currentDate = new Date(startDate);
+          const currentDate: Date = new Date(startDate);
           currentDate.setDate(startDate.getDate() + i);
           const dateStr = format(currentDate, "yyyy-MM-dd");
           
@@ -931,7 +931,7 @@ export default function Booking() {
             const manualNightlyPrices = [];
             
             for (let i = 0; i < nights; i++) {
-              const currentDate = new Date(date.from);
+              const currentDate: Date = new Date(date.from);
               currentDate.setDate(date.from.getDate() + i);
               const dateStr = format(currentDate, "yyyy-MM-dd");
               
@@ -962,7 +962,7 @@ export default function Booking() {
           const manualNightlyPrices = [];
           
           for (let i = 0; i < nights; i++) {
-            const currentDate = new Date(date.from);
+            const currentDate: Date = new Date(date.from);
             currentDate.setDate(date.from.getDate() + i);
             const dateStr = format(currentDate, "yyyy-MM-dd");
             
@@ -1003,7 +1003,7 @@ export default function Booking() {
             } else if (filteredTotal <= 0) {
               console.error("⚠️ ERRO: Valor total calculado zerado ou negativo! Usando preço base:", filteredTotal);
               // Se o valor for zero ou negativo, usar cálculo básico
-              const nights = differenceInDays(date.to, date.from);
+              const nights = differenceInDays(date.to!, date.from!);
               const baseTotal = quartoSelecionado.price * nights;
               const baseFee = (baseTotal * (quartoSelecionado.serviceFeePct || 10)) / 100;
               
@@ -1035,7 +1035,7 @@ export default function Booking() {
           } catch (error) {
             console.error("Erro ao calcular preço total a partir das noites filtradas:", error);
             // Fallback usando preço base do quarto
-            const nights = differenceInDays(date.to, date.from);
+            const nights = differenceInDays(date.to!, date.from!);
             const baseTotal = quartoSelecionado.price * nights;
             const baseFee = (baseTotal * (quartoSelecionado.serviceFeePct || 10)) / 100;
             
@@ -1738,7 +1738,7 @@ export default function Booking() {
       <Navbar />
       
       {/* Hero Section - Compatível com a homepage */}
-      <section className="relative min-h-[100svh] pb-20 md:pb-0">
+      <section className="relative min-h-screen pb-20 md:pb-0">
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             style={{ 
@@ -1780,7 +1780,7 @@ export default function Booking() {
           }`} />
         </div>
         
-        <div className="relative min-h-[100svh] flex flex-col justify-center items-center pt-16 md:pt-0">
+        <div className="relative min-h-screen flex flex-col justify-center items-center pt-16 md:pt-0">
           <motion.div 
             style={{ opacity: opacityTransform }}
             className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
@@ -2182,11 +2182,11 @@ export default function Booking() {
                         className="transition-all duration-500 transform hover:-translate-y-1"
                       >
                         <Card 
-                          className={`overflow-hidden group border-0 shadow-lg ${
+                          className={`overflow-hidden group border-0 shadow-lg rounded-2xl cursor-pointer transition-all duration-300 ${
                             isDark 
-                              ? 'bg-black/60 backdrop-blur-sm ring-1 ring-white/10 hover:ring-primary/20' 
-                              : 'bg-white hover:shadow-xl'
-                          } rounded-2xl cursor-pointer transition-all duration-300`}
+                              ? 'bg-[#4F3621]/60 backdrop-blur-sm ring-1 ring-[#EED5B9]/10 hover:ring-primary/20' 
+                              : 'bg-[#EED5B9] hover:shadow-xl'
+                          }`}
                           onClick={() => selecionarQuarto(quarto)}
                         >
                           <div className="relative h-60">
@@ -2197,7 +2197,11 @@ export default function Booking() {
                             />
 
                             {/* Gradiente overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300"></div>
+                            <div className={`absolute inset-0 opacity-60 group-hover:opacity-40 transition-opacity duration-300 ${
+                              isDark 
+                                ? 'bg-gradient-to-t from-black/80 via-black/30 to-transparent' 
+                                : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/30 to-transparent'
+                            }`}></div>
 
                             {/* Botões de navegação */}
                             {quarto.images.length > 1 && (
@@ -2207,7 +2211,11 @@ export default function Booking() {
                                     e.stopPropagation();
                                     handlePrevImage(index);
                                   }}
-                                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                  className={`absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                                    isDark 
+                                      ? 'bg-black/30 hover:bg-black/50' 
+                                      : 'bg-[#4F3621]/30 hover:bg-[#4F3621]/50'
+                                  }`}
                                   aria-label="Imagem anterior"
                                 >
                                   <ChevronLeft className="h-5 w-5" />
@@ -2217,7 +2225,11 @@ export default function Booking() {
                                     e.stopPropagation();
                                     handleNextImage(index);
                                   }}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                  className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                                    isDark 
+                                      ? 'bg-black/30 hover:bg-black/50' 
+                                      : 'bg-[#4F3621]/30 hover:bg-[#4F3621]/50'
+                                  }`}
                                   aria-label="Próxima imagem"
                                 >
                                   <ChevronRight className="h-5 w-5" />
@@ -2229,7 +2241,7 @@ export default function Booking() {
                             <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-medium ${
                               isDark
                                 ? 'bg-black/60 text-white backdrop-blur-sm'
-                                : 'bg-white/90 text-gray-900 backdrop-blur-sm border border-gray-200 shadow-sm'
+                                : 'bg-[#EED5B9]/90 text-[#4F3621] backdrop-blur-sm border border-[#4F3621]/20 shadow-sm'
                             }`}>
                               {currentImageIndex[index] + 1}/{quarto.images.length}
                             </div>
@@ -2245,24 +2257,26 @@ export default function Booking() {
                             {/* Tipo de Quarto */}
                             {quarto.type && (
                               <div className="absolute bottom-3 left-3">
-                                <Badge variant="outline" className={`px-3 py-1 ${
+                                <Badge variant="outline" className={`px-3 py-1 backdrop-blur-sm capitalize font-medium ${
                                   isDark 
-                                    ? 'bg-black/60 text-white border-white/20' 
-                                    : 'bg-white/80 text-black border-gray-300'
-                                } backdrop-blur-sm capitalize font-medium`}>
+                                    ? 'bg-black/60 text-white border-[#EED5B9]/20' 
+                                    : 'bg-[#EED5B9]/80 text-[#4F3621] border-[#4F3621]/30'
+                                }`}>
                                   {quarto.type}
                                 </Badge>
                               </div>
                             )}
                           </div>
                           
-                          <div className={`p-6 space-y-4 ${isDark ? 'text-white' : ''}`}>
+                          <div className={`p-6 space-y-4 ${
+                            isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                          }`}>
                             <div className="space-y-1">
                               <h3 className="text-xl font-bold tracking-tight">{quarto.name}</h3>
                               <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-1">
                                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                  <span className="font-semibold">{quarto.rating || 4.8}</span>
+                                  <span className="font-semibold">{4.8}</span>
                                 </div>
                                 <span className={`text-xs ${isDark ? 'text-white/50' : 'text-muted-foreground'}`}>•</span>
                                 <span className={`text-sm ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
@@ -2276,7 +2290,7 @@ export default function Booking() {
                             </p>
 
                             <div className={`flex items-center gap-4 p-3 rounded-xl ${
-                              isDark ? 'bg-white/5' : 'bg-muted/50'
+                              isDark ? 'bg-[#EED5B9]/5' : 'bg-[#4F3621]/10'
                             }`}>
                               <div className="flex items-center gap-2">
                                 <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
@@ -2284,7 +2298,9 @@ export default function Booking() {
                                 </div>
                                 <span className="text-sm font-medium">{quarto.size}m²</span>
                               </div>
-                              <div className="h-4 w-px bg-border/50 dark:bg-white/10"></div>
+                              <div className={`h-4 w-px ${
+                                isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/20'
+                              }`}></div>
                               <div className="flex items-center gap-2">
                                 <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/10' : 'bg-background'}`}>
                                   <Users className="h-3.5 w-3.5 text-primary" />
@@ -2322,11 +2338,11 @@ export default function Booking() {
                             </div>
 
                             <Button 
-                              className={`w-full rounded-full transition-all duration-300 group ${
+                              className={`w-full rounded-full transition-all duration-300 group hover:scale-105 shadow-lg py-3 text-sm font-semibold ${
                                 isDark
-                                  ? 'bg-white text-black hover:bg-white/90 shadow-white/10 hover:shadow-white/20' 
-                                  : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 hover:shadow-primary/30'
-                              } hover:scale-105 shadow-lg py-3 text-sm font-semibold`}
+                                  ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 shadow-[#EED5B9]/10 hover:shadow-[#EED5B9]/20' 
+                                  : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 shadow-[#4F3621]/20 hover:shadow-[#4F3621]/30'
+                              }`}
                             >
                               Ver Disponibilidade
                               <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -2342,15 +2358,13 @@ export default function Booking() {
 
             {/* Step 2: Seleção de Datas */}
           {step === 2 && quartoSelecionado && (
-              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-2-content">
+              <section className={`pt-4 relative overflow-hidden ${
+                isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+              }`} id="step-2-content">
                 <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
                 <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-                {isDark && (
-                  <>
-                    <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-                  </>
-                )}
+                <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
                 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <motion.div
@@ -2372,7 +2386,9 @@ export default function Booking() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                        className={`text-4xl font-bold mb-4 tracking-tight ${
+                          isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                        }`}
                       >
                         Selecione suas Datas
                       </motion.h2>
@@ -2380,7 +2396,9 @@ export default function Booking() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-2`}
+                        className={`text-lg mb-2 ${
+                          isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
+                        }`}
                       >
                   Escolha quando deseja se hospedar no {quartoSelecionado.name}
                       </motion.p>
@@ -2432,13 +2450,20 @@ export default function Booking() {
 
                       <div className="flex flex-wrap gap-3 p-3 bg-muted/50 rounded-xl">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-full bg-background">
+                          <div className={`p-1.5 rounded-full ${
+                            isDark ? 'bg-[#EED5B9]/10' : 'bg-[#EED5B9]'
+                          }`}>
                             <Square className="h-3.5 w-3.5 text-primary" />
                           </div>
                           <span className="text-sm font-medium">{quartoSelecionado.size}m²</span>
                         </div>
+                        <div className={`h-4 w-px ${
+                          isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/20'
+                        }`}></div>
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-full bg-background">
+                          <div className={`p-1.5 rounded-full ${
+                            isDark ? 'bg-[#EED5B9]/10' : 'bg-[#EED5B9]'
+                          }`}>
                             <Users className="h-3.5 w-3.5 text-primary" />
                           </div>
                           <span className="text-sm font-medium">Até {quartoSelecionado.capacity} pessoas</span>
@@ -2597,7 +2622,11 @@ export default function Booking() {
                             onSelect={handleDateChange}
                             locale={ptBR}
                             disabled={(date) => isBefore(date, new Date()) && !isSameDay(date, new Date())}
-                            className="rounded-lg w-full max-w-full border border-border p-6 shadow-lg bg-card"
+                            className={`rounded-lg w-full max-w-full border p-6 shadow-lg ${
+                              isDark 
+                                ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                                : 'bg-[#EED5B9]/80 border-[#4F3621]/20'
+                            }`}
                             month={calendarMonth}
                             onMonthChange={setCalendarMonth}
                             dayPrices={dayPrices}
@@ -2610,15 +2639,16 @@ export default function Booking() {
                                 opacity: "0.7"
                               },
                               today: { 
-                                fontWeight: "bold", 
-                                borderWidth: "2px", 
-                                borderColor: "hsl(var(--primary))",
-                                backgroundColor: "hsl(var(--primary))",
-                                color: "hsl(var(--primary-foreground))"
+                                fontWeight: "normal", 
+                                borderWidth: "1px", 
+                                borderColor: isDark ? "#EED5B9" : "#4F3621",
+                                backgroundColor: "transparent",
+                                color: isDark ? "#EED5B9" : "#4F3621",
+                                opacity: "0.8"
                               },
                               outside: {
-                                opacity: "0.5",
-                                color: "hsl(var(--muted-foreground))"
+                                opacity: "0.4",
+                                color: isDark ? "#EED5B9" : "#4F3621"
                               },
                               unavailable: {
                                 color: "#FFFFFF",
@@ -2636,24 +2666,54 @@ export default function Booking() {
                               months: "flex flex-col space-y-6",
                               month: "space-y-6 w-full",
                               caption: "flex justify-center pt-2 relative items-center gap-1 pb-6",
-                              caption_label: "text-2xl font-bold",
+                              caption_label: `text-2xl font-bold ${
+                                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                              }`,
                               nav: "flex items-center gap-1",
-                              nav_button: "h-12 w-12 bg-accent hover:bg-accent/80 p-0 opacity-80 hover:opacity-100 rounded-full transition-all flex items-center justify-center",
+                              nav_button: `h-12 w-12 p-0 opacity-80 hover:opacity-100 rounded-full transition-all flex items-center justify-center ${
+                                isDark 
+                                  ? 'bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20 text-[#EED5B9]' 
+                                  : 'bg-[#4F3621]/10 hover:bg-[#4F3621]/20 text-[#4F3621]'
+                              }`,
                               nav_button_previous: "absolute left-1",
                               nav_button_next: "absolute right-1",
                               table: "w-full border-collapse",
                               head_row: "grid grid-cols-7 gap-2 mb-4",
-                              head_cell: "text-muted-foreground rounded-md w-full font-semibold text-base uppercase text-center py-3 bg-accent/50 border border-border",
+                              head_cell: `rounded-md w-full font-semibold text-base uppercase text-center py-3 border ${
+                                isDark 
+                                  ? 'text-[#EED5B9]/80 bg-[#EED5B9]/5 border-[#EED5B9]/10' 
+                                  : 'text-[#4F3621]/80 bg-[#4F3621]/10 border-[#4F3621]/20'
+                              }`,
                               row: "grid grid-cols-7 gap-2 mt-4",
-                              cell: "relative p-0 text-center text-base focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent/50 [&:has([aria-selected].day-outside)]:bg-accent/25 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-                              day: "h-16 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground rounded-md transition-all hover:scale-110 focus:outline-none focus:ring-4 focus:ring-primary focus:ring-offset-2 focus:z-10 text-lg font-medium flex items-center justify-center",
-                              day_range_start: "day-range-start bg-primary text-primary-foreground font-bold scale-110",
-                              day_range_end: "day-range-end bg-primary text-primary-foreground font-bold scale-110",
-                              day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-bold",
-                              day_today: "bg-primary/90 text-primary-foreground font-bold hover:bg-primary hover:text-primary-foreground",
-                              day_outside: "text-muted-foreground opacity-60 hover:opacity-80",
-                              day_disabled: "text-muted-foreground bg-muted/50 opacity-60 hover:bg-muted hover:text-muted-foreground hover:scale-100 cursor-not-allowed",
-                              day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
+                              cell: `relative p-0 text-center text-base focus-within:relative focus-within:z-20 ${
+                                isDark 
+                                  ? '[&:has([aria-selected])]:bg-[#EED5B9]/20 [&:has([aria-selected].day-outside)]:bg-[#EED5B9]/10' 
+                                  : '[&:has([aria-selected])]:bg-[#4F3621]/20 [&:has([aria-selected].day-outside)]:bg-[#4F3621]/10'
+                              } [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md`,
+                              day: `h-16 w-full p-0 font-normal aria-selected:opacity-100 rounded-md transition-all hover:scale-110 focus:outline-none focus:ring-4 focus:ring-primary focus:ring-offset-2 focus:z-10 text-lg font-medium flex items-center justify-center ${
+                                isDark 
+                                  ? 'text-[#EED5B9] hover:bg-[#EED5B9]/20 hover:text-[#EED5B9]' 
+                                  : 'text-[#4F3621] hover:bg-[#4F3621]/20 hover:text-[#4F3621]'
+                              }`,
+                              day_range_start: "day-range-start bg-primary text-primary-foreground font-bold scale-110 shadow-lg",
+                              day_range_end: "day-range-end bg-primary text-primary-foreground font-bold scale-110 shadow-lg",
+                              day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-bold shadow-md",
+                              day_today: `border border-dashed font-normal ${
+                                isDark 
+                                  ? 'border-[#EED5B9]/60 text-[#EED5B9]/90 bg-transparent hover:bg-[#EED5B9]/10' 
+                                  : 'border-[#4F3621]/60 text-[#4F3621]/90 bg-transparent hover:bg-[#4F3621]/10'
+                              }`,
+                              day_outside: `opacity-50 ${
+                                isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
+                              } hover:opacity-80`,
+                              day_disabled: `opacity-50 cursor-not-allowed hover:scale-100 ${
+                                isDark 
+                                  ? 'text-[#EED5B9]/40 bg-[#EED5B9]/5 hover:bg-[#EED5B9]/5 hover:text-[#EED5B9]/40' 
+                                  : 'text-[#4F3621]/40 bg-[#4F3621]/5 hover:bg-[#4F3621]/5 hover:text-[#4F3621]/40'
+                              }`,
+                              day_range_middle: `aria-selected:text-accent-foreground ${
+                                isDark ? 'aria-selected:bg-[#EED5B9]/10' : 'aria-selected:bg-[#4F3621]/10'
+                              }`,
                               day_hidden: "invisible",
                             }}
                             onDayMouseEnter={(day) => setHoverDate(day)}
@@ -2663,7 +2723,11 @@ export default function Booking() {
                               unavailable: (day) => utilsDatas.isDateUnavailable(day, datasIndisponiveis)
                             }}
                             modifiersClassNames={{
-                              hoverRange: "bg-accent text-accent-foreground",
+                              hoverRange: `${
+                                isDark 
+                                  ? 'bg-[#EED5B9]/15 text-[#EED5B9] border border-[#EED5B9]/30' 
+                                  : 'bg-[#4F3621]/15 text-[#4F3621] border border-[#4F3621]/30'
+                              }`,
                               unavailable: "bg-destructive text-destructive-foreground font-bold hover:bg-destructive/90 hover:text-destructive-foreground cursor-not-allowed line-through"
                             }}
                             pagedNavigation
@@ -2681,7 +2745,9 @@ export default function Booking() {
                             {(date.from || date.to) && (
                               <Button 
                                 variant="outline" 
-                                className="w-full border-dashed border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
+                                className={`w-full border-dashed border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive ${
+                                  isDark ? 'hover:bg-destructive/20' : ''
+                                }`}
                                 onClick={() => {
                                   setDate({
                                     from: undefined,
@@ -2701,7 +2767,11 @@ export default function Booking() {
                             <div className="grid grid-cols-3 gap-2">
                               <Button 
                                 variant="outline" 
-                                className="h-10 px-3 text-xs bg-accent/30 hover:bg-accent/50 border-border"
+                                className={`h-10 px-3 text-xs border-border ${
+                                  isDark 
+                                    ? 'bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20 border-[#EED5B9]/20 text-[#EED5B9]' 
+                                    : 'bg-[#4F3621]/10 hover:bg-[#4F3621]/20 border-[#4F3621]/20 text-[#4F3621]'
+                                }`}
                                 onClick={() => {
                                   const currentDate = new Date();
                                   setDate({
@@ -2716,7 +2786,11 @@ export default function Booking() {
                               </Button>
                               <Button 
                                 variant="outline" 
-                                className="h-10 px-3 text-xs bg-accent/30 hover:bg-accent/50 border-border"
+                                className={`h-10 px-3 text-xs border-border ${
+                                  isDark 
+                                    ? 'bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20 border-[#EED5B9]/20 text-[#EED5B9]' 
+                                    : 'bg-[#4F3621]/10 hover:bg-[#4F3621]/20 border-[#4F3621]/20 text-[#4F3621]'
+                                }`}
                                 onClick={() => {
                                   const nextMonth = new Date();
                                   nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -2733,7 +2807,11 @@ export default function Booking() {
                               </Button>
                               <Button 
                                 variant="outline" 
-                                className="h-10 px-3 text-xs bg-accent/30 hover:bg-accent/50 border-border"
+                                className={`h-10 px-3 text-xs border-border ${
+                                  isDark 
+                                    ? 'bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20 border-[#EED5B9]/20 text-[#EED5B9]' 
+                                    : 'bg-[#4F3621]/10 hover:bg-[#4F3621]/20 border-[#4F3621]/20 text-[#4F3621]'
+                                }`}
                                 onClick={() => {
                                   const twoMonthsAhead = new Date();
                                   twoMonthsAhead.setMonth(twoMonthsAhead.getMonth() + 2);
@@ -2751,36 +2829,60 @@ export default function Booking() {
                             </div>
                           </div>
 
-                          <div className="w-full mt-8 p-6 bg-card rounded-lg border border-border shadow-md">
-                            <h3 className="text-lg font-semibold mb-4">Resumo da Reserva</h3>
+                          <div className={`w-full mt-8 p-6 rounded-lg border shadow-md ${
+                            isDark 
+                              ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                              : 'bg-[#EED5B9]/80 border-[#4F3621]/20'
+                          }`}>
+                            <h3 className={`text-lg font-semibold mb-4 ${
+                              isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                            }`}>Resumo da Reserva</h3>
                             
                             <div className="space-y-4">
-                              <div className="flex justify-between items-center pb-3 border-b border-border/30">
+                              <div className={`flex justify-between items-center pb-3 border-b ${
+                                isDark ? 'border-[#EED5B9]/20' : 'border-[#4F3621]/20'
+                              }`}>
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon2 className="h-4 w-4 text-primary" />
-                                  <span className="text-sm">Check-in</span>
+                                  <span className={`text-sm ${
+                                    isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
+                                  }`}>Check-in</span>
                                 </div>
-                                <span className="font-medium">
+                                <span className={`font-medium ${
+                                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                                }`}>
                                   {date.from ? format(date.from, "dd/MM/yyyy", { locale: ptBR }) : "-"}
                                 </span>
                               </div>
                               
-                              <div className="flex justify-between items-center pb-3 border-b border-border/30">
+                              <div className={`flex justify-between items-center pb-3 border-b ${
+                                isDark ? 'border-[#EED5B9]/20' : 'border-[#4F3621]/20'
+                              }`}>
                                 <div className="flex items-center gap-2">
                                   <CalendarIcon2 className="h-4 w-4 text-primary" />
-                                  <span className="text-sm">Check-out</span>
+                                  <span className={`text-sm ${
+                                    isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
+                                  }`}>Check-out</span>
                                 </div>
-                                <span className="font-medium">
+                                <span className={`font-medium ${
+                                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                                }`}>
                                   {date.to ? format(date.to, "dd/MM/yyyy", { locale: ptBR }) : "-"}
                                 </span>
                               </div>
                               
-                              <div className="flex justify-between items-center pb-3 border-b border-border/30">
+                              <div className={`flex justify-between items-center pb-3 border-b ${
+                                isDark ? 'border-[#EED5B9]/20' : 'border-[#4F3621]/20'
+                              }`}>
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 text-primary" />
-                                  <span className="text-sm">Duração</span>
+                                  <span className={`text-sm ${
+                                    isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
+                                  }`}>Duração</span>
                                 </div>
-                                <span className="font-medium">
+                                <span className={`font-medium ${
+                                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
+                                }`}>
                                   {date.from && date.to ? 
                                     `${Math.max(1, differenceInDays(date.to, date.from))} noites` 
                                     : "-"}
@@ -2873,7 +2975,7 @@ export default function Booking() {
 
           {/* Step 3: Dados do Hóspede */}
           {step === 3 && quartoSelecionado && date.from && date.to && (
-              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-3-content">
+              <section className={`pt-4 ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} relative overflow-hidden`} id="step-3-content">
                 <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
                 <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
                 {isDark && (
@@ -2903,7 +3005,7 @@ export default function Booking() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}
                       >
                         Informações de Reserva
                       </motion.h2>
@@ -2911,7 +3013,7 @@ export default function Booking() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-2`}
+                        className={`text-lg ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'} mb-2`}
                       >
                   Preencha seus dados para finalizar a reserva
                       </motion.p>
@@ -3135,7 +3237,7 @@ export default function Booking() {
 
           {/* Step 4: Pagamento */}
           {step === 4 && quartoSelecionado && date.from && date.to && bookingId && (
-              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-4-content">
+              <section className={`pt-4 ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} relative overflow-hidden`} id="step-4-content">
                 <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
                 <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
                 {isDark && (
@@ -3165,7 +3267,7 @@ export default function Booking() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
+                        className={`text-4xl font-bold mb-4 tracking-tight ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}
                       >
                         Pagamento da Reserva
                       </motion.h2>
@@ -3173,7 +3275,7 @@ export default function Booking() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className={`text-lg ${isDark ? 'text-white/70' : 'text-gray-600'} mb-2`}
+                        className={`text-lg ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'} mb-2`}
                       >
                         Escolha o método de pagamento para confirmar sua reserva
                       </motion.p>
@@ -3262,7 +3364,7 @@ export default function Booking() {
 
       {/* Step 5: Confirmação Final após pagamento bem-sucedido */}
       {step === 5 && (
-              <section className={`pt-4 ${isDark ? 'bg-black' : 'bg-gray-50'} relative overflow-hidden`} id="step-5-content">
+              <section className={`pt-4 ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} relative overflow-hidden`} id="step-5-content">
                 <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
                 <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
                 {isDark && (
@@ -3287,37 +3389,41 @@ export default function Booking() {
                       >
                         <Check className="h-10 w-10 text-primary" />
                       </motion.div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Reserva Confirmada!</h2>
-                      <p className="text-zinc-400 text-base md:text-lg">
+            <h2 className={`text-2xl md:text-3xl font-bold mb-4 ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Reserva Confirmada!</h2>
+                      <p className={`text-base md:text-lg ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>
               Seu pagamento foi processado com sucesso e sua reserva está garantida.
             </p>
           </div>
           
-                    <Card className="overflow-hidden shadow-2xl bg-black border border-zinc-800 backdrop-blur-lg">
+                    <Card className={`overflow-hidden shadow-2xl backdrop-blur-lg ${
+                      isDark 
+                        ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
+                        : 'bg-[#EED5B9]/80 border-[#4F3621]/20'
+                    }`}>
                       <CardContent className="p-6 md:p-8 text-center space-y-6">
               <div className="space-y-4">
-                <h3 className="font-medium text-lg">Detalhes da Reserva</h3>
+                <h3 className={`font-medium text-lg ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Detalhes da Reserva</h3>
                 <div className="bg-primary/5 rounded-lg p-4 inline-block">
-                  <p className="font-bold text-xl">Código da Reserva:</p>
+                  <p className={`font-bold text-xl ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Código da Reserva:</p>
                   <p className="text-primary font-mono text-xl">{bookingId?.substring(0, 8).toUpperCase()}</p>
                 </div>
                 
                 <div className="pt-4">
-                  <p>Um email de confirmação foi enviado para:</p>
-                  <p className="font-medium">{formData.email}</p>
+                  <p className={isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'}>Um email de confirmação foi enviado para:</p>
+                  <p className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>{formData.email}</p>
                 </div>
               </div>
               
               <div className="space-y-4 pt-6">
-                <h3 className="font-medium">Próximos Passos</h3>
+                <h3 className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Próximos Passos</h3>
                 <div className="grid gap-4 max-w-xl mx-auto">
                   <div className="flex items-start gap-3 text-left">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 flex-shrink-0">
                       <span className="font-bold text-primary">1</span>
                     </div>
                     <div>
-                      <p className="font-medium">Prepare-se para sua estadia</p>
-                                <p className="text-sm text-zinc-400">Lembre-se de trazer um documento com foto para o check-in</p>
+                      <p className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Prepare-se para sua estadia</p>
+                                <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Lembre-se de trazer um documento com foto para o check-in</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 text-left">
@@ -3325,8 +3431,8 @@ export default function Booking() {
                       <span className="font-bold text-primary">2</span>
                     </div>
                     <div>
-                      <p className="font-medium">Check-in entre 14:00 e 20:00</p>
-                                <p className="text-sm text-zinc-400">Nossa equipe estará aguardando sua chegada</p>
+                      <p className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Check-in entre 14:00 e 20:00</p>
+                                <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Nossa equipe estará aguardando sua chegada</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 text-left">
@@ -3334,14 +3440,18 @@ export default function Booking() {
                       <span className="font-bold text-primary">3</span>
                     </div>
                     <div>
-                      <p className="font-medium">Aproveite sua experiência</p>
-                                <p className="text-sm text-zinc-400">Desfrute de todos os nossos serviços exclusivos</p>
+                      <p className={`font-medium ${isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'}`}>Aproveite sua experiência</p>
+                                <p className={`text-sm ${isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'}`}>Desfrute de todos os nossos serviços exclusivos</p>
                     </div>
                   </div>
                 </div>
               </div>
             </CardContent>
-                      <CardFooter className="p-6 md:p-8 pt-0 flex flex-col gap-4 border-t border-zinc-800">
+                      <CardFooter className={`p-6 md:p-8 pt-0 flex flex-col gap-4 ${
+                        isDark 
+                          ? 'border-t border-[#EED5B9]/20' 
+                          : 'border-t border-[#4F3621]/20'
+                      }`}>
               <Button 
                           className="w-full py-5 md:py-6 bg-primary hover:bg-primary/90"
                 onClick={() => window.location.href = '/'}

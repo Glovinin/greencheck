@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBXP9lR0NzxRNgwuvRNnNb7ZRTx1bwDRZA",
   authDomain: "aqua-vista.firebaseapp.com",
   projectId: "aqua-vista",
-  storageBucket: "aqua-vista.appspot.com",
+  storageBucket: "aqua-vista.firebasestorage.app",
   messagingSenderId: "250949444714",
   appId: "1:250949444714:web:5bff7589e221ad3dcdd613"
 }

@@ -12,8 +12,8 @@ NEXT_PUBLIC_SITE_URL = "https://aquavista.replit.app"
 
 [deployment]
 build = ["sh", "-c", "npm run build"]
-deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm start"]
+deploymentTarget = "static"
+publicDir = "out"
 
 [[deployment.rewrites]]
 from = "/*"
