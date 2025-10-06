@@ -1,0 +1,28 @@
+{
+  "name": "GreenCheck - Automated ESG Certification",
+  "short_name": "GreenCheck",
+  "description": "Automated ESG certification system with AI and blockchain",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1C2526",
+  "theme_color": "#34C759",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "sustainability", "certification"],
+  "screenshots": []
+} 

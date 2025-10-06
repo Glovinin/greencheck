@@ -1,25 +1,259 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, ChevronDown, Instagram, Facebook, Twitter, MapPin, Phone, Mail, ArrowUpRight, Waves, UtensilsCrossed, Flower, Mountain, Wifi, Check, Bed, Square, MessageSquare, Users, AlertCircle, Info, Car, Globe, Building } from 'lucide-react'
-import { Navbar } from '@/components/navbar'
+import { Button } from '../components/ui/button'
+import { ArrowRight, ChevronDown, ArrowUpRight, Shield, Globe, Cpu, TrendingUp, Leaf, CheckCircle2, Upload, BarChart3, Users, Zap, Star, X } from 'lucide-react'
+import { Navbar } from '../components/navbar'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import SplineBackground from '../components/spline-background'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useTheme } from 'next-themes'
-import { CTASection } from '@/components/cta-section'
-import { Footer } from '@/components/footer'
-import { getDocuments } from "@/lib/firebase/firestore"
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+
+// Interface para breakpoints inteligentes
+interface ScreenBreakpoints {
+  isXs: boolean      // < 380px - muito pequeno (mobile portrait pequeno)
+  isSm: boolean      // 380px - 640px - pequeno (mobile portrait)
+  isMd: boolean      // 640px - 768px - médio (mobile landscape)
+  isTablet: boolean  // 768px - 1024px - tablet (iPad Mini/Pro)
+  isLg: boolean      // 1024px - 1280px - desktop pequeno
+  isXl: boolean      // > 1280px - desktop grande
+  
+  // Altura
+  isShortHeight: boolean    // < 600px
+  isMediumHeight: boolean   // 600px - 800px
+  isTallHeight: boolean     // > 800px
+  
+  // Combinações úteis
+  isMobile: boolean         // < 768px
+  isDesktop: boolean        // >= 1024px
+  
+  width: number
+  height: number
+}
+
+// Hook de breakpoints inteligentes
+const useSmartBreakpoints = (): ScreenBreakpoints => {
+  const [viewport, setViewport] = useState({ width: 0, height: 0 })
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    // Set initial viewport
+    updateViewport()
+
+    // Listen for resize events
+    window.addEventListener('resize', updateViewport)
+    window.addEventListener('orientationchange', updateViewport)
+
+    return () => {
+      window.removeEventListener('resize', updateViewport)
+      window.removeEventListener('orientationchange', updateViewport)
+    }
+  }, [])
+
+  const breakpoints = {
+    isXs: viewport.width < 380,
+    isSm: viewport.width >= 380 && viewport.width < 640,
+    isMd: viewport.width >= 640 && viewport.width < 768,
+    isTablet: viewport.width >= 768 && viewport.width < 1024,
+    isLg: viewport.width >= 1024 && viewport.width < 1280,
+    isXl: viewport.width >= 1280,
+    
+    isShortHeight: viewport.height < 600,
+    isMediumHeight: viewport.height >= 600 && viewport.height < 800,
+    isTallHeight: viewport.height >= 800,
+    
+    isMobile: viewport.width < 768,
+    isDesktop: viewport.width >= 1024,
+    
+    width: viewport.width,
+    height: viewport.height
+  }
+
+  return breakpoints
+}
+
+// Função para obter layout inteligente baseado nos breakpoints
+const getSmartLayout = (breakpoints: ScreenBreakpoints) => {
+  const { isXs, isSm, isMd, isTablet, isLg, isXl, isShortHeight, isMediumHeight, isTallHeight, isMobile, isDesktop } = breakpoints
+
+  // Layout para telas muito pequenas (< 380px)
+  if (isXs) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-start items-center',
+      heroContentClass: 'px-3 py-2',
+      heroSpacing: 'pt-16 pb-6',
+      titleSize: 'text-3xl',
+      subtitleSize: 'text-base',
+      buttonSize: 'h-11 text-sm w-full max-w-[280px]',
+      spacingY: 'space-y-3',
+      
+      // Seções Gerais
+      sectionPadding: 'py-12',
+      containerPadding: 'px-3',
+      maxWidth: 'max-w-sm',
+      sectionTitleSize: 'text-2xl',
+      sectionSubtitleSize: 'text-sm',
+      sectionTextSize: 'text-sm',
+      badgeSize: 'text-xs px-3 py-1.5',
+      gridCols: 'grid-cols-1',
+      gap: 'gap-4',
+      imageHeight: 'h-48',
+      cardPadding: 'p-4',
+      iconSize: 'w-5 h-5',
+      buttonHeight: 'h-9'
+    }
+  }
+
+  // Layout para mobile pequeno (380px - 640px)
+  if (isSm) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-start items-center',
+      heroContentClass: 'px-4 py-4',
+      heroSpacing: 'pt-20 pb-6',
+      titleSize: 'text-4xl',
+      subtitleSize: 'text-lg',
+      buttonSize: 'h-12 text-base w-full max-w-[320px]',
+      spacingY: 'space-y-4',
+      
+      // Seções Gerais
+      sectionPadding: 'py-16',
+      containerPadding: 'px-4',
+      maxWidth: 'max-w-md',
+      sectionTitleSize: 'text-2xl',
+      sectionSubtitleSize: 'text-sm',
+      sectionTextSize: 'text-base',
+      badgeSize: 'text-sm px-4 py-2',
+      gridCols: 'grid-cols-1',
+      gap: 'gap-5',
+      imageHeight: 'h-56',
+      cardPadding: 'p-5',
+      iconSize: 'w-6 h-6',
+      buttonHeight: 'h-10'
+    }
+  }
+
+  // Layout para mobile landscape (640px - 768px)
+  if (isMd) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-start items-center',
+      heroContentClass: 'px-6 py-4',
+      heroSpacing: 'pt-20 pb-8',
+      titleSize: 'text-5xl',
+      subtitleSize: 'text-2xl',
+      buttonSize: 'h-12 text-base w-full max-w-[340px]',
+      spacingY: 'space-y-6',
+      
+      // Seções Gerais
+      sectionPadding: 'py-20',
+      containerPadding: 'px-6',
+      maxWidth: 'max-w-2xl',
+      sectionTitleSize: 'text-3xl',
+      sectionSubtitleSize: 'text-base',
+      sectionTextSize: 'text-base',
+      badgeSize: 'text-sm px-4 py-2',
+      gridCols: 'grid-cols-1 md:grid-cols-2',
+      gap: 'gap-6',
+      imageHeight: 'h-64',
+      cardPadding: 'p-6',
+      iconSize: 'w-6 h-6',
+      buttonHeight: 'h-11'
+    }
+  }
+
+  // Layout para tablets (768px - 1024px)
+  if (isTablet) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-center items-center',
+      heroContentClass: 'px-8 py-10',
+      heroSpacing: isShortHeight ? 'pt-12 pb-8' : 'pt-16 pb-12',
+      titleSize: 'text-5xl md:text-6xl',
+      subtitleSize: 'text-2xl',
+      buttonSize: 'h-12 text-lg min-w-[210px]',
+      spacingY: 'space-y-7',
+      
+      // Seções Gerais
+      sectionPadding: 'py-24',
+      containerPadding: 'px-8',
+      maxWidth: 'max-w-5xl',
+      sectionTitleSize: 'text-3xl md:text-4xl',
+      sectionSubtitleSize: 'text-base',
+      sectionTextSize: 'text-lg',
+      badgeSize: 'text-sm px-4 py-2',
+      gridCols: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+      gap: 'gap-8',
+      imageHeight: 'h-72',
+      cardPadding: 'p-7',
+      iconSize: 'w-7 h-7',
+      buttonHeight: 'h-12'
+    }
+  }
+
+  // Layout para desktop pequeno (1024px - 1280px)
+  if (isLg) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-center items-center',
+      heroContentClass: 'px-8 py-12',
+      heroSpacing: 'pt-16 md:pt-0',
+      titleSize: 'text-6xl md:text-7xl',
+      subtitleSize: 'text-2xl md:text-3xl',
+      buttonSize: 'h-12 sm:h-14 text-base sm:text-lg min-w-[200px] sm:min-w-[220px]',
+      spacingY: 'space-y-6 md:space-y-8',
+      
+      // Seções Gerais
+      sectionPadding: 'py-24',
+      containerPadding: 'px-8',
+      maxWidth: 'max-w-6xl',
+      sectionTitleSize: 'text-4xl',
+      sectionSubtitleSize: 'text-base',
+      sectionTextSize: 'text-lg',
+      badgeSize: 'text-sm px-4 py-2',
+      gridCols: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+      gap: 'gap-8',
+      imageHeight: 'h-80',
+      cardPadding: 'p-8',
+      iconSize: 'w-6 h-6',
+      buttonHeight: 'h-12'
+    }
+  }
+
+  // Layout para desktop grande (> 1280px)
+  return {
+    // Hero Section
+    containerClass: 'min-h-screen-fixed flex flex-col justify-center items-center',
+    heroContentClass: 'px-4 sm:px-6 lg:px-8 py-12',
+    heroSpacing: 'pt-16 md:pt-0',
+    titleSize: 'text-4xl sm:text-5xl md:text-8xl',
+    subtitleSize: 'text-xl sm:text-2xl md:text-3xl',
+    buttonSize: 'h-12 sm:h-14 text-base sm:text-lg min-w-[200px] sm:min-w-[220px]',
+    spacingY: 'space-y-6 md:space-y-8',
+    
+    // Seções Gerais
+    sectionPadding: 'py-24',
+    containerPadding: 'px-4 sm:px-6 lg:px-8',
+    maxWidth: 'max-w-7xl',
+    sectionTitleSize: 'text-4xl',
+    sectionSubtitleSize: 'text-lg',
+    sectionTextSize: 'text-lg',
+    badgeSize: 'text-sm px-4 py-2',
+    gridCols: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+    gap: 'gap-8',
+    imageHeight: 'h-full',
+    cardPadding: 'p-8',
+    iconSize: 'w-6 h-6',
+    buttonHeight: 'h-12'
+  }
+}
 
 // Interface para o item de galeria
 interface GalleryItem {
@@ -35,80 +269,103 @@ interface GalleryItem {
   homePosition?: number
 }
 
-// Slogans da página inicial
+// Homepage slogans for GreenCheck - Focused on B2B benefits
 const slogans = [
-  "Vista Privilegiada da Serra de Monchique",
-  "Aconchego e Natureza em Harmonia",
-  "Sua Estadia Perfeita na Montanha",
-  "Experiências Únicas na Serra",
-  "Conforto com Vista para o Paraíso"
+  "ESG Certification in 21 days, not 6 months",
+  "98.5% accuracy with AI + Scientific Validation",
+  "Save 40% vs traditional methods - €35/tCO₂e",
+  "Immutable NFT certificates on Polygon Blockchain",
+  "Guaranteed CSRD compliance for your SME"
 ]
 
-// Placeholder genérico para quando não houver imagens - removido para evitar 404
-// const placeholderImage = "/placeholder-user.jpg";
-
-const amenities = [
+// Main GreenCheck features
+const features = [
   {
-    title: "Área de Lazer com Piscina",
-    description: "Relaxe em nossa piscina com vista panorâmica para a Serra de Monchique",
-    icon: <Waves className="w-6 h-6" />
+    title: "Advanced Artificial Intelligence",
+    description: "Specialized OCR and NLP with 98.5% accuracy in ESG data extraction",
+    icon: <Cpu className="w-6 h-6" />
   },
   {
-    title: "Café da Manhã Regional",
-    description: "Desfrute de um delicioso café da manhã com ingredientes frescos da região",
-    icon: <UtensilsCrossed className="w-6 h-6" />
+    title: "Automated Scientific Validation",
+    description: "Integrated APIs with recognized scientific institutions for real-time validation",
+    icon: <Shield className="w-6 h-6" />
   },
   {
-    title: "Wi-Fi Gratuito",
-    description: "Conexão de alta velocidade disponível em todas as áreas do hotel",
-    icon: <Wifi className="w-6 h-6" />
+    title: "Blockchain Certification",
+    description: "Immutable NFTs on Polygon network with embedded scientific metadata",
+    icon: <CheckCircle2 className="w-6 h-6" />
   },
   {
-    title: "Trilhas Exclusivas",
-    description: "Explore a natureza com trilhas privativas saindo do hotel",
-    icon: <Mountain className="w-6 h-6" />
+    title: "Carbon Marketplace",
+    description: "AI-powered offset recommendations with satellite monitoring",
+    icon: <Leaf className="w-6 h-6" />
   }
 ]
 
-const testimonials = [
+// GreenCheck statistics and impact
+const impactStats = [
   {
-    text: "Uma experiência absolutamente magnífica. As vistas são deslumbrantes, o serviço é impecável e as comodidades são de classe mundial. Definitivamente voltaremos!",
-    author: "João Silva",
-    location: "Brasil",
-    rating: 5,
-    image: "https://randomuser.me/api/portraits/men/32.jpg"
+    value: "2.4M",
+    label: "European SMEs",
+    description: "Companies requiring CSRD certification by 2025",
+    icon: <Users className="w-8 h-8" />
   },
   {
-    text: "O lugar perfeito para fugir da agitação da cidade. Acordar com a vista da serra e o café da manhã regional foi indescritível. A equipe é muito atenciosa!",
-    author: "Maria Santos",
-    location: "Portugal",
-    rating: 5,
-    image: "https://randomuser.me/api/portraits/women/44.jpg"
+    value: "€8.5B",
+    label: "Annual Market",
+    description: "Opportunity in European ESG certification market",
+    icon: <TrendingUp className="w-8 h-8" />
   },
   {
-    text: "Superou todas as nossas expectativas. O quarto era espaçoso e confortável, a área da piscina é simplesmente deslumbrante. Recomendo fortemente!",
-    author: "Pedro Costa",
-    location: "Espanha",
-    rating: 5,
-    image: "https://randomuser.me/api/portraits/men/67.jpg"
+    value: "98.5%",
+    label: "AI Accuracy",
+    description: "Accuracy rate in ESG data extraction",
+    icon: <Cpu className="w-8 h-8" />
+  },
+  {
+    value: "4x",
+    label: "Faster",
+    description: "Compared to traditional certification methods",
+    icon: <Zap className="w-8 h-8" />
+  }
+]
+
+const certificationPartners = [
+  {
+    name: "Plantarum Botanical Garden",
+    role: "Scientific Validation",
+    description: "Partnership for environmental data validation via institutional APIs from Rio de Janeiro"
+  },
+  {
+    name: "Polygon Network",
+    role: "Blockchain Certificate",
+    description: "Immutable NFTs with embedded scientific metadata"
+  },
+  {
+    name: "Sentinel-2 Satellite",
+    role: "Orbital Monitoring",
+    description: "Carbon offset verification via satellite data"
   }
 ]
 
 export default function Home() {
   const router = useRouter()
-  const [currentSlogan, setCurrentSlogan] = useState(0)
-  const [isVisible, setIsVisible] = useState(true)
-  const { theme } = useTheme()
+  const [displayedText, setDisplayedText] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [aboutImages, setAboutImages] = useState<{position: number, url: string, alt: string, caption: string}[]>([])
-  const [isLoadingImages, setIsLoadingImages] = useState(true)
-  const [galleryImages, setGalleryImages] = useState<GalleryItem[]>([])
-  const [isLoadingGallery, setIsLoadingGallery] = useState(true)
+  const [processSteps] = useState([
+    { id: 1, title: "Document Upload", description: "Submit your ESG report in PDF" },
+    { id: 2, title: "AI Processing", description: "OCR and NLP analysis with 98.5% accuracy" },
+    { id: 3, title: "Scientific Validation", description: "Automatic verification via institutional APIs" },
+    { id: 4, title: "Blockchain Certification", description: "Immutable NFT on Polygon network" }
+  ])
   
   const { scrollY } = useScroll()
-  const videoY = useTransform(scrollY, [0, 500], [0, 150])
-  const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
+  
+  // Hook de breakpoints inteligentes 
+  const breakpoints = useSmartBreakpoints()
 
   // Fix viewport height for mobile to prevent browser UI from hiding
   useEffect(() => {
@@ -142,102 +399,49 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  // Carregar imagens do Firebase
+  // Simulação de dados para demo
   useEffect(() => {
-    const fetchAboutImages = async () => {
-      setIsLoadingImages(true)
-      try {
-        const items = await getDocuments<GalleryItem>('gallery')
-        
-        // Filtrar apenas as imagens da seção "Sobre Nós"
-        const aboutImagesFromDB = items.filter(item => item.isHomeAboutImage && item.homePosition)
-        
-        if (aboutImagesFromDB.length > 0) {
-          // Mapear para o formato necessário para exibição
-          const formattedImages = aboutImagesFromDB.map(item => ({
-            position: item.homePosition || 0,
-            url: item.image,
-            alt: item.title,
-            caption: item.description || item.title
-          }))
-          
-          // Ordenar por posição
-          formattedImages.sort((a, b) => a.position - b.position)
-          
-          setAboutImages(formattedImages)
-        } else {
-          // Deixar o array vazio para que o componente possa renderizar condicionalmente
-          setAboutImages([])
-        }
-        
-        // Usar a mesma lógica da página da galeria para ordenação
-        // Ordenar exatamente como na página da galeria (categoria "todas")
-        const sortedGalleryItems = items.sort((a: GalleryItem, b: GalleryItem) => {
-          // Primeiro por destaque
-          if (a.featured && !b.featured) return -1
-          if (!a.featured && b.featured) return 1
-          
-          // Depois por ordem personalizada (se existir)
-          if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
-            return a.displayOrder - b.displayOrder
-          }
-          
-          // Por fim, por data de criação (mais recente primeiro)
-          return b.createdAt - a.createdAt
-        })
-        
-        // Pegar as primeiras 5 imagens para exibir na homepage (mesmo que aparecem na galeria)
-        const galleryImagesForHomepage = sortedGalleryItems.slice(0, 5)
-        
-        setGalleryImages(galleryImagesForHomepage)
-        
-      } catch (error) {
-        console.error('Erro ao carregar imagens:', error)
-        // Deixar os arrays vazios em caso de erro
-        setAboutImages([])
-        setGalleryImages([])
-      } finally {
-        setIsLoadingImages(false)
-        setIsLoadingGallery(false)
-      }
-    }
-    
-    if (mounted) {
-      fetchAboutImages()
-    }
+    // Simular carregamento
   }, [mounted])
 
+  // Typewriter effect - solução funcional da internet
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsVisible(false)
-      setTimeout(() => {
-        setCurrentSlogan((prev) => (prev + 1) % slogans.length)
-        setIsVisible(true)
-      }, 400)
-    }, 4000)
+    const currentText = slogans[currentIndex]
+    
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        // Digitando
+        setDisplayedText(currentText.substring(0, displayedText.length + 1))
+        
+        // Se terminou de digitar
+        if (displayedText === currentText) {
+          setTimeout(() => setIsDeleting(true), 2000) // Pausa 2s
+        }
+      } else {
+        // Apagando
+        setDisplayedText(currentText.substring(0, displayedText.length - 1))
+        
+        // Se terminou de apagar
+        if (displayedText === '') {
+          setIsDeleting(false)
+          setCurrentIndex((prev) => (prev + 1) % slogans.length)
+        }
+      }
+    }, isDeleting ? 30 : 50) // Apagar é mais rápido que digitar
+    
+    return () => clearTimeout(timeout)
+  }, [displayedText, isDeleting, currentIndex])
 
-    return () => clearInterval(interval)
-  }, [])
-
-  const handleReservar = () => {
-    router.push('/booking')
+  const handleIniciarValidacao = () => {
+    router.push('/validacao')
   }
 
-  const handleVerQuartos = () => {
-    router.push('/rooms')
+  const handleVerMarketplace = () => {
+    router.push('/marketplace')
   }
 
   const handleSaibaMais = () => {
     router.push('/sobre')
-  }
-
-  const handleVerGaleria = () => {
-    router.push('/gallery')
-  }
-
-  const handleVerComodidades = () => {
-    // Esta função não navega para outra página, apenas abre o Sheet
-    // que já está configurado como trigger do botão
   }
 
   // Evita flash de conteúdo não hidratado
@@ -245,1092 +449,659 @@ export default function Home() {
     return null
   }
 
-  const isDark = theme === 'dark'
+  // Tema claro moderno para GreenCheck
+  const isDark = false
+  
+  // Obter layout inteligente baseado nos breakpoints
+  const {
+    // Hero Section
+    containerClass,
+    heroContentClass,
+    heroSpacing,
+    titleSize,
+    subtitleSize,
+    buttonSize,
+    spacingY,
+    
+    // Seções Gerais
+    sectionPadding,
+    containerPadding,
+    maxWidth,
+    sectionTitleSize,
+    sectionSubtitleSize,
+    sectionTextSize,
+    badgeSize,
+    gridCols,
+    gap,
+    imageHeight,
+    cardPadding,
+    iconSize,
+    buttonHeight
+  } = getSmartLayout(breakpoints)
 
   return (
-    <main className={`min-h-screen-fixed overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'}`}>
-      {!sheetOpen && <Navbar />}
+    <div className="relative">
+      <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative min-h-screen-fixed pb-20 md:pb-0">
+      {/* Hero Section - Fixed Background (All devices) - Design limpo igual outras páginas */}
+      <section 
+        className={`fixed inset-0 ${containerClass} ${heroSpacing} h-screen`}
+      >
+        {/* Cor de fundo padrão */}
+        <div className="absolute inset-0 bg-[#044050]" />
+        
         <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            style={{ 
-              y: videoY,
-              scale: 1.1
-            }}
-            className="w-full h-[120%] -mt-10"
-          >
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-            >
-              <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
-            </video>
-          </motion.div>
-          <motion.div 
-            style={{ opacity }}
-            className={`absolute inset-0 backdrop-blur-[2px] ${
-              isDark 
-                ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
-                : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
-            }`} 
-          />
+          {/* Iframe Spline - Crystal Ball */}
+          <SplineBackground />
           
-          {/* Elementos Decorativos */}
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
-          <div className={`absolute inset-x-0 top-0 h-32 ${
-            isDark 
-              ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
-              : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
-          }`} />
-          <div className={`absolute inset-x-0 bottom-0 h-32 ${
-            isDark 
-              ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
-              : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
-          }`} />
+          {/* Overlay para melhor legibilidade do conteúdo */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50 backdrop-blur-[0.5px]" style={{ zIndex: 2 }} />
         </div>
         
-        <div className="relative min-h-screen-fixed flex flex-col justify-center items-center pt-16 md:pt-0">
-          <motion.div 
-            style={{ opacity }}
-            className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+        <div className={`relative ${containerClass}`} style={{ zIndex: 10 }}>
+          <div 
+            className={`w-full max-w-6xl mx-auto text-center ${heroContentClass}`}
           >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6 md:space-y-8"
-            >
-              <div className="inline-block">
-                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
-                  isDark 
-                    ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
-                    : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
-                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
-                  Bem-vindo ao seu refúgio na serra
-                </span>
-              </div>
-              
-              <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}>
-                Aqua Vista
-                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                  isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
-                }`}>Monchique</span>
-              </h1>
-              
-              <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 h-12 transition-all duration-500 transform ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
-              } ${
-                isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
-              }`}>
-                {slogans[currentSlogan]}
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-                <Button 
-                  size="lg" 
-                  onClick={handleReservar}
-                  className={`w-full sm:w-auto rounded-full transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg shadow-lg hover:scale-105 ${
-                    isDark 
-                      ? 'bg-[#EED5B9] text-[#4F3621] hover:bg-[#EED5B9]/90 shadow-[#EED5B9]/10 hover:shadow-[#EED5B9]/20' 
-                      : 'bg-[#4F3621] text-[#EED5B9] hover:bg-[#4F3621]/90 shadow-[#4F3621]/40 hover:shadow-[#4F3621]/60'
+            <div className={spacingY}>
+              {/* Badge minimalista */}
+              <motion.div 
+                className={`inline-block ${breakpoints.isTablet ? 'mt-6' : breakpoints.isDesktop ? 'mt-8' : 'mt-4'}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.6, 
+                  delay: 0.2,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              >
+                <motion.div 
+                  className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} font-light tracking-[0.3em] uppercase text-[#E5FFBA]/90 drop-shadow-md ${
+                    breakpoints.isMobile 
+                      ? 'px-4 py-2' 
+                      : 'px-6 py-2.5 bg-[#E5FFBA]/10 border border-[#E5FFBA]/30 rounded-full backdrop-blur-md'
                   }`}
+                  whileHover={{ scale: 1.02, backgroundColor: 'rgba(229, 255, 186, 0.08)' }}
+                  transition={{ duration: 0.3 }}
                 >
-                  Reservar Agora <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  onClick={handleVerQuartos}
-                  className={`w-full sm:w-auto rounded-full transition-all duration-300 min-w-[200px] sm:min-w-[220px] h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm hover:scale-105 ${
-                    isDark 
-                      ? 'border-[#EED5B9]/20 text-[#EED5B9] hover:bg-[#EED5B9]/10 hover:border-[#EED5B9]/40' 
-                      : 'border-[#4F3621]/40 text-[#4F3621] hover:bg-[#4F3621]/10 hover:border-[#4F3621]/60'
-                  }`}
+                  Automated ESG Certification
+                </motion.div>
+              </motion.div>
+              
+              {/* Título principal elegante */}
+              <motion.div 
+                className={`${breakpoints.isMobile ? 'mt-12' : 'mt-16'}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+              >
+                <motion.h1 
+                  className={`${titleSize} font-extralight tracking-[-0.03em] leading-[0.95] text-white drop-shadow-lg`}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.8, 
+                    delay: 0.5,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
                 >
-                  Veja Nossos Quartos
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* Scroll Indicator Moderno */}
-          <motion.div 
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="mt-12 md:mt-16 flex flex-col items-center"
-            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
-              isDark 
-                ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
-                : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
-            }`}>
-              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
-              }`} />
+                  <motion.span 
+                    className="inline-block font-extralight"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                  >
+                    Green
+                  </motion.span>
+                  <motion.span 
+                    className="inline-block font-light"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.9, duration: 0.6 }}
+                  >
+                    Check
+                  </motion.span>
+                </motion.h1>
+                
+                {/* Linha decorativa minimalista */}
+                <motion.div 
+                  className={`${breakpoints.isMobile ? 'mt-6' : 'mt-8'} flex items-center justify-center gap-4`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.1, duration: 0.6 }}
+                >
+                  <motion.div 
+                    className="h-px bg-gradient-to-r from-transparent via-[#E5FFBA]/40 to-transparent"
+                    initial={{ width: 0 }}
+                    animate={{ width: breakpoints.isMobile ? '60%' : '280px' }}
+                    transition={{ delay: 1.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </motion.div>
+                
+                <motion.p 
+                  className={`${breakpoints.isXs ? 'text-sm' : breakpoints.isMobile ? 'text-base' : 'text-lg'} font-light tracking-[0.2em] text-[#E5FFBA]/80 uppercase mt-6 drop-shadow-md`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.4, duration: 0.6 }}
+                >
+                  IA + Blockchain + Ciência
+                </motion.p>
+              </motion.div>
+              
+              {/* Descrição elegante */}
+              <motion.div 
+                className={`${breakpoints.isMobile ? 'mt-10' : 'mt-12'} ${breakpoints.isMobile ? 'max-w-[90%]' : 'max-w-3xl'} mx-auto px-4`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  delay: 1.6, 
+                  duration: 0.8,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              >
+                <motion.div 
+                  className={`${breakpoints.isXs ? 'text-sm' : breakpoints.isMobile ? 'text-base' : 'text-xl'} font-light leading-relaxed text-white/95 drop-shadow-md ${breakpoints.isMobile ? 'min-h-[3.5em]' : 'min-h-[2.5em]'} flex items-center justify-center text-center`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.8, duration: 0.8 }}
+                >
+                  <span className="inline-flex items-baseline">
+                    <span>{displayedText}</span>
+                    <span 
+                      className={`inline-block bg-white/90 ml-0.5 ${breakpoints.isMobile ? 'w-[2px] h-[1em]' : 'w-0.5 h-[1.2em]'}`}
+                      style={{
+                        animation: 'blink 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                      }}
+                    />
+                  </span>
+                </motion.div>
+              </motion.div>
+              
+              {/* Botões elegantes e minimalistas - Apple Style */}
+              <motion.div 
+                className={`${breakpoints.isMobile ? 'mt-10' : 'mt-14'} flex ${breakpoints.isMobile ? 'flex-col' : 'flex-row'} items-center justify-center ${breakpoints.isMobile ? 'gap-3' : 'gap-4'} ${breakpoints.isMobile ? 'px-6' : ''}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  delay: 2.0, 
+                  duration: 0.8,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              >
+                {/* Botão Primário - Upload */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    delay: 2.2, 
+                    duration: 0.6,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={breakpoints.isMobile ? 'w-full' : ''}
+                >
+                  <Button 
+                    size="lg" 
+                    onClick={handleIniciarValidacao}
+                    className={`group ${breakpoints.isMobile ? 'w-full' : 'min-w-[200px] px-8'} ${
+                      breakpoints.isXs 
+                        ? 'h-11 text-sm' 
+                        : breakpoints.isMobile 
+                        ? 'h-12 text-base' 
+                        : 'h-[52px] text-base'
+                    } rounded-full transition-all duration-500 bg-[#5FA037] text-white hover:bg-[#4d8c2d] font-normal tracking-tight shadow-md hover:shadow-lg hover:shadow-[#5FA037]/25 border-0 relative overflow-hidden`}
+                  >
+                    {/* Subtle shine effect on hover */}
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
+                    
+                    <span className="relative flex items-center justify-center gap-2.5">
+                      <span className="font-medium">Start Upload</span>
+                      <Upload className={`${breakpoints.isXs ? 'h-4 w-4' : 'h-[18px] w-[18px]'} transition-transform duration-300 group-hover:translate-x-0.5 group-hover:scale-105`} />
+                    </span>
+                  </Button>
+                </motion.div>
+                
+                {/* Botão Secundário - Marketplace */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    delay: 2.4, 
+                    duration: 0.6,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={breakpoints.isMobile ? 'w-full' : ''}
+                >
+                  <Button 
+                    size="lg" 
+                    variant="ghost"
+                    onClick={handleVerMarketplace}
+                    className={`group ${breakpoints.isMobile ? 'w-full' : 'min-w-[200px] px-8'} ${
+                      breakpoints.isXs 
+                        ? 'h-11 text-sm' 
+                        : breakpoints.isMobile 
+                        ? 'h-12 text-base' 
+                        : 'h-[52px] text-base'
+                    } rounded-full transition-all duration-500 text-white hover:bg-white/[0.08] border border-white/20 hover:border-white/40 font-normal tracking-tight backdrop-blur-md bg-white/[0.03] relative overflow-hidden`}
+                  >
+                    {/* Glass morphism effect */}
+                    <span className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <span className="relative flex items-center justify-center gap-2.5">
+                      <span className="font-medium">View Marketplace</span>
+                      <ArrowRight className={`${breakpoints.isXs ? 'h-4 w-4' : 'h-[18px] w-[18px]'} transition-transform duration-300 group-hover:translate-x-1`} />
+                    </span>
+                  </Button>
+                </motion.div>
+              </motion.div>
             </div>
-            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-              isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
-            }`}>Explorar</span>
-          </motion.div>
+          </div>
+
         </div>
       </section>
 
-      {/* About Section */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      {/* Content Container - Scrolls over fixed hero (All devices) */}
+      <main className={`relative z-10 ${
+        breakpoints.isXs 
+          ? 'mt-[calc(100vh-200px)]' 
+          : breakpoints.isSm
+          ? 'mt-[calc(100vh-250px)]'
+          : breakpoints.isMobile 
+          ? 'mt-[calc(100vh-280px)]' 
+          : 'mt-[100vh]'
+      } ${
+        breakpoints.isMobile 
+          ? 'pb-[120px]' 
+          : 'pb-0'
       }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
+      
+      {/* O Que Fazemos - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-white rounded-t-[48px]`}>
+        {/* Linha de Slide iOS - Mobile apenas */}
+        {breakpoints.isMobile && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-slate-300 rounded-full z-10" />
+        )}
         
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
-              viewport={{ once: true }}
-            >
-              <motion.span 
-                initial={{ opacity: 0, y: -20 }}
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
+            <motion.p 
+              initial={{ opacity: 0, y: -10 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
-                className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10 inline-block mb-6"
+              className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4"
               >
-                Sobre Nós
-              </motion.span>
+              What We Do
+            </motion.p>
               <motion.h2 
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
                 viewport={{ once: true }}
-                className={`text-4xl font-bold mb-6 tracking-tight ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}
+              className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}
               >
-                Seu Refúgio nas Montanhas
+              <span className="font-extralight text-[#044050]">Sustainability</span>
+              <br />
+              <span className="font-normal text-[#044050]">without complexity</span>
               </motion.h2>
               <motion.p 
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
                 viewport={{ once: true }}
-                className={`text-lg mb-8 leading-relaxed ${
-                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-                }`}
+              className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light leading-relaxed`}
               >
-                Localizado nas belas montanhas de Monchique, nosso hotel oferece uma experiência única 
-                de tranquilidade e conexão com a natureza. Com uma piscina refrescante e uma vista 
-                deslumbrante da serra, nossos quartos proporcionam o ambiente perfeito para relaxar 
-                e aproveitar momentos especiais longe da agitação da cidade.
+              Integrated platform for ESG certification and carbon neutralization
               </motion.p>
+          </div>
+
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1' : breakpoints.isTablet ? 'grid-cols-2' : 'grid-cols-4'} ${breakpoints.isMobile ? 'gap-8' : 'gap-12'}`}>
+            {[
+              {
+                icon: CheckCircle2,
+                title: "Automated Certification",
+                description: "98.5% accuracy with AI"
+              },
+              {
+                icon: Shield,
+                title: "Immutable Blockchain",
+                description: "NFTs on Polygon network"
+              },
+              {
+                icon: Leaf,
+                title: "Scientific Validation",
+                description: "Recognized partners"
+              },
+              {
+                icon: Globe,
+                title: "100% Digital",
+                description: "Simple and intuitive"
+              }
+            ].map((item, index) => {
+              const ItemIcon = item.icon
+              return (
               <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-              >
-                <Button 
-                  onClick={handleSaibaMais}
-                  className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-all duration-300 hover:scale-105"
+                  className="group text-center"
                 >
-                  Saiba Mais
-                  <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
-                </Button>
+                  <div className="mb-6 flex justify-center">
+                    <div className="w-14 h-14 rounded-full bg-[#044050] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-[#5FA037]">
+                      <ItemIcon className="w-7 h-7 text-white" />
+                    </div>
+                  </div>
+                  <h3 className={`${breakpoints.isXs ? 'text-base' : 'text-lg'} font-medium text-[#044050] mb-2`}>
+                    {item.title}
+                  </h3>
+                  <p className={`${breakpoints.isXs ? 'text-sm' : 'text-base'} text-gray-600 font-light`}>
+                    {item.description}
+                  </p>
               </motion.div>
-            </motion.div>
-            
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Technology - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-slate-50`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1 gap-16' : 'md:grid-cols-2 gap-20'} items-center`}>
+            {/* Coluna Esquerda - Texto */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="grid grid-cols-2 gap-4"
+              className={breakpoints.isMobile ? 'text-center' : ''}
             >
-              <div className="space-y-4">
-                {/* Imagem 1: Superior Esquerda */}
-                {aboutImages.find(img => img.position === 1)?.url && (
-                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                  }`}>
-                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                      isDark 
-                        ? 'bg-black/20 group-hover:bg-black/10' 
-                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                    }`}></div>
-                    <img
-                      src={aboutImages.find(img => img.position === 1)?.url}
-                      alt={aboutImages.find(img => img.position === 1)?.alt || 'Imagem do hotel'}
-                      className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                      isDark 
-                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                    }`}>
-                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                        isDark ? 'text-white' : 'text-[#EED5B9]'
-                      }`}>
-                        {aboutImages.find(img => img.position === 1)?.caption}
-                      </p>
+              <p className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-6">
+                Technology
+              </p>
+              <h2 className={`${breakpoints.isMobile ? 'text-3xl' : 'text-4xl lg:text-5xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.15]`}>
+                <span className="font-extralight text-[#044050]">The power of</span>
+                <br />
+                <span className="font-medium text-[#044050]">innovation</span>
+              </h2>
+              <p className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} text-gray-600 font-light leading-relaxed`}>
+                Cutting-edge technology for accurate and reliable ESG certification
+              </p>
+            </motion.div>
+
+            {/* Coluna Direita - Stack Tecnológico */}
+                <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+                  viewport={{ once: true }}
+              className="space-y-8"
+            >
+              {/* AI */}
+              <div className="border-b border-gray-200 pb-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-[#044050] flex items-center justify-center">
+                    <Cpu className="w-6 h-6 text-white" />
                     </div>
+                  <h3 className="text-xl font-medium text-[#044050]">Artificial Intelligence</h3>
                   </div>
-                )}
-                
-                {/* Imagem 2: Inferior Esquerda */}
-                {aboutImages.find(img => img.position === 2)?.url && (
-                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                  }`}>
-                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                      isDark 
-                        ? 'bg-black/20 group-hover:bg-black/10' 
-                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                    }`}></div>
-                    <img
-                      src={aboutImages.find(img => img.position === 2)?.url}
-                      alt={aboutImages.find(img => img.position === 2)?.alt || 'Imagem do hotel'}
-                      className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                      isDark 
-                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                    }`}>
-                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                        isDark ? 'text-white' : 'text-[#EED5B9]'
-                      }`}>
-                        {aboutImages.find(img => img.position === 2)?.caption}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <ul className="space-y-2 text-gray-600 font-light ml-16">
+                  <li>• Automatic data extraction</li>
+                  <li>• Carbon emission calculation</li>
+                  <li>• Multi-standard compliance</li>
+                </ul>
               </div>
-              <div className="space-y-4 pt-8">
-                {/* Imagem 3: Superior Direita */}
-                {aboutImages.find(img => img.position === 3)?.url && (
-                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                  }`}>
-                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                      isDark 
-                        ? 'bg-black/20 group-hover:bg-black/10' 
-                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                    }`}></div>
-                    <img
-                      src={aboutImages.find(img => img.position === 3)?.url}
-                      alt={aboutImages.find(img => img.position === 3)?.alt || 'Imagem do hotel'}
-                      className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                      isDark 
-                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                    }`}>
-                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                        isDark ? 'text-white' : 'text-[#EED5B9]'
-                      }`}>
-                        {aboutImages.find(img => img.position === 3)?.caption}
-                      </p>
-                    </div>
+
+              {/* Blockchain */}
+              <div className="border-b border-gray-200 pb-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-[#044050] flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-white" />
                   </div>
-                )}
-                
-                {/* Imagem 4: Inferior Direita */}
-                {aboutImages.find(img => img.position === 4)?.url && (
-                  <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                    isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                  }`}>
-                    <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                      isDark 
-                        ? 'bg-black/20 group-hover:bg-black/10' 
-                        : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                    }`}></div>
-                    <img
-                      src={aboutImages.find(img => img.position === 4)?.url}
-                      alt={aboutImages.find(img => img.position === 4)?.alt || 'Imagem do hotel'}
-                      className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                      isDark 
-                        ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                        : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                    }`}>
-                      <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                        isDark ? 'text-white' : 'text-[#EED5B9]'
-                      }`}>
-                        {aboutImages.find(img => img.position === 4)?.caption}
-                      </p>
-                    </div>
+                  <h3 className="text-xl font-medium text-[#044050]">Blockchain</h3>
+                </div>
+                <ul className="space-y-2 text-gray-600 font-light ml-16">
+                  <li>• NFT certificates on Polygon</li>
+                  <li>• Cost &lt; €0.01 per transaction</li>
+                  <li>• Instant QR verification</li>
+                </ul>
+              </div>
+
+              {/* Scientific */}
+              <div className="pb-2">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-[#044050] flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-white" />
                   </div>
-                )}
+                  <h3 className="text-xl font-medium text-[#044050]">Scientific Validation</h3>
+                </div>
+                <ul className="space-y-2 text-gray-600 font-light ml-16">
+                  <li>• Botanical garden partnership</li>
+                  <li>• International methodologies</li>
+                  <li>• Continuous monitoring</li>
+                </ul>
               </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Features/Amenities Section */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
-      }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-16">
-            <span 
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
-            >
-              Nossos Diferenciais
-            </span>
-            <h2 
-              className={`text-4xl font-bold mt-6 mb-4 ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}
-            >
-              Uma Experiência Exclusiva
+      {/* Preços - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-white`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4">
+              Pricing
+            </p>
+            <h2 className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}>
+              <span className="font-extralight text-[#044050]">Simple pricing</span>
+              <br />
+              <span className="font-normal text-[#044050]">for everyone</span>
             </h2>
-            <p 
-              className={`text-lg max-w-3xl mx-auto ${
-                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-              }`}
-            >
-              O Aqua Vista Monchique oferece comodidades premium para garantir uma estadia memorável, 
-              combinando conforto moderno com a beleza natural da serra.
+            <p className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light`}>
+              From individuals to large enterprises
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {amenities.map((amenity, index) => (
-              <div
+          {/* Plans Grid - Minimal */}
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1' : breakpoints.isTablet ? 'grid-cols-2' : 'grid-cols-4'} ${breakpoints.isMobile ? 'gap-6' : 'gap-8'}`}>
+            {[
+              { label: 'SMEs', title: 'ESG Certificate', price: '€35', unit: 'per tCO₂e', desc: 'For small businesses' },
+              { label: 'People', title: 'Subscription', price: '€9.99', unit: 'per month', desc: 'For individuals' },
+              { label: 'Corporate', title: 'Enterprise', price: '€2,500', unit: 'per month', desc: 'Custom solutions' },
+              { label: 'All', title: 'Marketplace', price: '8%', unit: 'commission', desc: 'Carbon credits' }
+            ].map((plan, index) => (
+              <motion.div
                 key={index}
-                className={`backdrop-blur-sm p-8 rounded-3xl shadow-lg border transition-all duration-500 group relative overflow-hidden hover:scale-105 transform ${
-                  isDark 
-                    ? 'bg-[#4F3621]/80 border-[#EED5B9]/20 hover:border-[#EED5B9]/40 shadow-[#4F3621]/20' 
-                    : 'bg-[#EED5B9]/80 border-[#4F3621]/30 hover:border-[#4F3621]/50 shadow-[#4F3621]/20'
-                }`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
-                  {amenity.icon}
+                <div className="border border-gray-200 rounded-3xl p-8 hover:border-[#5FA037] transition-colors duration-300">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-8">{plan.label}</p>
+                  <h3 className="text-2xl font-medium text-[#044050] mb-2">{plan.title}</h3>
+                  <p className="text-sm text-gray-500 font-light mb-8">{plan.desc}</p>
+                  <div className="mb-8">
+                    <div className="text-4xl font-light text-black mb-1">{plan.price}</div>
+                    <div className="text-sm text-gray-500 font-light">{plan.unit}</div>
                 </div>
-                <h3 className={`text-xl font-semibold mb-3 transition-colors duration-300 group-hover:text-primary ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}>{amenity.title}</h3>
-                <p className={`transition-colors duration-300 ${
-                  isDark 
-                    ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]/90' 
-                    : 'text-[#4F3621]/80 group-hover:text-[#4F3621]/90'
-                }`}>{amenity.description}</p>
+                  <Button 
+                    onClick={index === 3 ? handleVerMarketplace : handleIniciarValidacao}
+                    className="w-full h-11 bg-[#5FA037] hover:bg-[#4d8c2d] text-white rounded-full transition-all duration-300 font-normal"
+                  >
+                    {index === 2 ? 'Contact' : index === 3 ? 'Explore' : 'Start'}
+                  </Button>
               </div>
-            ))}
-          </div>
-          
-          <div className="flex justify-center mt-12">
-            <Sheet onOpenChange={setSheetOpen}>
-              <SheetTrigger asChild>
-            <Button className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20">
-              Ver Todas as Comodidades
-              <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
-            </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="p-0 w-full h-[100vh] max-h-[100vh] overflow-hidden border-none sm:max-w-none z-[200]">
-                <div className="h-full overflow-y-auto pb-10">
-                  <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-md p-4 md:p-6 border-b">
-                    <div className="flex items-center justify-between">
-                      <SheetHeader className="mb-0">
-                        <SheetTitle className="text-xl md:text-2xl">Comodidades de: Aqua Vista Monchique Hôtel</SheetTitle>
-                        <SheetDescription className="text-sm mt-1">
-                          Excelentes comodidades!
-                        </SheetDescription>
-                      </SheetHeader>
-                      <SheetClose className="rounded-full h-8 w-8 flex items-center justify-center border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                        <span className="sr-only">Fechar</span>
-                      </SheetClose>
-                    </div>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {/* Principais comodidades */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Building className="w-5 h-5 text-primary" /> Principais comodidades
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Quartos para não fumadores</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Estacionamento gratuito</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Acesso Wi-Fi gratuito</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Quartos familiares</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Comodidades para fazer chá e café em todos os quartos</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Bar</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Pequeno-almoço</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* Comodidades dos quartos */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Bed className="w-5 h-5 text-primary" /> Comodidades dos quartos
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Tomada perto da cama</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Suporte para cabides</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Televisão de ecrã plano</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Canais por cabo</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Comodidades para fazer chá e café</span>
-                          </li>
-                        </ul>
-                        
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mt-6 mb-4">
-                          <Square className="w-5 h-5 text-primary" /> Equipamentos
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Depósito para equipamento de esqui</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* Serviços e outros */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <MessageSquare className="w-5 h-5 text-primary" /> Serviços
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Serviço de limpeza diário</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Salão/área de televisão partilhados</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Cacifos</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Acesso ao salão executivo</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Fax/fotocopiadora</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Balcão de turismo</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Comodidades para reuniões/banquetes</span>
-                          </li>
-                        </ul>
-                      </div>
-                    
-                      {/* Áreas de Lazer */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Waves className="w-5 h-5 text-primary" /> Atividades
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Atuações/música ao vivo</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Excursões de bicicleta</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Excursões a pé</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Stand-up comedy</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Rota dos bares</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Galerias de arte temporárias</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Ciclismo</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Caminhadas</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* Acessibilidade */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Users className="w-5 h-5 text-primary" /> Serviços familiares
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Barras de segurança para bebés</span>
-                          </li>
-                        </ul>
-                        
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mt-6 mb-4">
-                          <AlertCircle className="w-5 h-5 text-primary" /> Segurança
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Extintores</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>CCTV no exterior da propriedade</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>CCTV nas áreas comuns</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Detetores de fumo</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Alarme</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Chave de acesso</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* Comodidades adicionais */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Info className="w-5 h-5 text-primary" /> Geral
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Área específica para fumar</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Quarto antialérgico</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Aquecimento</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Quartos insonorizados</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Quartos familiares</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Quartos para não fumadores</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Ar condicionado</span>
-                          </li>
-                        </ul>
-                      </div>
-                    
-                      {/* Áreas exteriores */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Mountain className="w-5 h-5 text-primary" /> Exterior
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Área para piquenique</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Mobiliário de exterior</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Terraço para banhos de sol</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Comodidades para churrascos</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Varanda</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Terraço</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Jardim</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* Comida e Bebida */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <UtensilsCrossed className="w-5 h-5 text-primary" /> Comida e Bebida
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Café da manhã regional</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Fruta</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Vinho/champanhe</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Buffet adequado para crianças</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Bar</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Comodidades para fazer chá e café</span>
-                          </li>
-                          <li className="flex items-start gap-2 italic text-muted-foreground">
-                            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                            <span>Restaurante temporariamente em obras</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* Outros */}
-                      <div className="bg-accent/30 rounded-xl p-6">
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Wifi className="w-5 h-5 text-primary" /> Internet
-                        </h3>
-                        <div className="p-4 bg-primary/10 rounded-lg mb-4">
-                          <p className="text-sm">Acesso Wi-Fi disponível nas áreas públicas. Custo: Gratuito</p>
-                        </div>
-                        
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Car className="w-5 h-5 text-primary" /> Estacionamento
-                        </h3>
-                        <div className="p-4 bg-primary/10 rounded-lg mb-4">
-                          <p className="text-sm">Estacionamento gratuito e público disponível no local (não carece de reserva)</p>
-                        </div>
-                        
-                        <h3 className="flex items-center gap-2 font-semibold text-lg mb-4">
-                          <Globe className="w-5 h-5 text-primary" /> Idiomas falados
-                        </h3>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Português</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                            <span>Inglês</span>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </section>
-
-      {/* Enhanced Testimonials */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
-      }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-16">
-            <span
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
-            >
-              Depoimentos
-            </span>
-            <h2
-              className={`text-4xl font-bold mt-6 mb-4 ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}
-            >
-              O que Nossos Hóspedes Dizem
-            </h2>
-            <p
-              className={`text-lg max-w-3xl mx-auto ${
-                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-              }`}
-            >
-              Experiências reais de quem já desfrutou da tranquilidade e do conforto do Aqua Vista Monchique.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div 
-                key={index}
-                className={`backdrop-blur-sm p-8 rounded-3xl shadow-lg border transition-all duration-500 group relative overflow-hidden hover:scale-105 transform ${
-                  isDark 
-                    ? 'bg-[#4F3621]/80 border-[#EED5B9]/20 hover:border-[#EED5B9]/40 shadow-[#4F3621]/20' 
-                    : 'bg-[#EED5B9]/80 border-[#4F3621]/30 hover:border-[#4F3621]/50 shadow-[#4F3621]/20'
-                }`}
-              >
-                <div className="absolute -top-5 -right-5 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shadow-lg border border-primary/20">
-                  <span className="text-2xl text-primary">"</span>
-                </div>
-                <div className="flex mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className="w-5 h-5 text-primary fill-primary"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className={`mb-8 leading-relaxed italic transition-colors duration-300 ${
-                  isDark 
-                    ? 'text-[#EED5B9]/90 group-hover:text-[#EED5B9]' 
-                    : 'text-[#4F3621] group-hover:text-[#4F3621]'
-                }`}>
-                  "{testimonial.text}"
-                </p>
-                <div className="flex items-center">
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-primary/20 blur-md transform scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <img 
-                      src={testimonial.image} 
-                      alt={testimonial.author} 
-                      className="w-14 h-14 rounded-full object-cover border-2 border-primary/20 relative z-10"
-                    />
-                  </div>
-                  <div className="ml-4">
-                    <p className={`font-medium transition-colors duration-300 ${
-                      isDark 
-                        ? 'text-[#EED5B9] group-hover:text-primary' 
-                        : 'text-[#4F3621] group-hover:text-primary'
-                    }`}>{testimonial.author}</p>
-                    <p className={`text-sm ${
-                      isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
-                    }`}>{testimonial.location}</p>
-                  </div>
-                </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
-      
-      {/* Gallery Section */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
-      }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-16">
-            <span 
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
-            >
-              Nossa Galeria
-            </span>
-            <h2 
-              className={`text-4xl font-bold mt-6 mb-4 ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}
-            >
-              Momentos Inesquecíveis
+
+      {/* Why Choose - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-slate-50`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4">
+              Why Choose Us
+            </p>
+            <h2 className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}>
+              <span className="font-extralight text-[#044050]">Better, faster</span>
+              <br />
+              <span className="font-normal text-[#044050]">more affordable</span>
             </h2>
-            <p 
-              className={`text-lg max-w-3xl mx-auto ${
-                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-              }`}
-            >
-              Confira alguns registros de experiências especiais em nosso hotel.
+            <p className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light`}>
+              Measurable advantages over traditional solutions
             </p>
           </div>
           
-          {isLoadingGallery ? (
-            <div className="flex justify-center items-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : galleryImages.length === 0 ? (
-            <div className="text-center py-16">
-              <p className={`text-lg mb-6 ${
-                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-              }`}>Ainda não há imagens na galeria.</p>
-              <Button 
-                className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20" 
-                onClick={handleVerGaleria}
+          {/* Simple Stats Grid */}
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-2' : 'grid-cols-4'} ${breakpoints.isMobile ? 'gap-8' : 'gap-12'} max-w-5xl mx-auto`}>
+            {[
+              { value: '40%', label: 'Cheaper' },
+              { value: '4×', label: 'Faster' },
+              { value: '98.5%', label: 'Accuracy' },
+              { value: '100%', label: 'Transparent' }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="text-center"
               >
-                Ver Galeria Completa
-                <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {galleryImages.length > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  viewport={{ once: true }}
-                  className="col-span-2 row-span-2 relative overflow-hidden rounded-3xl group"
-                >
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img 
-                    src={galleryImages[0].image} 
-                    alt={galleryImages[0].title} 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-6 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
-                  }`}>
-                    <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      <p className={`font-medium text-xl ${
-                        isDark ? 'text-white' : 'text-[#EED5B9]'
-                      }`}>{galleryImages[0].title}</p>
-                      <p className={`text-sm mt-2 max-w-xs opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
-                        isDark ? 'text-white/70' : 'text-[#EED5B9]/70'
-                      }`}>
-                        {galleryImages[0].description || galleryImages[0].title}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-              
-              {galleryImages.length > 1 && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  viewport={{ once: true }}
-                  className="relative overflow-hidden rounded-3xl group"
-                >
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img 
-                    src={galleryImages[1].image} 
-                    alt={galleryImages[1].title} 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>
-                      {galleryImages[1].title}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-              
-              {galleryImages.length > 2 && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  viewport={{ once: true }}
-                  className="relative overflow-hidden rounded-3xl group"
-                >
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img 
-                    src={galleryImages[2].image} 
-                    alt={galleryImages[2].title} 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>
-                      {galleryImages[2].title}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-              
-              {galleryImages.length > 3 && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  viewport={{ once: true }}
-                  className="relative overflow-hidden rounded-3xl group"
-                >
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img 
-                    src={galleryImages[3].image} 
-                    alt={galleryImages[3].title} 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>
-                      {galleryImages[3].title}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-              
-              {galleryImages.length > 4 && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  viewport={{ once: true }}
-                  className="relative overflow-hidden rounded-3xl group"
-                >
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img 
-                    src={galleryImages[4].image} 
-                    alt={galleryImages[4].title} 
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className={`absolute inset-0 opacity-70 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/90 via-[#4F3621]/50 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>
-                      {galleryImages[4].title}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          )}
-          
-          <div className="flex justify-center mt-12">
-            <Button 
-              className="rounded-full group bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20" 
-              onClick={handleVerGaleria}
-            >
-              Ver Galeria Completa
-              <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
-            </Button>
+                <div className="text-5xl lg:text-6xl font-extralight text-[#044050] mb-2">{stat.value}</div>
+                <div className="text-sm text-gray-500 font-light uppercase tracking-wider">{stat.label}</div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
-      
-      {/* CTA Section */}
-      <CTASection />
 
-      {/* Footer */}
-      <Footer />
+      {/* Partners - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-white`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4">
+              Partners
+            </p>
+            <h2 className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}>
+              <span className="font-extralight text-[#044050]">Scientific</span>
+              <br />
+              <span className="font-normal text-[#044050]">validation</span>
+            </h2>
+            <p className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light`}>
+              Working with leading institutions for certification credibility
+            </p>
+          </div>
+          
+          {/* Partners List - Minimal */}
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} ${breakpoints.isMobile ? 'gap-12' : 'gap-16'} max-w-5xl mx-auto`}>
+            {certificationPartners.map((partner, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="text-center group"
+              >
+                <div className="w-16 h-16 rounded-full bg-[#044050] flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:bg-[#5FA037]">
+                  {index === 0 && <Leaf className="w-8 h-8 text-white" />}
+                  {index === 1 && <Shield className="w-8 h-8 text-white" />}
+                  {index === 2 && <Globe className="w-8 h-8 text-white" />}
+                </div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">{partner.role}</p>
+                <h3 className="text-xl font-medium text-[#044050] mb-3">{partner.name}</h3>
+                <p className="text-sm text-gray-600 font-light leading-relaxed">{partner.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+    {/* Footer - Clean Minimal */}
+    <footer className="bg-[#044050] text-white">
+      <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+        {/* Links Grid */}
+        <div className={`${breakpoints.isMobile ? 'py-12' : 'py-16'} border-b border-white/10`}>
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-2 gap-x-8 gap-y-12' : breakpoints.isTablet ? 'grid-cols-3 gap-12' : 'grid-cols-5 gap-8'}`}>
+            
+            {/* Platform */}
+            <div>
+              <h4 className="text-xs font-medium text-white uppercase tracking-wider mb-4">Platform</h4>
+              <ul className="space-y-3">
+                <li><a href="/validacao" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">ESG Validation</a></li>
+                <li><a href="/marketplace" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Marketplace</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">NFT Certificates</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">API</a></li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h4 className="text-xs font-medium text-white uppercase tracking-wider mb-4">Company</h4>
+              <ul className="space-y-3">
+                <li><a href="/sobre" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">About</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Careers</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Press</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Blog</a></li>
+              </ul>
+            </div>
+
+            {/* Support */}
+            <div>
+              <h4 className="text-xs font-medium text-white uppercase tracking-wider mb-4">Support</h4>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Help Center</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Documentation</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Contact</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Status</a></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="text-xs font-medium text-white uppercase tracking-wider mb-4">Legal</h4>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Privacy</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Terms</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Cookies</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Licenses</a></li>
+              </ul>
+        </div>
+
+            {/* Connect */}
+            <div>
+              <h4 className="text-xs font-medium text-white uppercase tracking-wider mb-4">Connect</h4>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">LinkedIn</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">Twitter</a></li>
+                <li><a href="#" className="text-sm text-white/70 hover:text-[#5FA037] transition-colors font-light">GitHub</a></li>
+              </ul>
+          </div>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className={`${breakpoints.isMobile ? 'py-8' : 'py-10'} flex ${breakpoints.isMobile ? 'flex-col gap-4 text-center' : 'flex-row justify-between items-center'}`}>
+          <p className="text-sm text-white/60 font-light">
+            © 2025 GreenCheck. All rights reserved.
+          </p>
+          <p className="text-sm text-white/60 font-light">
+            Made with care for the planet
+          </p>
+        </div>
+      </div>
+    </footer>
     </main>
+    </div>
   )
 }

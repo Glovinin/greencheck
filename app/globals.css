@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    /* Modo claro - tons de bege (#EED5B9) */
-    --background: 35 45% 85%; /* #EED5B9 */
-    --foreground: 35 25% 15%; /* Texto escuro para contraste */
-    --card: 35 50% 90%; /* Cartões ligeiramente mais claros */
-    --card-foreground: 35 25% 15%;
-    --popover: 35 50% 90%;
-    --popover-foreground: 35 25% 15%;
-    --primary: 35 35% 25%; /* Primário mais escuro */
-    --primary-foreground: 35 45% 85%;
-    --secondary: 35 40% 80%; /* Secundário em tom bege */
-    --secondary-foreground: 35 25% 15%;
-    --muted: 35 35% 75%;
-    --muted-foreground: 35 20% 35%;
-    --accent: 35 40% 80%;
-    --accent-foreground: 35 25% 15%;
+    /* GreenCheck - Modo Claro (não usado, mas mantido para compatibilidade) */
+    --background: 183 15% 16%; /* #1C2526 */
+    --foreground: 0 0% 100%; /* Texto branco */
+    --card: 183 15% 20%; /* Cartões ligeiramente mais claros */
+    --card-foreground: 0 0% 100%;
+    --popover: 183 15% 20%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 142 76% 48%; /* #34C759 - Verde do GreenCheck */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 183 15% 25%; /* Secundário escuro */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 60%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 142 76% 48%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 35 30% 70%;
-    --input: 35 30% 70%;
-    --ring: 35 25% 15%;
-    --chart-1: 12 76% 61%;
+    --border: 142 76% 48%; /* Bordas verdes */
+    --input: 183 15% 25%;
+    --ring: 142 76% 48%;
+    --chart-1: 142 76% 48%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
@@ -33,26 +33,26 @@
   }
 
   .dark {
-    /* Modo escuro - tons de marrom (#4F3621) */
-    --background: 35 40% 22%; /* #4F3621 */
-    --foreground: 35 45% 85%; /* Texto claro para contraste */
-    --card: 35 35% 18%; /* Cartões ligeiramente mais escuros */
-    --card-foreground: 35 45% 85%;
-    --popover: 35 35% 18%;
-    --popover-foreground: 35 45% 85%;
-    --primary: 35 45% 85%; /* Primário claro */
-    --primary-foreground: 35 40% 22%;
-    --secondary: 35 30% 30%; /* Secundário em tom marrom */
-    --secondary-foreground: 35 45% 85%;
-    --muted: 35 25% 35%;
-    --muted-foreground: 35 35% 65%;
-    --accent: 35 30% 30%;
-    --accent-foreground: 35 45% 85%;
-    --destructive: 0 62.8% 30.6%;
+    /* GreenCheck - Modo Escuro (padrão) */
+    --background: 183 15% 16%; /* #1C2526 */
+    --foreground: 0 0% 100%; /* Texto branco */
+    --card: 183 15% 20%; /* Cartões ligeiramente mais claros */
+    --card-foreground: 0 0% 100%;
+    --popover: 183 15% 20%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 142 76% 48%; /* #34C759 - Verde do GreenCheck */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 183 15% 25%; /* Secundário escuro */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 60%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 142 76% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 35 20% 40%;
-    --input: 35 20% 40%;
-    --ring: 35 45% 85%;
+    --border: 142 76% 48%; /* Bordas verdes */
+    --input: 183 15% 25%;
+    --ring: 142 76% 48%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -112,38 +112,38 @@
   }
 }
 
-/* Tema claro customizado - tons de bege */
+/* GreenCheck - Tema customizado (sempre escuro) */
 .light {
-  background-color: #EED5B9;
-  color: #3D2914;
+  background-color: #1C2526;
+  color: #ffffff;
 }
 
 .light main {
-  background-color: #EED5B9 !important;
+  background-color: #1C2526 !important;
 }
 
 .light section {
-  background-color: #F5E8D3 !important;
+  background-color: #1C2526 !important;
 }
 
 .light card, 
 .light .card {
-  background-color: #F5E8D3 !important;
-  border-color: rgba(61, 41, 20, 0.2) !important;
+  background-color: #2A3B3D !important;
+  border-color: rgba(52, 199, 89, 0.2) !important;
 }
 
 .light .bg-black {
-  background-color: #F5E8D3 !important;
+  background-color: #1C2526 !important;
 }
 
 .light .bg-black\/70, 
 .light .bg-black\/50, 
 .light .bg-black\/30 {
-  background-color: rgba(245, 232, 211, 0.9) !important;
+  background-color: rgba(28, 37, 38, 0.9) !important;
 }
 
 .light .text-white {
-  color: #3D2914 !important;
+  color: #ffffff !important;
 }
 
 /* Exceção para botões com fundo escuro */
@@ -157,16 +157,16 @@
 .light .text-white\/90,
 .light .text-white\/80,
 .light .text-white\/70 {
-  color: rgba(61, 41, 20, 0.9) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .light .bg-primary\/10 {
-  background-color: rgba(61, 41, 20, 0.1) !important;
+  background-color: rgba(52, 199, 89, 0.1) !important;
 }
 
 .light .border-white\/10,
 .light .border-white\/20 {
-  border-color: rgba(61, 41, 20, 0.2) !important;
+  border-color: rgba(52, 199, 89, 0.2) !important;
 }
 
 @keyframes fade-in-up {
@@ -182,4 +182,14 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 1s ease-out;
+}
+
+/* Typing cursor animation */
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
 }

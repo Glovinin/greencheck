@@ -2,10 +2,12 @@
 
 import Link from "next/link"
 import { Button } from "./ui/button"
-import { Globe, User, Moon, Sun, ChevronDown } from "lucide-react"
+import { Globe, User, ChevronDown, Upload, Languages } from "lucide-react"
+import Image from "next/image"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from 'next/navigation'
-import { useTheme } from "next-themes"
+import { motion, AnimatePresence } from 'framer-motion'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,56 +15,83 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu"
-import { Logo } from "./logo"
-import { useTranslation } from "@/contexts/LanguageContext"
 
-// Itens principais de navegação (sempre visíveis em desktop)
+// Main navigation items (always visible on desktop)
 const primaryNavItems = [
-  { href: "/", labelKey: "home" as const },
-  { href: "/rooms", labelKey: "rooms" as const },
-  { href: "/gallery", labelKey: "gallery" as const },
+  { href: "/", label: "Home" },
+  { href: "/validacao", label: "Validation" },
+  { href: "/marketplace", label: "Marketplace" },
 ]
 
-// Itens secundários (agrupados em dropdown em telas menores)
+// Secondary items (grouped in dropdown on smaller screens)
 const secondaryNavItems = [
-  { href: "/restaurante", labelKey: "restaurant" as const },
-  { href: "/eventos", labelKey: "events" as const },
-  { href: "/sobre", labelKey: "about" as const },
-  { href: "/contato", labelKey: "contact" as const },
+  { href: "/sobre", label: "About" },
 ]
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isOutOfHero, setIsOutOfHero] = useState(false)
+  const [viewport, setViewport] = useState({ width: 0, height: 0 })
   const router = useRouter()
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const { language, setLanguage, t } = useTranslation()
+  const [logoTransitionActive, setLogoTransitionActive] = useState(false)
+
+  // Breakpoints responsivos
+  const breakpoints = {
+    isXs: viewport.width < 380,
+    isMobile: viewport.width < 768,
+    isTablet: viewport.width >= 768 && viewport.width < 1024,
+    isDesktop: viewport.width >= 1024
+  }
 
   // After mounting, we can safely show the UI that depends on the theme
   useEffect(() => {
     setMounted(true)
+    
+    // Definir viewport inicial
+    const updateViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+    
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    
+    // Listener para sincronizar com a transição da logo do initial-loading
+    const handleLogoTransition = () => {
+      console.log('🎯 Navbar detectou início da transição da logo')
+      setLogoTransitionActive(true)
+    }
+    
+    window.addEventListener('logo-transition-start', handleLogoTransition)
+    
+    return () => {
+      window.removeEventListener('resize', updateViewport)
+      window.removeEventListener('logo-transition-start', handleLogoTransition)
+    }
   }, [])
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
+      const scrollY = window.scrollY
+      // ULTRA CEDO: Mesmo ponto do mobile nav
+      const heroTransitionPoint = window.innerHeight * 0.2 // 20% = bem no início
+      
+      setIsScrolled(scrollY > 20)
+      
+      // ULTRA RÁPIDO: Muda logo no início do scroll - sincronizado
+      setIsOutOfHero(scrollY > heroTransitionPoint)
     }
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const handleLanguageChange = (langCode: 'pt' | 'en') => {
-    setLanguage(langCode)
-  }
-
-  const handleReservar = () => {
-    router.push('/booking')
-  }
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark')
+  const handleIniciarUpload = () => {
+    router.push('/validacao')
   }
 
   // Evita flash de conteúdo não hidratado
@@ -70,180 +99,265 @@ export const Navbar = () => {
     return null
   }
 
-  const isDark = theme === 'dark'
-
-  // Array de idiomas disponíveis
-  const languages = [
-    { code: 'pt' as const, name: t('portuguese') },
-    { code: 'en' as const, name: t('english') },
-  ]
+  // Estilos harmoniosos - totalmente transparente no topo, ilha quando rola
+  const navStyles = {
+    // No topo: sem fundo/borda, full width | Com scroll: ilha com fundo
+    container: !isScrolled 
+      ? 'bg-transparent border-transparent w-full' 
+      : 'bg-white/95 border-gray-200/50 shadow-2xl shadow-black/10 w-[94%] sm:w-[90%] md:w-[84%] lg:w-[78%] xl:w-[72%]',
+    
+    // No topo: texto branco sobre hero | Com scroll: texto escuro sobre ilha clara
+    textColor: !isScrolled ? 'text-white' : 'text-[#044050]',
+    textColorSecondary: !isScrolled ? 'text-white/80' : 'text-[#044050]/70',
+    hoverColor: !isScrolled ? 'hover:text-white' : 'hover:text-[#5FA037]',
+    
+    // Botão se adapta ao contexto
+    buttonBg: !isScrolled 
+      ? 'bg-[#5FA037] text-white hover:bg-[#4d8c2d] hover:shadow-[#5FA037]/30' 
+      : 'bg-[#5FA037] text-white hover:bg-[#4d8c2d] hover:shadow-[#5FA037]/30',
+    buttonIconColor: 'group-hover:opacity-80',
+    
+    // Ícones se adaptam
+    iconHover: !isScrolled 
+      ? 'text-white/80 hover:text-white hover:bg-white/10' 
+      : 'text-[#044050]/70 hover:text-[#5FA037] hover:bg-[#5FA037]/10',
+    
+    // Dropdown se adapta
+    dropdownBg: !isScrolled 
+      ? 'bg-[#044050]/95 border-white/20 shadow-black/20' 
+      : 'bg-white/95 border-gray-200/50 shadow-black/10',
+    dropdownItem: !isScrolled 
+      ? 'text-white/90 hover:bg-white/10 focus:bg-white/10' 
+      : 'text-[#044050]/90 hover:bg-[#5FA037]/10 focus:bg-[#5FA037]/10'
+  }
 
   return (
-    <nav className="fixed top-0 w-full z-[100] flex items-center justify-center">
-      <div className={`
-        mx-auto my-3 h-12 rounded-full flex items-center justify-between px-3 sm:px-4 lg:px-5
-        transition-all duration-300 ease-in-out
-        ${isScrolled 
-          ? isDark
-            ? 'bg-[#4F3621]/80 backdrop-blur-lg border border-[#EED5B9]/20 w-[96%] sm:w-[94%] md:w-[88%] lg:w-[82%] xl:w-[76%]'
-            : 'bg-[#EED5B9]/90 backdrop-blur-lg border border-[#4F3621]/20 w-[96%] sm:w-[94%] md:w-[88%] lg:w-[82%] xl:w-[76%]'
-          : 'bg-transparent w-[98%] sm:w-[96%] md:w-[92%] lg:w-[88%] xl:w-[95%]'
-        }
-      `}>
+    <motion.nav 
+      className="fixed top-0 w-full z-[100] flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ 
+        duration: 0.5,
+        ease: "easeOut"
+      }}
+    >
+      <div 
+        className={`
+          mx-auto flex items-center justify-between border
+          ${!isScrolled 
+            ? 'rounded-none backdrop-blur-sm' 
+            : 'rounded-full backdrop-blur-xl'
+          }
+          ${breakpoints.isMobile 
+            ? !isScrolled ? 'my-0 h-16 px-4' : 'my-2 h-14 px-3'
+            : !isScrolled ? 'my-0 h-20 px-8' : 'my-3 h-[72px] px-4 sm:px-6 lg:px-8'
+          }
+          ${navStyles.container}
+        `}
+        style={{
+          transition: 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
         {/* Logo - Responsivo */}
-        <Link href="/" className="flex items-center flex-shrink-0">
-          <Logo 
-            width={160} 
-            height={21} 
-            priority={true}
-            className="transition-all duration-300 hover:opacity-80 sm:w-[130px] sm:h-[22px] lg:w-[140px] lg:h-[24px]"
-          />
-        </Link>
-
-        {/* Desktop Navigation - Visível apenas em telas grandes (xl:) */}
-        <div className="hidden xl:flex items-center space-x-6">
-          {primaryNavItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.href} 
-              className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[13px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
+        <div>
+          <Link href="/" className={`flex items-center flex-shrink-0 group transition-all duration-500 ${
+            !isScrolled ? 'gap-4' : 'gap-3'
+          }`}>
+            {/* Logo Image */}
+            <div className="relative">
+              <Image
+                src="/favicon.png"
+                alt="GreenCheck Logo"
+                width={
+                  breakpoints.isXs
+                    ? (!isScrolled ? 36 : 32)
+                    : breakpoints.isMobile 
+                    ? (!isScrolled ? 44 : 36)
+                    : (!isScrolled ? 72 : 56)
+                }
+                height={
+                  breakpoints.isXs
+                    ? (!isScrolled ? 36 : 32)
+                    : breakpoints.isMobile 
+                    ? (!isScrolled ? 44 : 36)
+                    : (!isScrolled ? 72 : 56)
+                }
+                className="transition-all duration-500"
+                priority
+              />
+            </div>
+            
+            {/* Logo Text */}
+            <span 
+              className={`font-light ${navStyles.textColor} ${
+                !isScrolled ? 'group-hover:text-white/80' : 'group-hover:text-[#003631]/80'
+              } tracking-wide ${
+                breakpoints.isXs
+                  ? (!isScrolled ? 'text-base' : 'text-sm')
+                  : breakpoints.isMobile 
+                  ? (!isScrolled ? 'text-lg' : 'text-base')
+                  : (!isScrolled ? 'text-3xl' : 'text-xl')
+              }`}
+              style={{
+                transition: 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
             >
-              {t(item.labelKey)}
-            </Link>
+              <span className="font-extralight inline-block">
+                Green
+              </span>
+              <span className="font-medium inline-block">
+                Check™
+              </span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Desktop Navigation - Minimalista - OCULTO NO MOBILE/TABLET */}
+        <div className="hidden xl:flex items-center space-x-8">
+          {primaryNavItems.map((item) => (
+            <div key={item.href}>
+              <Link 
+                href={item.href} 
+                style={{
+                  transition: 'color 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                className={`group relative text-sm font-light tracking-wide ${
+                  pathname === item.href 
+                    ? navStyles.textColor
+                    : `${navStyles.textColorSecondary} ${navStyles.hoverColor}`
+                }`}
+              >
+                {item.label}
+                {/* Indicador ativo - bolinha pequena */}
+                {pathname === item.href && (
+                  <div 
+                    className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full transition-colors duration-500 ${
+                      !isScrolled ? 'bg-[#5FA037]' : 'bg-[#5FA037]'
+                    }`}
+                  />
+                )}
+                {/* Indicador hover - bolinha pequena */}
+                <div className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 rounded-full transition-all duration-300 group-hover:w-0.5 group-hover:h-0.5 ${
+                  !isScrolled ? 'bg-white/60' : 'bg-[#5FA037]/60'
+                }`} />
+              </Link>
+            </div>
           ))}
           {secondaryNavItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.href} 
-              className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[13px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
-            >
-              {t(item.labelKey)}
-            </Link>
-          ))}
-        </div>
-
-        {/* Medium Screen Navigation - Visível em telas médias (lg: até xl:) */}
-        <div className="hidden lg:flex xl:hidden items-center space-x-4">
-          {primaryNavItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.href} 
-              className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9]' : 'text-[#4F3621]/90 hover:text-[#4F3621]'} transition-colors text-[12px] font-medium px-1 ${pathname === item.href ? (isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]') : ''}`}
-            >
-              {t(item.labelKey)}
-            </Link>
-          ))}
-          
-          {/* Dropdown para itens secundários */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className={`${isDark ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] hover:bg-[#EED5B9]/10' : 'text-[#4F3621]/90 hover:text-[#4F3621] hover:bg-[#4F3621]/10'} text-[12px] font-medium h-8 px-2 flex items-center gap-1`}
+            <div key={item.href}>
+              <Link 
+                href={item.href} 
+                style={{
+                  transition: 'color 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                className={`group relative text-sm font-light tracking-wide ${
+                  pathname === item.href 
+                    ? navStyles.textColor
+                    : `${navStyles.textColorSecondary} ${navStyles.hoverColor}`
+                }`}
               >
-                Mais <ChevronDown className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="end" 
-              className={`w-[160px] ${isDark 
-                ? 'bg-[#4F3621]/90 backdrop-blur-lg border-[#EED5B9]/20' 
-                : 'bg-[#EED5B9]/90 backdrop-blur-lg border-[#4F3621]/20'}`}
-            >
-              {secondaryNavItems.map((item) => (
-                <DropdownMenuItem key={item.href} asChild>
-                  <Link 
-                    href={item.href}
-                    className={`text-[13px] ${isDark 
-                      ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] focus:text-[#EED5B9]' 
-                      : 'text-[#4F3621]/90 hover:text-[#4F3621] focus:text-[#4F3621]'} ${pathname === item.href ? (isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10') : ''}`}
-                  >
-                    {t(item.labelKey)}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {item.label}
+                {/* Indicador ativo - bolinha pequena */}
+                {pathname === item.href && (
+                  <div 
+                    className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full transition-colors duration-500 ${
+                      !isScrolled ? 'bg-[#5FA037]' : 'bg-[#5FA037]'
+                    }`}
+                  />
+                )}
+                {/* Indicador hover - bolinha pequena */}
+                <div className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 rounded-full transition-all duration-300 group-hover:w-0.5 group-hover:h-0.5 ${
+                  !isScrolled ? 'bg-white/60' : 'bg-[#5FA037]/60'
+                }`} />
+              </Link>
+            </div>
+          ))}
         </div>
 
-        {/* Right Side - Adaptado para todas as telas */}
+
+        {/* Right Side - Responsivo */}
         <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3 flex-shrink-0">
-          {/* Botão Reservar - Visível em todas as telas */}
-          <Button 
-            variant="ghost" 
-            className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} text-[11px] sm:text-[12px] lg:text-[13px] font-medium h-7 sm:h-8 px-2 sm:px-3`}
-            onClick={handleReservar}
-          >
-            <span className="hidden sm:inline">{t('reserve')}</span>
-            <span className="sm:hidden">{t('reserve')}</span>
-          </Button>
+          {/* Botão Iniciar Upload - Responsivo */}
+          <div>
+            <Button 
+              variant="default"
+              className={`group rounded-full font-medium tracking-wide shadow-xl
+                ${breakpoints.isMobile 
+                  ? 'h-9 px-3 text-xs' 
+                  : 'h-10 px-6 text-sm'
+                }
+                ${navStyles.buttonBg}`}
+              style={{
+                transition: 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onClick={handleIniciarUpload}
+            >
+              <span className="flex items-center">
+                <span className="hidden sm:inline">Start Upload</span>
+                <span className="sm:hidden">Upload</span>
+                <Upload className={`transition-all duration-300 group-hover:translate-x-0.5 ${
+                  breakpoints.isMobile ? 'ml-1 h-3.5 w-3.5' : 'ml-2 h-4 w-4'
+                } ${navStyles.buttonIconColor}`} />
+              </span>
+            </Button>
+          </div>
           
-          {/* Linha divisória */}
-          <div className={`w-px h-3 sm:h-3.5 ${isDark ? 'bg-[#EED5B9]/20' : 'bg-[#4F3621]/20'}`} />
+          {/* Separador sutil - Oculto no mobile */}
+          <div className="hidden sm:block w-px h-6 bg-white/20 transition-colors duration-300" />
           
-          {/* Botão de Tema */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} h-7 w-7 sm:h-8 sm:w-8`}
-            onClick={toggleTheme}
-            aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-          >
-            {isDark ? (
-              <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            ) : (
-              <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            )}
-          </Button>
+          {/* Seletor de Idioma - Menor no mobile */}
+          <div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  style={{
+                    transition: 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                  className={`rounded-full ${
+                    breakpoints.isMobile ? 'h-9 w-9' : 'h-10 w-10'
+                  } ${navStyles.iconHover}`}
+                >
+                  <Globe className={breakpoints.isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className={`w-[140px] backdrop-blur-xl shadow-2xl rounded-2xl p-2 transition-colors duration-300 ${navStyles.dropdownBg}`}
+              >
+                <DropdownMenuItem className={`rounded-lg px-3 py-2 text-sm font-light transition-colors ${navStyles.dropdownItem}`}>
+                  🇵🇹 Português
+                </DropdownMenuItem>
+                <DropdownMenuItem className={`rounded-lg px-3 py-2 text-sm font-light transition-colors ${navStyles.dropdownItem}`}>
+                  🇺🇸 English
+                </DropdownMenuItem>
+                <DropdownMenuItem className={`rounded-lg px-3 py-2 text-sm font-light transition-colors ${navStyles.dropdownItem}`}>
+                  🇪🇸 Español
+                </DropdownMenuItem>
+                <DropdownMenuItem className={`rounded-lg px-3 py-2 text-sm font-light transition-colors ${navStyles.dropdownItem}`}>
+                  🇫🇷 Français
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           
-          {/* Dropdown de Idiomas - Visível em todas as telas */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {/* Botão de Login - Responsivo */}
+          <div>
+            <Link href="/login">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} h-7 w-7 sm:h-8 sm:w-8`}
+                className={`transition-all duration-300 rounded-full ${
+                  breakpoints.isMobile ? 'h-9 w-9' : 'h-10 w-10'
+                } ${navStyles.iconHover}`}
               >
-                <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <User className={breakpoints.isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="end" 
-              className={`w-[140px] sm:w-[150px] ${isDark 
-                ? 'bg-[#4F3621]/90 backdrop-blur-lg border-[#EED5B9]/20' 
-                : 'bg-[#EED5B9]/90 backdrop-blur-lg border-[#4F3621]/20'} max-h-[300px] overflow-y-auto`}
-            >
-              {languages.map((lang) => (
-                <DropdownMenuItem
-                  key={lang.code}
-                  className={`
-                    text-[12px] sm:text-[13px] ${isDark 
-                      ? 'text-[#EED5B9]/90 hover:text-[#EED5B9] focus:text-[#EED5B9]' 
-                      : 'text-[#4F3621]/90 hover:text-[#4F3621] focus:text-[#4F3621]'}
-                    ${language === lang.code 
-                      ? isDark ? 'bg-[#EED5B9]/10' : 'bg-[#4F3621]/10'
-                      : ''}
-                  `}
-                  onClick={() => handleLanguageChange(lang.code)}
-                >
-                  {lang.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {/* Botão de Admin Login - Visível em todas as telas */}
-          <Link href="/admin/login">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={`${isDark ? 'text-[#EED5B9] hover:text-[#EED5B9]/90 hover:bg-[#EED5B9]/10' : 'text-[#4F3621] hover:text-[#4F3621]/90 hover:bg-[#4F3621]/10'} h-7 w-7 sm:h-8 sm:w-8`}
-            >
-              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </Button>
-          </Link>
+            </Link>
+          </div>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   )
 }

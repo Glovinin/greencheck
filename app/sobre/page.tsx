@@ -2,696 +2,915 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowUpRight, Users, Award, Clock, MapPin, Building, ChevronDown } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Cpu, Shield, CheckCircle2, Leaf, TrendingUp, Users, Globe, Zap, Star, Award, ChevronDown, ArrowRight, BarChart3, Lightbulb, Target } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import SplineBackground from '@/components/spline-background'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { useTheme } from 'next-themes'
-import { CTASection } from '@/components/cta-section'
-import { Footer } from '@/components/footer'
 
-export default function Sobre() {
+// Interface para breakpoints inteligentes
+interface ScreenBreakpoints {
+  isXs: boolean      // < 380px - muito pequeno (mobile portrait pequeno)
+  isSm: boolean      // 380px - 640px - pequeno (mobile portrait)
+  isMd: boolean      // 640px - 768px - médio (mobile landscape)
+  isTablet: boolean  // 768px - 1024px - tablet (iPad Mini/Pro)
+  isLg: boolean      // 1024px - 1280px - desktop pequeno
+  isXl: boolean      // > 1280px - desktop grande
+  
+  // Altura
+  isShortHeight: boolean    // < 600px
+  isMediumHeight: boolean   // 600px - 800px
+  isTallHeight: boolean     // > 800px
+  
+  // Combinações úteis
+  isMobile: boolean         // < 768px
+  isDesktop: boolean        // >= 1024px
+  
+  width: number
+  height: number
+}
+
+// Hook de breakpoints inteligentes
+const useSmartBreakpoints = (): ScreenBreakpoints => {
+  const [viewport, setViewport] = useState({ width: 0, height: 0 })
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    // Set initial viewport
+    updateViewport()
+
+    // Listen for resize events
+    window.addEventListener('resize', updateViewport)
+    window.addEventListener('orientationchange', updateViewport)
+
+    return () => {
+      window.removeEventListener('resize', updateViewport)
+      window.removeEventListener('orientationchange', updateViewport)
+    }
+  }, [])
+
+  const breakpoints = {
+    isXs: viewport.width < 380,
+    isSm: viewport.width >= 380 && viewport.width < 640,
+    isMd: viewport.width >= 640 && viewport.width < 768,
+    isTablet: viewport.width >= 768 && viewport.width < 1024,
+    isLg: viewport.width >= 1024 && viewport.width < 1280,
+    isXl: viewport.width >= 1280,
+    
+    isShortHeight: viewport.height < 600,
+    isMediumHeight: viewport.height >= 600 && viewport.height < 800,
+    isTallHeight: viewport.height >= 800,
+    
+    isMobile: viewport.width < 768,
+    isDesktop: viewport.width >= 1024,
+    
+    width: viewport.width,
+    height: viewport.height
+  }
+
+  return breakpoints
+}
+
+// Função para obter layout inteligente baseado nos breakpoints
+const getSmartLayout = (breakpoints: ScreenBreakpoints) => {
+  const { isXs, isSm, isMd, isTablet, isLg, isXl, isShortHeight, isMediumHeight, isTallHeight, isMobile, isDesktop } = breakpoints
+
+  // Layout para telas muito pequenas (< 380px)
+  if (isXs) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-start items-center',
+      heroContentClass: 'px-3 py-2',
+      heroSpacing: 'pt-20 pb-8',
+      titleSize: 'text-4xl',
+      subtitleSize: 'text-xl',
+      buttonSize: 'h-12 text-sm w-full max-w-[280px]',
+      spacingY: 'space-y-4',
+      
+      // Seções Gerais
+      containerPadding: 'px-3',
+      maxWidth: 'max-w-6xl',
+      sectionPadding: 'py-12',
+      sectionTitleSize: 'text-2xl',
+      sectionSubtitleSize: 'text-sm',
+      cardPadding: 'p-4',
+      buttonHeight: 'h-11',
+      gap: 'gap-4'
+    }
+  }
+
+  // Layout para mobile pequeno (380px - 640px)
+  if (isSm) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-start items-center',
+      heroContentClass: 'px-4 py-4',
+      heroSpacing: 'pt-24 pb-8',
+      titleSize: 'text-5xl',
+      subtitleSize: 'text-2xl',
+      buttonSize: 'h-12 text-base w-full max-w-[320px]',
+      spacingY: 'space-y-5',
+      
+      // Seções Gerais
+      containerPadding: 'px-4',
+      maxWidth: 'max-w-6xl',
+      sectionPadding: 'py-16',
+      sectionTitleSize: 'text-2xl',
+      sectionSubtitleSize: 'text-sm',
+      cardPadding: 'p-5',
+      buttonHeight: 'h-12',
+      gap: 'gap-5'
+    }
+  }
+
+  // Layout para mobile landscape (640px - 768px)
+  if (isMd) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-start items-center',
+      heroContentClass: 'px-6 py-4',
+      heroSpacing: 'pt-20 pb-8',
+      titleSize: 'text-5xl',
+      subtitleSize: 'text-2xl',
+      buttonSize: 'h-12 text-base w-full max-w-[340px]',
+      spacingY: 'space-y-6',
+      
+      // Seções Gerais
+      containerPadding: 'px-6',
+      maxWidth: 'max-w-6xl',
+      sectionPadding: 'py-20',
+      sectionTitleSize: 'text-3xl',
+      sectionSubtitleSize: 'text-base',
+      cardPadding: 'p-6',
+      buttonHeight: 'h-12',
+      gap: 'gap-6'
+    }
+  }
+
+  // Layout para tablets (768px - 1024px)
+  if (isTablet) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-center items-center',
+      heroContentClass: 'px-8 py-10',
+      heroSpacing: isShortHeight ? 'pt-12 pb-8' : 'pt-16 pb-12',
+      titleSize: 'text-5xl md:text-6xl',
+      subtitleSize: 'text-2xl',
+      buttonSize: 'h-12 text-lg min-w-[210px]',
+      spacingY: 'space-y-7',
+      
+      // Seções Gerais
+      containerPadding: 'px-8',
+      maxWidth: 'max-w-6xl',
+      sectionPadding: 'py-24',
+      sectionTitleSize: 'text-3xl md:text-4xl',
+      sectionSubtitleSize: 'text-base',
+      cardPadding: 'p-7',
+      buttonHeight: 'h-12',
+      gap: 'gap-6'
+    }
+  }
+
+  // Layout para desktop pequeno (1024px - 1280px)
+  if (isLg) {
+    return {
+      // Hero Section
+      containerClass: 'min-h-screen-fixed flex flex-col justify-center items-center',
+      heroContentClass: 'px-8 py-12',
+      heroSpacing: 'pt-16 md:pt-0',
+      titleSize: 'text-6xl md:text-7xl',
+      subtitleSize: 'text-2xl md:text-3xl',
+      buttonSize: 'h-12 sm:h-14 text-base sm:text-lg min-w-[200px] sm:min-w-[220px]',
+      spacingY: 'space-y-6 md:space-y-8',
+      
+      // Seções Gerais
+      containerPadding: 'px-8',
+      maxWidth: 'max-w-7xl',
+      sectionPadding: 'py-24',
+      sectionTitleSize: 'text-4xl',
+      sectionSubtitleSize: 'text-base',
+      cardPadding: 'p-8',
+      buttonHeight: 'h-12',
+      gap: 'gap-6'
+    }
+  }
+
+  // Layout para desktop grande (> 1280px)
+  return {
+    // Hero Section
+    containerClass: 'min-h-screen-fixed flex flex-col justify-center items-center',
+    heroContentClass: 'px-4 sm:px-6 lg:px-8 py-12',
+    heroSpacing: 'pt-16 md:pt-0',
+    titleSize: 'text-4xl sm:text-5xl md:text-7xl',
+    subtitleSize: 'text-xl sm:text-2xl md:text-3xl',
+    buttonSize: 'h-12 sm:h-14 text-base sm:text-lg min-w-[200px] sm:min-w-[220px]',
+    spacingY: 'space-y-6 md:space-y-8',
+    
+    // Seções Gerais
+    containerPadding: 'px-4 sm:px-6 lg:px-8',
+    maxWidth: 'max-w-7xl',
+    sectionPadding: 'py-24',
+    sectionTitleSize: 'text-4xl',
+    sectionSubtitleSize: 'text-lg',
+    cardPadding: 'p-8',
+    buttonHeight: 'h-12',
+    gap: 'gap-6'
+  }
+}
+
+const features = [
+  {
+    icon: Cpu,
+    title: "Advanced Artificial Intelligence",
+    description: "Specialized OCR and NLP with 98.5% accuracy in ESG data extraction from multilingual documents."
+  },
+  {
+    icon: Shield,
+    title: "Automated Scientific Validation",
+    description: "Integrated APIs with recognized scientific institutions like the Botanical Garden for real-time validation."
+  },
+  {
+    icon: CheckCircle2,
+    title: "Blockchain Certification",
+    description: "Immutable NFTs on Polygon network with embedded scientific metadata, fraud-resistant."
+  },
+  {
+    icon: Leaf,
+    title: "Carbon Marketplace",
+    description: "AI-powered offset recommendations with satellite monitoring for verified carbon credits."
+  }
+]
+
+const advantages = [
+  { label: "Cost Reduction", value: "40%", description: "€35 vs €45-60 traditional", icon: TrendingUp },
+  { label: "Speed", value: "4x", description: "3 weeks vs 6-12 months", icon: Zap },
+  { label: "AI Accuracy", value: "98.5%", description: "ESG data extraction", icon: BarChart3 },
+  { label: "Market Size", value: "€8.5B", description: "Annual opportunity", icon: Target }
+]
+
+const team = [
+  {
+    name: "Bruno Santos",
+    role: "CTO & Co-founder",
+    description: "Full-stack developer with 10 years of experience in SaaS platforms for sustainability.",
+    image: "👨‍💻"
+  },
+  {
+    name: "AI Team",
+    role: "Artificial Intelligence",
+    description: "Experts in OCR, NLP and specialized algorithms for ESG documents.",
+    image: "🤖"
+  },
+  {
+    name: "Scientific Partners",
+    role: "Validation",
+    description: "Lisbon Botanical Garden and other institutions for scientific validation.",
+    image: "🔬"
+  }
+]
+
+const aboutFeatures = [
+  {
+    icon: Lightbulb,
+    title: "Technological Innovation",
+    description: "First solution combining AI, scientific validation and blockchain for ESG"
+  },
+  {
+    icon: Globe,
+    title: "Global Impact",
+    description: "Serving 2.4M European SMEs with mandatory CSRD compliance by 2025"
+  },
+  {
+    icon: Award,
+    title: "Patented Technology",
+    description: "Unique system protected by patent with proven competitive advantages"
+  }
+]
+
+export default function SobrePage() {
   const router = useRouter()
-  const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   
+  // Hook de breakpoints inteligentes 
+  const breakpoints = useSmartBreakpoints()
+  
   const { scrollY } = useScroll()
-  const imageY = useTransform(scrollY, [0, 500], [0, 150])
-  const opacity = useTransform(scrollY, [0, 200, 400], [1, 0.5, 0])
+
+  // Fix viewport height for mobile to prevent browser UI from hiding
+  useEffect(() => {
+    const setViewportHeight = () => {
+      // Get the viewport height and multiply by 1% to get a value for a vh unit
+      const vh = window.innerHeight * 0.01;
+      // Set the value in the --vh custom property to the root of the document
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Set initial viewport height
+    setViewportHeight();
+
+    // Listen for resize events (orientation change, etc.)
+    const handleResize = () => {
+      setViewportHeight();
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   // After mounting, we can safely show the UI that depends on the theme
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  const handleIniciarValidacao = () => {
+    router.push('/validacao')
+  }
+
   // Evita flash de conteúdo não hidratado
   if (!mounted) {
     return null
   }
 
-  const isDark = theme === 'dark'
+  // Obter layout inteligente baseado nos breakpoints
+  const {
+    // Hero Section
+    containerClass,
+    heroContentClass,
+    heroSpacing,
+    titleSize,
+    subtitleSize,
+    buttonSize,
+    spacingY,
+    
+    // Seções Gerais
+    containerPadding,
+    maxWidth,
+    sectionPadding,
+    sectionTitleSize,
+    sectionSubtitleSize,
+    cardPadding,
+    buttonHeight,
+    gap
+  } = getSmartLayout(breakpoints)
 
   return (
-    <>
-    <main className={`min-h-screen overflow-x-hidden ${isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'} pb-32 md:pb-0`}>
+    <div className="relative">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative min-h-screen pb-20 md:pb-0">
+      {/* Hero Section - Design moderno da homepage */}
+      <section 
+        className={`fixed inset-0 ${containerClass} ${heroSpacing} h-screen`}
+      >
+        {/* Cor de fundo padrão */}
+        <div className="absolute inset-0 bg-[#044050]" />
+        
         <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            style={{ 
-              y: imageY,
-              scale: 1.1
-            }}
-            className="w-full h-[120%] -mt-10"
-          >
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="w-full h-full object-cover"
-              >
-                <source src="https://videos.pexels.com/video-files/3119296/3119296-uhd_2560_1440_24fps.mp4" type="video/mp4" />
-              </video>
-          </motion.div>
-          <motion.div 
-            style={{ opacity }}
-            className={`absolute inset-0 backdrop-blur-[2px] ${
-              isDark 
-                ? 'bg-gradient-to-b from-[#4F3621]/70 via-[#4F3621]/50 to-[#4F3621]/80' 
-                : 'bg-gradient-to-b from-[#EED5B9]/80 via-[#EED5B9]/60 to-[#EED5B9]/90'
-            }`} 
-          />
+          {/* SplineBackground - Crystal Ball */}
+          <SplineBackground />
           
-          {/* Elementos Decorativos */}
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
-          <div className={`absolute inset-x-0 top-0 h-32 ${
-            isDark 
-              ? 'bg-gradient-to-b from-[#4F3621]/60 to-transparent' 
-              : 'bg-gradient-to-b from-[#EED5B9]/60 to-transparent'
-          }`} />
-          <div className={`absolute inset-x-0 bottom-0 h-32 ${
-            isDark 
-              ? 'bg-gradient-to-t from-[#4F3621]/60 to-transparent' 
-              : 'bg-gradient-to-t from-[#EED5B9]/60 to-transparent'
-          }`} />
+          {/* Overlay para melhor legibilidade do conteúdo */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50 backdrop-blur-[0.5px]" style={{ zIndex: 2 }} />
         </div>
         
-        <div className="relative min-h-screen flex flex-col justify-center items-center pt-16 md:pt-0">
-          <motion.div 
-            style={{ opacity }}
-            className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+        <div className={`relative ${containerClass}`} style={{ zIndex: 10 }}>
+          <div 
+            className={`w-full max-w-6xl mx-auto text-center ${heroContentClass}`}
           >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6 md:space-y-8"
-            >
-              <div className="inline-block">
-                <span className={`text-sm md:text-base font-medium tracking-wider uppercase ${
-                  isDark 
-                    ? 'text-[#EED5B9]/90 bg-[#EED5B9]/10 border-[#EED5B9]/20' 
-                    : 'text-[#4F3621] bg-[#4F3621]/10 border-[#4F3621]/30'
-                } px-4 py-2 rounded-full backdrop-blur-sm border`}>
-                  Nossa História
-                </span>
-              </div>
-              
-              <h1 className={`text-4xl sm:text-5xl md:text-8xl font-bold tracking-tight leading-none ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}>
-                Sobre Nós
-                <span className={`block text-xl sm:text-2xl md:text-3xl mt-3 font-light ${
-                  isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
-                }`}>Aqua Vista Monchique</span>
-              </h1>
-              
-              <p className={`text-lg sm:text-xl md:text-3xl font-light mb-8 md:mb-12 ${
-                isDark ? 'text-[#EED5B9]/90' : 'text-[#4F3621]/90'
-              }`}>
-                  Um refúgio rústico com vistas deslumbrantes sobre a serra e o mar
-              </p>
-            </motion.div>
-          </motion.div>
-
-          {/* Scroll Indicator */}
-          <motion.div 
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="mt-12 md:mt-16 flex flex-col items-center"
-            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className={`p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 cursor-pointer group ${
-              isDark 
-                ? 'border-2 border-[#EED5B9]/30 bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20' 
-                : 'border-2 border-[#4F3621]/60 bg-[#4F3621]/10 hover:bg-[#4F3621]/20'
-            }`}>
-              <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300 ${
-                isDark ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]' : 'text-[#4F3621]/80 group-hover:text-[#4F3621]'
-              }`} />
-            </div>
-            <span className={`text-sm mt-3 font-medium tracking-wider uppercase ${
-              isDark ? 'text-[#EED5B9]/80' : 'text-[#4F3621]/80'
-            }`}>Explorar</span>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Nossa História Section */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
-      }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] opacity-50" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7 }}
-              viewport={{ once: true }}
-            >
-              <motion.span 
-                initial={{ opacity: 0, y: -20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10 inline-block mb-6"
+            <div className={spacingY}>
+              {/* Badge - Animação em cascata */}
+              <motion.div 
+                className={`inline-block ${breakpoints.isTablet ? 'mt-8' : breakpoints.isDesktop ? 'mt-12' : ''}`}
+                initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.8, 
+                  delay: 0.2,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
               >
-                <div className="flex items-center">
-                  <Clock className="mr-2 h-3.5 w-3.5" />
-                  <span>Nossa Jornada</span>
-                </div>
-              </motion.span>
-              <motion.h2 
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                viewport={{ once: true }}
-                className={`text-4xl font-bold mb-6 tracking-tight ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}
-              >
-                A História do Aqua Vista
-              </motion.h2>
-              <motion.p 
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                viewport={{ once: true }}
-                className={`text-lg mb-6 leading-relaxed ${
-                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-                }`}
-              >
-                  O Aqua Vista Monchique, uma joia escondida na Serra de Monchique, ganhou um novo capítulo em sua história em julho de 2024, quando o empresário Delmar Santos assumiu sua administração. Com um olhar atento aos detalhes e profundo respeito pela natureza local, o hotel passou por cuidadosas renovações para realçar ainda mais seu charme rústico e autenticidade.
-              </motion.p>
-              <motion.p 
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                  viewport={{ once: true }}
-                  className={`text-lg mb-6 leading-relaxed ${
-                    isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-                  }`}
+                <motion.div 
+                  className={`${breakpoints.isXs ? 'text-xs' : breakpoints.isMobile ? 'text-sm' : 'text-sm md:text-base'} font-medium tracking-[0.2em] uppercase text-white/80 transition-all duration-300 ${
+                    breakpoints.isMobile 
+                      ? '' // Mobile: sem fundo, apenas texto
+                      : 'bg-white/5 border border-white/10 px-6 py-3 rounded-full backdrop-blur-xl hover:bg-white/10 hover:border-white/20'
+                  } ${breakpoints.isXs ? 'px-0 py-0' : breakpoints.isMobile ? 'px-0 py-0' : 'px-6 py-3'}`}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  Estrategicamente posicionado a apenas 3 km da pitoresca vila de Monchique e 10 km das famosas Caldas de Monchique, nosso refúgio oferece o equilíbrio perfeito entre isolamento sereno e conveniência. Em menos de 25 minutos de carro, nossos hóspedes podem acessar o Autódromo Internacional do Algarve, diversos campos de golfe e as deslumbrantes praias da Costa Vicentina e de Portimão.
-                </motion.p>
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                viewport={{ once: true }}
-                className={`text-lg mb-8 leading-relaxed ${
-                  isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-                }`}
-              >
-                  Cada quarto do Aqua Vista foi cuidadosamente projetado para proporcionar tranquilidade absoluta, com terraços mobilados privativos que emolduram vistas panorâmicas da costa e do mar. Nossa espaçosa piscina, de acesso gratuito aos hóspedes, convida a momentos de contemplação enquanto se admira o horizonte. Aqui, a simplicidade encontra o conforto, criando o ambiente perfeito para desconectar da agitação cotidiana e reconectar-se com o que realmente importa.
-              </motion.p>
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                viewport={{ once: true }}
-                className="flex flex-col sm:flex-row gap-4"
-              >
-                <div className={`flex items-center rounded-full px-4 py-2 border ${
-                  isDark 
-                    ? 'text-[#EED5B9]/80 bg-[#EED5B9]/5 border-[#EED5B9]/10' 
-                    : 'text-[#4F3621]/80 bg-[#4F3621]/5 border-[#4F3621]/10'
-                }`}>
-                  <Building className="h-5 w-5 mr-2 text-primary" />
-                    <span>Renovado completamente em 2024</span>
-                </div>
+                  About GreenCheck
+                </motion.div>
               </motion.div>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="grid grid-cols-2 gap-4"
-            >
-              <div className="space-y-4">
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070"
-                    alt="Fachada do Aqua Vista Monchique"
-                    className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
+              
+              {/* Título principal com animação letra por letra */}
+              <motion.div 
+                className={`${breakpoints.isMobile ? 'mt-8' : 'mt-12'}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+              >
+                <motion.h1 
+                  className={`${titleSize} font-light tracking-[-0.02em] leading-[0.9] text-white`}
+                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    duration: 1.2, 
+                    delay: 0.6,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                  }}
+                >
+                  <motion.span 
+                    className="font-extralight inline-block"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                  >
+                    Revolutionizing
+                  </motion.span>
+                  <br />
+                  <motion.span 
+                    className="font-medium inline-block"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.0, duration: 0.6 }}
+                  >
+                    ESG
+                  </motion.span>
+                </motion.h1>
+                
+                <motion.div 
+                  className={`${breakpoints.isMobile ? 'mt-4' : 'mt-6'} flex items-center justify-center space-x-2`}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    delay: 1.2, 
+                    duration: 0.8,
+                    ease: "backOut"
+                  }}
+                >
+                  <motion.div 
+                    className="w-8 h-[1px] bg-gradient-to-r from-transparent to-emerald-400"
+                    initial={{ width: 0 }}
+                    animate={{ width: 32 }}
+                    transition={{ delay: 1.4, duration: 0.6 }}
                   />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>Fachada do Hotel</p>
-                  </div>
-                </div>
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src="https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=2025"
-                    alt="Equipe do Hotel"
-                    className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
+                  <motion.span 
+                    className={`${breakpoints.isXs ? 'text-base' : breakpoints.isMobile ? 'text-lg' : 'text-xl'} font-light tracking-[0.15em] text-[#86FEA5]/90 uppercase`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.5, duration: 0.5 }}
+                  >
+                    IA + Blockchain + Ciência
+                  </motion.span>
+                  <motion.div 
+                    className="w-8 h-[1px] bg-gradient-to-l from-transparent to-emerald-400"
+                    initial={{ width: 0 }}
+                    animate={{ width: 32 }}
+                    transition={{ delay: 1.4, duration: 0.6 }}
                   />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>Nossa Equipe</p>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4 pt-8">
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070"
-                    alt="Vista da Serra"
-                    className="rounded-3xl object-cover h-40 w-full transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>Vista da Serra</p>
-                  </div>
-                </div>
-                <div className={`overflow-hidden rounded-3xl shadow-lg group relative ${
-                  isDark ? 'shadow-black/20' : 'shadow-[#4F3621]/20'
-                }`}>
-                  <div className={`absolute inset-0 z-10 transition-colors duration-500 ${
-                    isDark 
-                      ? 'bg-black/20 group-hover:bg-black/10' 
-                      : 'bg-[#4F3621]/20 group-hover:bg-[#4F3621]/10'
-                  }`}></div>
-                  <img
-                    src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=2049"
-                    alt="Interior do Hotel"
-                    className="rounded-3xl object-cover h-64 w-full transform hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-90 transition-opacity duration-300 flex items-end p-4 z-20 ${
-                    isDark 
-                      ? 'bg-gradient-to-t from-black/80 via-black/20 to-transparent' 
-                      : 'bg-gradient-to-t from-[#4F3621]/80 via-[#4F3621]/20 to-transparent'
-                  }`}>
-                    <p className={`font-medium transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ${
-                      isDark ? 'text-white' : 'text-[#EED5B9]'
-                    }`}>Interior do Hotel</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+                </motion.div>
+              </motion.div>
+            </div>
           </div>
+
         </div>
       </section>
 
-      {/* Nossos Valores Section */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
+      {/* Content Container - Scrolls over fixed hero (igual homepage) */}
+      <main className={`relative z-10 ${
+        breakpoints.isXs 
+          ? 'mt-[calc(100vh-200px)]' 
+          : breakpoints.isSm
+          ? 'mt-[calc(100vh-250px)]'
+          : breakpoints.isMobile 
+          ? 'mt-[calc(100vh-280px)]' 
+          : 'mt-[100vh]'
+      } ${
+        breakpoints.isMobile 
+          ? 'pb-[120px]' 
+          : 'pb-0'
       }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
+      
+      {/* Advantages Section - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-white rounded-t-[48px]`}>
+        {/* Linha de Slide iOS - Mobile apenas */}
+        {breakpoints.isMobile && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full z-10" />
+        )}
         
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-16">
-            <motion.span 
-              initial={{ opacity: 0, y: -20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
-            >
-              Nossos Princípios
-            </motion.span>
-            <motion.h2 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              viewport={{ once: true }}
-              className={`text-4xl font-bold mt-6 mb-4 ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}
-            >
-              Valores que nos Guiam
-            </motion.h2>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
             <motion.p 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              viewport={{ once: true }}
-              className={`text-lg max-w-3xl mx-auto ${
-                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-              }`}
-            >
-              Nossa proposta é oferecer uma experiência autêntica e acolhedora, guiada por valores que preservam a essência da Serra de Monchique.
-            </motion.p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -10 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-              className={`backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group ${
-                isDark 
-                  ? 'bg-[#4F3621]/70 border-[#EED5B9]/10' 
-                  : 'bg-[#EED5B9]/70 border-[#4F3621]/30'
-              }`}
-            >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
-                <Award className="w-6 h-6" />
-              </div>
-              <h3 className={`text-xl font-semibold mb-3 transition-colors duration-300 group-hover:text-primary ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}>Autenticidade</h3>
-              <p className={`transition-colors duration-300 ${
-                isDark 
-                  ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]/90' 
-                  : 'text-[#4F3621]/80 group-hover:text-[#4F3621]/90'
-              }`}>
-                Valorizamos a simplicidade e o charme rústico, oferecendo uma experiência genuína que celebra as tradições locais e a beleza natural da região.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className={`backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/80 border-[#4F3621]/30'
-              }`}
-            >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
-                <Users className="w-6 h-6" />
-              </div>
-              <h3 className={`text-xl font-semibold mb-3 transition-colors duration-300 group-hover:text-primary ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}>Acolhimento Caloroso</h3>
-              <p className={`transition-colors duration-300 ${
-                isDark 
-                  ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]/90' 
-                  : 'text-[#4F3621]/80 group-hover:text-[#4F3621]/90'
-              }`}>
-                Acreditamos no poder da hospitalidade simples e genuína, onde cada hóspede é recebido como parte da família, com atenção personalizada e calor humano.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              viewport={{ once: true }}
-              className={`backdrop-blur-sm rounded-3xl p-8 border shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/80 border-[#4F3621]/30'
-              }`}
-            >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300 text-primary">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <h3 className={`text-xl font-semibold mb-3 transition-colors duration-300 group-hover:text-primary ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}>Sustentabilidade</h3>
-              <p className={`transition-colors duration-300 ${
-                isDark 
-                  ? 'text-[#EED5B9]/80 group-hover:text-[#EED5B9]/90' 
-                  : 'text-[#4F3621]/80 group-hover:text-[#4F3621]/90'
-              }`}>
-                Comprometemo-nos a preservar e celebrar a beleza natural de Monchique, adotando práticas sustentáveis em todas as nossas operações.
-              </p>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Equipe Section */}
-      <section className={`py-24 relative overflow-hidden ${
-        isDark ? 'bg-[#4F3621]' : 'bg-[#EED5B9]'
-      }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
-        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-70" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-16">
-            <motion.span 
-              initial={{ opacity: 0, y: -20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-sm font-medium text-primary tracking-wider uppercase bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm shadow-primary/10"
-            >
-              Nossa Equipe
-            </motion.span>
-            <motion.h2 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              viewport={{ once: true }}
-              className={`text-4xl font-bold mt-6 mb-4 ${
-                isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-              }`}
-            >
-              As Pessoas por Trás da Experiência
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              viewport={{ once: true }}
-              className={`text-lg max-w-3xl mx-auto ${
-                isDark ? 'text-[#EED5B9]/70' : 'text-[#4F3621]/70'
-              }`}
-            >
-              Conheça alguns membros da nossa equipe dedicada que trabalha para tornar sua estadia inesquecível.
-            </motion.p>
-          </div>
-
-          <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
-              className={`backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/90 border-[#4F3621]/30'
-              }`}
+              className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4"
             >
-              <div className="h-64 relative overflow-hidden">
-                <Image 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2070" 
-                  alt="Proprietário do Hotel" 
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300 ${
-                  isDark 
-                    ? 'from-black' 
-                    : 'from-[#4F3621]'
-                }`}></div>
-              </div>
-              <div className="p-6">
-                <h3 className={`text-lg font-semibold ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}>Delmar Santos</h3>
-                <p className="text-primary/80 text-sm mb-3">Proprietário</p>
-                <p className={`text-sm ${
-                  isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
-                }`}>Assumiu o Aqua Vista em 2024 com a visão de preservar seu charme rústico enquanto introduz renovações cuidadosas para melhorar a experiência dos hóspedes.</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              Competitive Advantages
+            </motion.p>
+            <motion.h2 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
-              className={`backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/90 border-[#4F3621]/30'
-              }`}
+              className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}
             >
-              <div className="h-64 relative overflow-hidden">
-                <Image 
-                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=2049" 
-                  alt="Diretor do Hotel" 
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300 ${
-                  isDark 
-                    ? 'from-black' 
-                    : 'from-[#4F3621]'
-                }`}></div>
-              </div>
-              <div className="p-6">
-                <h3 className={`text-lg font-semibold ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}>Ricardo Almeida</h3>
-                <p className="text-primary/80 text-sm mb-3">Diretor Geral</p>
-                <p className={`text-sm ${
-                  isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
-                }`}>Com mais de 20 anos de experiência em hotelaria, Ricardo lidera nossa equipe com paixão pela hospitalidade autêntica e atenção aos detalhes.</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              <span className="font-extralight text-[#044050]">Why</span>
+              <br />
+              <span className="font-normal text-[#044050]">GreenCheck?</span>
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true }}
-              className={`backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/90 border-[#4F3621]/30'
-              }`}
+              className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light leading-relaxed`}
             >
-              <div className="h-64 relative overflow-hidden">
-                <Image 
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2076" 
-                  alt="Gerente de Hospitalidade" 
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300 ${
-                  isDark 
-                    ? 'from-black' 
-                    : 'from-[#4F3621]'
-                }`}></div>
-              </div>
-              <div className="p-6">
-                <h3 className={`text-lg font-semibold ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}>Maria Santos</h3>
-                <p className="text-primary/80 text-sm mb-3">Gerente de Hospitalidade</p>
-                <p className={`text-sm ${
-                  isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
-                }`}>Maria é responsável por garantir que cada hóspede receba um atendimento excepcional e personalizado.</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              viewport={{ once: true }}
-              className={`backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/90 border-[#4F3621]/30'
-              }`}
-            >
-              <div className="h-64 relative overflow-hidden">
-                <Image 
-                  src="https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?q=80&w=2080" 
-                  alt="Chef Executivo" 
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300 ${
-                  isDark 
-                    ? 'from-black' 
-                    : 'from-[#4F3621]'
-                }`}></div>
-              </div>
-              <div className="p-6">
-                <h3 className={`text-lg font-semibold ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}>António Ferreira</h3>
-                <p className="text-primary/80 text-sm mb-3">Chef Executivo</p>
-                <p className={`text-sm ${
-                  isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
-                }`}>Com formação internacional, António cria experiências gastronômicas únicas inspiradas nos sabores locais.</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              viewport={{ once: true }}
-              className={`backdrop-blur-md rounded-3xl overflow-hidden border shadow-lg group ${
-                isDark 
-                  ? 'bg-[#4F3621]/80 border-[#EED5B9]/20' 
-                  : 'bg-[#EED5B9]/90 border-[#4F3621]/30'
-              }`}
-            >
-              <div className="h-64 relative overflow-hidden">
-                <Image 
-                  src="https://images.unsplash.com/photo-1542596768-5d1d21f1cf98?q=80&w=2070" 
-                  alt="Gerente Ambiental" 
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300 ${
-                  isDark 
-                    ? 'from-black' 
-                    : 'from-[#4F3621]'
-                }`}></div>
-              </div>
-              <div className="p-6">
-                <h3 className={`text-lg font-semibold ${
-                  isDark ? 'text-[#EED5B9]' : 'text-[#4F3621]'
-                }`}>Carla Oliveira</h3>
-                <p className="text-primary/80 text-sm mb-3">Gerente de Sustentabilidade</p>
-                <p className={`text-sm ${
-                  isDark ? 'text-[#EED5B9]/60' : 'text-[#4F3621]/60'
-                }`}>Carla lidera nossas iniciativas ambientais, garantindo práticas sustentáveis em todo o hotel.</p>
-              </div>
-            </motion.div>
+              Patented technology with measurable advantages over traditional methods
+            </motion.p>
           </div>
+
+          {/* Advantages Grid */}
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-2' : breakpoints.isTablet ? 'grid-cols-2' : 'grid-cols-4'} ${gap} ${breakpoints.isMobile ? 'mb-12' : 'mb-16'}`}>
+            {advantages.map((advantage, index) => {
+              const AdvantageIcon = advantage.icon
+              return (
+                <motion.div 
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="text-center"
+                >
+                  <div className="mb-6 flex justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#044050] flex items-center justify-center transition-all duration-300 group-hover:bg-[#5FA037]">
+                      <AdvantageIcon className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className={`${breakpoints.isXs ? 'text-3xl' : breakpoints.isMobile ? 'text-4xl' : 'text-5xl'} font-extralight text-[#044050] mb-2`}>
+                    {advantage.value}
+                  </div>
+                  <h3 className={`${breakpoints.isXs ? 'text-sm' : 'text-base'} font-medium text-gray-500 uppercase tracking-wider mb-1`}>
+                    {advantage.label}
+                  </h3>
+                  <p className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} text-gray-600 font-light`}>
+                    {advantage.description}
+                  </p>
+                </motion.div>
+              )
+            })}
+          </div>
+                  </div>
+      </section>
+
+          {/* Patent Section - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-gray-50`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mb-16"
+          >
+            <Card className={`border border-gray-200 ${breakpoints.isMobile ? 'rounded-2xl' : 'rounded-3xl'} ${cardPadding} bg-white`}>
+              <CardContent>
+                <div className={`flex ${breakpoints.isMobile ? 'flex-col text-center' : 'items-center'} gap-6 ${breakpoints.isMobile ? 'mb-6' : 'mb-8'}`}>
+                  <div className="w-16 h-16 rounded-full bg-[#044050] flex items-center justify-center">
+                    <Award className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className={`${breakpoints.isMobile ? 'text-3xl' : 'text-4xl lg:text-5xl'} font-light ${breakpoints.isMobile ? 'mb-2' : 'mb-4'} tracking-tight leading-[1.1]`}>
+                      <span className="font-extralight text-[#044050]">Patented</span>
+                      <br />
+                      <span className="font-normal text-[#044050]">technology</span>
+                    </h2>
+                    <p className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} text-gray-600 font-light`}>Computational system for automated sustainable certification</p>
+                  </div>
+                </div>
+                <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} ${gap}`}>
+                  <div>
+                    <h3 className={`${breakpoints.isXs ? 'text-lg' : 'text-xl'} font-medium text-[#044050] ${breakpoints.isMobile ? 'mb-4' : 'mb-6'}`}>Technical Innovations</h3>
+                    <ul className={`space-y-3 ${breakpoints.isXs ? 'text-sm' : 'text-base'} text-gray-600 font-light`}>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>Specialized AI algorithms for ESG analysis</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>Automated scientific validation via APIs</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>Immutable blockchain certificates with scientific proofs</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>Integrated marketplace with AI recommendations</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className={`${breakpoints.isXs ? 'text-lg' : 'text-xl'} font-medium text-[#044050] ${breakpoints.isMobile ? 'mb-4' : 'mb-6'}`}>Target Market</h3>
+                    <ul className={`space-y-3 ${breakpoints.isXs ? 'text-sm' : 'text-base'} text-gray-600 font-light`}>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>2.4 million European SMEs (CSRD compliance)</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>450 million environmentally conscious consumers</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>B2B and B2C market with scalable solutions</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#5FA037] mt-2 flex-shrink-0"></div>
+                        <span>€8.5 billion annual opportunity</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
-    </main>
-      
-      {/* CTA Section */}
-      <CTASection />
 
-      {/* Footer */}
-      <Footer />
-    </>
+      {/* Features Section - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-white`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
+            <motion.p 
+              initial={{ opacity: 0, y: -10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4"
+            >
+              Features
+            </motion.p>
+            <motion.h2 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}
+            >
+              <span className="font-extralight text-[#044050]">Cutting-edge</span>
+              <br />
+              <span className="font-normal text-[#044050]">technology</span>
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light leading-relaxed`}
+            >
+              Solution integrating advanced technologies for accurate ESG certification
+            </motion.p>
+          </div>
+          
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} ${gap} mb-12`}>
+              {features.map((feature, index) => {
+                const FeatureIcon = feature.icon
+                return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="group"
+                >
+                  <div className={`border border-gray-200 ${breakpoints.isMobile ? 'rounded-2xl' : 'rounded-3xl'} ${cardPadding} hover:border-[#5FA037] transition-colors duration-300 bg-white`}>
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className={`${breakpoints.isXs ? 'w-12 h-12' : 'w-14 h-14'} rounded-full bg-[#044050] flex items-center justify-center transition-all duration-300 group-hover:bg-[#5FA037]`}>
+                        <FeatureIcon className={`${breakpoints.isXs ? 'w-6 h-6' : 'w-7 h-7'} text-white`} />
+                      </div>
+                      <h3 className={`${breakpoints.isXs ? 'text-lg' : 'text-xl'} font-medium text-[#044050]`}>
+                        {feature.title}
+                      </h3>
+                    </div>
+                    <p className={`${breakpoints.isXs ? 'text-sm' : 'text-base'} text-gray-600 font-light leading-relaxed`}>
+                      {feature.description}
+                    </p>
+                  </div>
+                </motion.div>
+                )
+              })}
+            </div>
+        </div>
+      </section>
+
+          {/* Team Section - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-gray-50`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <div className={`text-center ${breakpoints.isMobile ? 'mb-16' : 'mb-24'}`}>
+            <motion.p 
+              initial={{ opacity: 0, y: -10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em] mb-4"
+            >
+              Our Team
+            </motion.p>
+            <motion.h2 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}
+            >
+              <span className="font-extralight text-[#044050]">Experts</span>
+              <br />
+              <span className="font-normal text-[#044050]">in sustainability</span>
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto text-gray-600 font-light leading-relaxed`}
+            >
+              Team combining technical expertise with scientific knowledge
+            </motion.p>
+          </div>
+          
+          <div className={`grid ${breakpoints.isMobile ? 'grid-cols-1' : breakpoints.isTablet ? 'grid-cols-2' : 'grid-cols-3'} ${gap} mb-12`}>
+              {team.map((member, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group"
+              >
+                <div className={`border border-gray-200 ${breakpoints.isMobile ? 'rounded-2xl' : 'rounded-3xl'} ${cardPadding} hover:border-[#5FA037] transition-colors duration-300 bg-white text-center`}>
+                  <div className="text-6xl mb-6">{member.image}</div>
+                  <h3 className={`${breakpoints.isXs ? 'text-lg' : 'text-xl'} font-medium text-[#044050] mb-3`}>
+                    {member.name}
+                  </h3>
+                  <Badge className="bg-[#5FA037]/10 text-[#5FA037] border-[#5FA037]/20 hover:bg-[#5FA037]/20 mb-4">
+                    {member.role}
+                  </Badge>
+                  <p className={`${breakpoints.isXs ? 'text-sm' : 'text-base'} text-gray-600 font-light leading-relaxed`}>
+                    {member.description}
+                  </p>
+                </div>
+              </motion.div>
+              ))}
+            </div>
+        </div>
+      </section>
+
+          {/* CTA Section - Clean Minimal */}
+      <section className={`${sectionPadding} relative bg-[#044050] text-white`}>
+        <div className={`${maxWidth} mx-auto ${containerPadding}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center"
+          >
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="inline-block mb-6"
+            >
+              <div               className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} font-medium tracking-[0.2em] uppercase text-white/80 bg-white/10 border border-white/20 px-6 py-3 rounded-full backdrop-blur-xl`}>
+                Start Today
+              </div>
+            </motion.div>
+
+            {/* Title */}
+            <motion.h3 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'text-4xl' : 'text-5xl lg:text-6xl'} font-light ${breakpoints.isMobile ? 'mb-6' : 'mb-8'} tracking-tight leading-[1.1]`}
+            >
+              <span className="font-extralight text-white">Ready to</span>
+              <br />
+              <span className="font-normal text-white">transform ESG?</span>
+            </motion.h3>
+
+            {/* Description */}
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'text-lg' : 'text-xl'} text-white/90 ${breakpoints.isMobile ? 'mb-8' : 'mb-12'} ${breakpoints.isMobile ? 'max-w-lg' : 'max-w-2xl'} mx-auto leading-relaxed font-light`}
+            >
+              Join companies that <span className="font-medium text-[#5FA037]">save 40%</span> on costs 
+              and achieve results <span className="font-medium text-[#5FA037]">4x faster</span> with our patented technology.
+            </motion.p>
+
+            {/* Stats Row */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+              className={`grid ${breakpoints.isMobile ? 'grid-cols-2' : 'grid-cols-4'} ${breakpoints.isMobile ? 'gap-4 mb-8' : 'gap-8 mb-12'} max-w-4xl mx-auto`}
+            >
+              <div className="text-center">
+                <div className={`${breakpoints.isXs ? 'text-3xl' : breakpoints.isMobile ? 'text-4xl' : 'text-5xl'} font-extralight text-[#5FA037] mb-1`}>98.5%</div>
+                <div className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} text-white/70 uppercase tracking-wider font-medium`}>AI Accuracy</div>
+              </div>
+              <div className="text-center">
+                <div className={`${breakpoints.isXs ? 'text-3xl' : breakpoints.isMobile ? 'text-4xl' : 'text-5xl'} font-extralight text-[#5FA037] mb-1`}>40%</div>
+                <div className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} text-white/70 uppercase tracking-wider font-medium`}>Savings</div>
+              </div>
+              <div className="text-center">
+                <div className={`${breakpoints.isXs ? 'text-3xl' : breakpoints.isMobile ? 'text-4xl' : 'text-5xl'} font-extralight text-[#5FA037] mb-1`}>4x</div>
+                <div className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} text-white/70 uppercase tracking-wider font-medium`}>Faster</div>
+              </div>
+              <div className="text-center">
+                <div className={`${breakpoints.isXs ? 'text-3xl' : breakpoints.isMobile ? 'text-4xl' : 'text-5xl'} font-extralight text-[#5FA037] mb-1`}>€8.5B</div>
+                <div className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} text-white/70 uppercase tracking-wider font-medium`}>Market</div>
+              </div>
+            </motion.div>
+
+            {/* Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              viewport={{ once: true }}
+              className={`flex ${breakpoints.isMobile ? 'flex-col' : 'flex-row'} ${breakpoints.isMobile ? 'gap-4' : 'gap-6'} justify-center items-center`}
+            >
+              <Button 
+                onClick={handleIniciarValidacao}
+                className={`${breakpoints.isMobile ? 'w-full max-w-sm' : 'px-10'} ${buttonHeight} bg-[#5FA037] text-white hover:bg-[#4d8c2d] rounded-full transition-all duration-300 font-normal tracking-wide group`}
+              >
+                <span className="flex items-center justify-center">
+                  Start Free Validation
+                  <ArrowRight className="ml-3 w-5 h-5 transition-all duration-300 group-hover:translate-x-1" />
+                </span>
+              </Button>
+              
+              <Button 
+                variant="ghost"
+                className={`${breakpoints.isMobile ? 'w-full max-w-sm' : 'px-10'} ${buttonHeight} text-white hover:bg-white/10 border border-white/30 hover:border-white/50 rounded-full transition-all duration-300 font-normal tracking-wide backdrop-blur-xl`}
+              >
+                <span className="flex items-center justify-center">
+                  Schedule Demo
+                  <div className="ml-3 w-2 h-2 rounded-full bg-[#5FA037] transition-all duration-300 group-hover:bg-white"></div>
+                </span>
+              </Button>
+            </motion.div>
+
+            {/* Trust Indicators */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              viewport={{ once: true }}
+              className={`${breakpoints.isMobile ? 'mt-8' : 'mt-12'} flex ${breakpoints.isMobile ? 'flex-col gap-4' : 'flex-row gap-8'} items-center justify-center text-white/70`}
+            >
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-[#5FA037]" />
+                <span className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} font-light`}>No commitment</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-[#5FA037]" />
+                <span className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} font-light`}>5 minute setup</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-[#5FA037]" />
+                <span className={`${breakpoints.isXs ? 'text-xs' : 'text-sm'} font-light`}>Specialized support</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+      </main>
+    </div>
   )
-} 
+}

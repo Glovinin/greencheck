@@ -23,34 +23,47 @@ import {
   CaretDown,
   Image as ImageIcon,
   CalendarCheck,
-  Camera
+  Camera,
+  // Novos ícones mais elegantes
+  Leaf,
+  Storefront,
+  Shield,
+  Upload,
+  CheckCircle,
+  Globe,
+  ChartLine,
+  FileText
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Logo } from '@/components/logo'
+import { Button } from './ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
+import { useLoading } from '../contexts/loading-context'
+import Image from 'next/image'
 
-// Itens na navegação inferior
+// Bottom navigation items
 const bottomNavItems = [
   { href: '/', label: 'Home', icon: House },
-  { href: '/rooms', label: 'Quartos', icon: MagnifyingGlass },
-  { href: '/booking', label: 'Reservar', icon: Calendar },
-  { href: '/gallery', label: 'Galeria', icon: Camera },
+  { href: '/validacao', label: 'Validation', icon: Shield },
+  { href: '/marketplace', label: 'Marketplace', icon: Storefront },
+  { href: '/sobre', label: 'About', icon: Info },
 ]
 
-// Todos os itens de navegação (para o menu expandido)
+// All navigation items (for expanded menu)
 const allNavItems = [
   { href: '/', label: 'Home', icon: House },
-  { href: '/rooms', label: 'Quartos', icon: MagnifyingGlass },
-  { href: '/booking', label: 'Reservar', icon: Calendar },
-  { href: '/restaurante', label: 'Restaurante', icon: ForkKnife },
-  { href: '/eventos', label: 'Eventos', icon: CalendarCheck },
-  { href: '/gallery', label: 'Galeria', icon: Camera },
-  { href: '/sobre', label: 'Sobre Nós', icon: Info },
-  { href: '/contato', label: 'Contato', icon: ChatCircle },
-  { href: '/admin/login', label: 'Login Admin', icon: UserCircle },
+  { href: '/validacao', label: 'Validation', icon: Shield },
+  { href: '/marketplace', label: 'Marketplace', icon: Storefront },
+  { href: '/sobre', label: 'About', icon: Info },
+  { href: '/login', label: 'Login', icon: UserCircle },
 ]
 
 export function MobileNav() {
+  const { isInitialLoading, isCartOpen } = useLoading()
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
@@ -60,6 +73,7 @@ export function MobileNav() {
   const [containerHeight, setContainerHeight] = useState(0)
   const [isScrolling, setIsScrolling] = useState(false)
   const [isNavExpanded, setIsNavExpanded] = useState(false)
+  const [isOutOfHero, setIsOutOfHero] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const menuRef = useRef<HTMLDivElement>(null)
@@ -88,34 +102,49 @@ export function MobileNav() {
     setMenuOpen(false)
   }, [pathname])
 
-  // Detectar direção do scroll na página principal
+  // Detectar direção do scroll e posição na hero section
   useEffect(() => {
     if (menuOpen) return;
 
+    let ticking = false;
+
     const handlePageScroll = () => {
-      const currentScrollPos = window.scrollY;
-      
-      // Verificar direção do scroll
-      const isScrollDown = currentScrollPos > lastScrollPosition;
-      setIsScrollingDown(isScrollDown);
-      
-      // Expandir a navegação quando o scroll for para baixo
-      if (isScrollDown) {
-        setIsNavExpanded(true);
-      } else {
-        setIsNavExpanded(false);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const currentScrollPos = window.scrollY;
+          // Aparecer logo ao começar o scroll - 20% da viewport (bem cedo)
+          const heroTransitionPoint = window.innerHeight * 0.2;
+          
+          // Verificar direção do scroll
+          const isScrollDown = currentScrollPos > lastScrollPosition;
+          setIsScrollingDown(isScrollDown);
+          
+          // Mostrar navegação quando passar do ponto de transição
+          const shouldShow = currentScrollPos > heroTransitionPoint;
+          setIsOutOfHero(shouldShow);
+          
+          // Expandir a navegação quando o scroll for para baixo
+          if (isScrollDown && shouldShow) {
+            setIsNavExpanded(true);
+          } else {
+            setIsNavExpanded(false);
+          }
+          
+          setLastScrollPosition(currentScrollPos);
+          
+          // Reset após período de inatividade
+          clearTimeout(scrollTimeout.current);
+          scrollTimeout.current = setTimeout(() => {
+            setIsNavExpanded(false);
+          }, 1500);
+          
+          ticking = false;
+        });
+        ticking = true;
       }
-      
-      setLastScrollPosition(currentScrollPos);
-      
-      // Reset após período de inatividade
-      clearTimeout(scrollTimeout.current);
-      scrollTimeout.current = setTimeout(() => {
-        setIsNavExpanded(false);
-      }, 1500);
     };
     
-    window.addEventListener('scroll', handlePageScroll);
+    window.addEventListener('scroll', handlePageScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handlePageScroll);
     };
@@ -164,13 +193,10 @@ export function MobileNav() {
     }
   }, [menuOpen])
 
-  if (!mounted || pathname.startsWith('/admin/')) return null
+  // Esconder mobile nav na página de login
+  if (!mounted || isInitialLoading || pathname === '/login') return null
 
-  const isDark = theme === 'dark'
-
-  const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark')
-  }
+  const isDark = true
 
   // Calcular progresso de scroll (0-100)
   const scrollPercentage = containerHeight && contentHeight 
@@ -182,289 +208,264 @@ export function MobileNav() {
 
   return (
     <>
-      {/* Barra de navegação inferior */}
-      <nav className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-t rounded-t-[2rem] block lg:hidden",
-        isDark 
-          ? "bg-[#4F3621]/80 border-[#EED5B9]/20" 
-          : "bg-[#EED5B9]/80 border-[#4F3621]/20"
-      )}>
+      {/* Barra de navegação inferior - Esconde para baixo da tela na hero section e quando carrinho abre */}
+      <motion.nav 
+        className={cn(
+          "fixed left-0 right-0 z-50 backdrop-blur-xl border-t rounded-t-[2rem] block xl:hidden",
+          // Altura segura para não sobrepor com controles do browser
+          "pb-safe-area-inset-bottom",
+          // Cor fixa sempre
+          "bg-white/95 border-gray-200/50 shadow-lg shadow-black/10"
+        )}
+        style={{
+          position: 'fixed',
+          bottom: '0',
+          transform: (isOutOfHero && !isCartOpen) ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          willChange: 'transform'
+        }}
+      >
         <div className="flex items-center justify-around px-4 py-4 pb-safe">
-          {bottomNavItems.map((item) => {
+          {bottomNavItems.map((item, index) => {
             const ItemIcon = item.icon
             const isActive = pathname === item.href
             return (
-              <Link
+              <motion.div
                 key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
-                  isActive 
-                    ? isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
-                    : isDark ? "text-[#EED5B9]/60 hover:text-[#EED5B9]" : "text-[#4F3621]/60 hover:text-[#4F3621]"
-                )}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ 
+                  duration: 0.3,
+                  delay: index * 0.05,
+                  ease: "easeOut"
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <div className="relative p-2 rounded-2xl transition-all duration-300">
-                  {isActive && (
-                    <motion.div 
-                      layoutId="activeNavBackground"
-                      className={cn(
-                        "absolute inset-0 rounded-2xl -z-10",
-                        isDark ? "bg-[#EED5B9]/10" : "bg-[#4F3621]/10"
-                      )}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30
-                      }}
-                    />
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
+                    isActive 
+                      ? "text-[#5FA037]" 
+                      : "text-[#044050]/70 hover:text-[#5FA037]"
                   )}
-                  <ItemIcon 
-                    weight={isActive ? "fill" : "regular"} 
-                    className="h-6 w-6 transition-all duration-300 sm:h-7 sm:w-7" 
-                  />
-                </div>
-                <span className={cn(
-                  "text-xs mt-1 font-medium transition-all duration-300 sm:text-sm",
-                  isActive && "font-bold"
-                )}>{item.label}</span>
-              </Link>
+                >
+                  <div className="relative p-2 rounded-2xl transition-all duration-300">
+                    {isActive && (
+                      <motion.div 
+                        layoutId="activeNavBackground"
+                        className="absolute inset-0 rounded-2xl -z-10 bg-[#5FA037]/10"
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 30
+                        }}
+                      />
+                    )}
+                    <ItemIcon 
+                      weight={isActive ? "fill" : "regular"} 
+                      className="h-6 w-6 transition-all duration-300 sm:h-7 sm:w-7" 
+                    />
+                  </div>
+                  <span className={cn(
+                    "text-xs mt-1 font-medium transition-all duration-300 sm:text-sm",
+                    isActive && "font-bold"
+                  )}>{item.label}</span>
+                </Link>
+              </motion.div>
             )
           })}
           
-          {/* Botão do menu */}
-          <button 
-            onClick={() => setMenuOpen(true)}
-            className={cn(
-              "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
-              isDark ? "text-[#EED5B9]/60 hover:text-[#EED5B9]" : "text-[#4F3621]/60 hover:text-[#4F3621]"
-            )}
+          {/* Botão do menu - Adaptativo com animação */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ 
+              duration: 0.3,
+              delay: bottomNavItems.length * 0.05,
+              ease: "easeOut"
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <div className="relative p-2 rounded-2xl transition-all duration-300">
-              <List 
-                weight="bold" 
-                className="h-6 w-6 transition-all duration-300 sm:h-7 sm:w-7" 
-              />
-            </div>
-            <span className="text-xs mt-1 font-medium transition-all duration-300 sm:text-sm">Menu</span>
-          </button>
+            <button 
+              onClick={() => setMenuOpen(true)}
+              className={cn(
+                "flex flex-col items-center justify-center flex-1 transition-all duration-300 ease-spring",
+                "text-[#044050]/70 hover:text-[#5FA037]"
+              )}
+            >
+              <div className="relative p-2 rounded-2xl transition-all duration-300">
+                <List 
+                  weight="bold" 
+                  className="h-6 w-6 transition-all duration-300 sm:h-7 sm:w-7" 
+                />
+              </div>
+              <span className="text-xs mt-1 font-medium transition-all duration-300 sm:text-sm">Menu</span>
+            </button>
+          </motion.div>
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* Estilos para considerar áreas seguras (safe areas) em dispositivos iOS */}
+      {/* Estilos para comportamento de App Nativo */}
       <style jsx global>{`
+        /* Safe areas para dispositivos iOS */
         .pb-safe {
           padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+        }
+        
+        .pb-safe-area-inset-bottom {
+          padding-bottom: env(safe-area-inset-bottom, 0.75rem);
         }
         
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
           .pb-safe {
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
           }
+          .pb-safe-area-inset-bottom {
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+          }
+        }
+
+        /* Comportamento de App Nativo - Evitar que controles do browser desapareçam */
+        @media (max-width: 1024px) {
+          html {
+            /* Evitar zoom ao tocar em inputs */
+            -webkit-text-size-adjust: 100%;
+            /* Melhorar scroll em dispositivos móveis */
+            -webkit-overflow-scrolling: touch;
+            /* Comportamento de app nativo */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+          }
+
+          body {
+            /* Evitar bounce scroll no iOS */
+            overscroll-behavior: none;
+            /* Altura total considerando área segura */
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            /* Evitar scroll horizontal */
+            overflow-x: hidden;
+          }
+
+          /* Forçar que a navegação fique sempre visível */
+          nav[class*="fixed bottom-0"] {
+            position: fixed !important;
+            bottom: 0 !important;
+            transform: translateY(0) !important;
+            transition: background-color 0.5s ease, border-color 0.5s ease !important;
+            /* Não aplicar transform durante scroll */
+            will-change: auto !important;
+          }
+
+          /* Viewport específico para mobile */
+          @supports (-webkit-touch-callout: none) {
+            html {
+              height: -webkit-fill-available;
+            }
+          }
         }
       `}</style>
 
-      {/* Menu fullscreen */}
+      {/* Menu fullscreen moderno */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className={cn(
-              "fixed inset-0 z-[100] lg:hidden flex flex-col overflow-hidden",
-              isDark 
-                ? "bg-[#4F3621] text-[#EED5B9]" 
-                : "bg-[#EED5B9] text-[#4F3621]"
-            )}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-0 z-[100] xl:hidden flex flex-col overflow-hidden bg-white"
             ref={menuRef}
           >
-            {/* Cabeçalho do menu */}
-            <div className={cn(
-              "flex items-center justify-between p-6 border-b",
-              isDark ? "border-[#EED5B9]/20" : "border-[#4F3621]/20"
-            )}>
+            {/* Header moderno */}
+            <div className="flex items-center justify-between p-6 bg-white border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <Logo 
-                  width={160} 
-                  height={24} 
+                <Image
+                  src="/favicon.png"
+                  alt="GreenCheck Logo"
+                  width={32}
+                  height={32}
                   className="transition-all duration-300"
+                  priority
                 />
+                <span className="text-[#044050] font-light text-xl tracking-wide">
+                  <span className="font-extralight">Green</span><span className="font-medium">Check</span>
+                </span>
               </div>
               <button
                 onClick={() => setMenuOpen(false)}
-                className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center transition-all sm:h-12 sm:w-12",
-                  isDark ? "hover:bg-[#EED5B9]/10" : "hover:bg-[#4F3621]/10"
-                )}
+                className="h-10 w-10 rounded-full flex items-center justify-center transition-all hover:bg-gray-100 text-[#044050]"
               >
-                <X className="h-6 w-6 sm:h-7 sm:w-7" />
+                <X className="h-6 w-6" />
               </button>
             </div>
 
-            {/* Conteúdo do menu */}
-            <div 
-              className={cn(
-                "flex-1 overflow-y-auto py-8 px-6 relative",
-                isDark 
-                  ? "bg-[#4F3621]" 
-                  : "bg-[#EED5B9]"
-              )} 
-              ref={menuContentRef}
-            >
-              {/* Efeito de fade na parte inferior - fixo */}
-              <div className={cn(
-                "fixed left-0 right-0 bottom-[72px] h-24 pointer-events-none z-10",
-                isDark 
-                  ? "bg-gradient-to-t from-[#4F3621] to-transparent" 
-                  : "bg-gradient-to-t from-[#EED5B9] to-transparent"
-              )} />
-              
-              {/* Efeito de fade no topo */}
-              <div className={cn(
-                "absolute left-0 right-0 top-0 h-6 pointer-events-none z-10",
-                isDark 
-                  ? "bg-gradient-to-b from-[#4F3621] to-transparent" 
-                  : "bg-gradient-to-b from-[#EED5B9] to-transparent"
-              )} />
-              
-              <ul ref={menuItemsRef} className="space-y-6 pb-24">
+            {/* Menu items */}
+            <div className="flex-1 py-8 px-6">
+              <div className="space-y-2">
                 {allNavItems.map((item, index) => {
                   const ItemIcon = item.icon
                   const isActive = pathname === item.href
                   
                   return (
-                    <motion.li 
+                    <motion.div
                       key={item.href}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ 
-                        opacity: 1, 
-                        x: 0,
-                        transition: {
-                          delay: 0.1 + index * 0.05,
-                          duration: 0.3
-                        }
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        delay: index * 0.04,
+                        duration: 0.2,
+                        ease: "easeOut"
                       }}
                     >
                       <Link 
                         href={item.href}
                         className={cn(
-                          "flex items-center py-2 px-3 rounded-xl transition-all sm:py-3",
+                          "flex items-center py-4 px-4 rounded-2xl transition-all",
                           isActive 
-                            ? isDark ? "bg-[#EED5B9]/10" : "bg-[#4F3621]/10"
-                            : isDark ? "hover:bg-[#EED5B9]/5" : "hover:bg-[#4F3621]/5"
+                            ? "bg-[#5FA037]/10 border border-[#5FA037]/20"
+                            : "hover:bg-gray-50"
                         )}
                       >
                         <div className={cn(
-                          "h-12 w-12 rounded-xl flex items-center justify-center sm:h-14 sm:w-14",
+                          "h-12 w-12 rounded-xl flex items-center justify-center",
                           isActive 
-                            ? isDark ? "bg-[#EED5B9]/10 text-[#EED5B9]" : "bg-[#4F3621]/10 text-[#4F3621]"
-                            : isDark ? "text-[#EED5B9]/80" : "text-[#4F3621]/80"
+                            ? "bg-[#5FA037] text-white"
+                            : "bg-gray-100 text-[#044050]"
                         )}>
-                          <ItemIcon weight={isActive ? "fill" : "regular"} className="h-6 w-6 sm:h-7 sm:w-7" />
+                          <ItemIcon weight={isActive ? "fill" : "regular"} className="h-6 w-6" />
                         </div>
                         
                         <span className={cn(
-                          "text-lg transition-all sm:text-xl ml-4",
+                          "text-lg ml-4 font-medium",
                           isActive 
-                            ? isDark ? "font-medium text-[#EED5B9]" : "font-medium text-[#4F3621]"
-                            : isDark ? "text-[#EED5B9]/90" : "text-[#4F3621]/90"
+                            ? "text-[#5FA037]"
+                            : "text-[#044050]"
                         )}>
                           {item.label}
                         </span>
                         
                         {isActive && (
-                          <div className={cn(
-                            "ml-auto h-2 w-2 rounded-full",
-                            isDark ? "bg-[#EED5B9]" : "bg-[#4F3621]"
-                          )} />
+                          <div className="ml-auto h-2 w-2 rounded-full bg-[#5FA037]" />
                         )}
                       </Link>
-                    </motion.li>
+                    </motion.div>
                   )
                 })}
-              </ul>
-
-              {/* Alternador de tema */}
-              <div className={cn(
-                "mt-12 p-6 rounded-2xl border sm:p-8 sm:mt-16",
-                isDark 
-                  ? "border-[#EED5B9]/20 bg-[#4F3621]/50" 
-                  : "border-[#4F3621]/20 bg-[#EED5B9]/50"
-              )}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className={cn(
-                      "font-medium text-lg sm:text-xl",
-                      isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
-                    )}>Alternar Tema</h3>
-                    <p className={cn(
-                      "text-sm mt-1 sm:text-base sm:mt-2",
-                      isDark ? "text-[#EED5B9]/70" : "text-[#4F3621]/70"
-                    )}>Escolha entre modo claro ou escuro</p>
-                  </div>
-                  <Button 
-                    onClick={toggleTheme}
-                    variant="outline" 
-                    size="icon" 
-                    className={cn(
-                      "rounded-full h-12 w-12 sm:h-14 sm:w-14",
-                      isDark 
-                        ? "bg-[#4F3621] border-[#EED5B9]/30 hover:bg-[#EED5B9]/10" 
-                        : "bg-[#EED5B9] border-[#4F3621]/30 hover:bg-[#4F3621]/10"
-                    )}
-                  >
-                    {isDark ? (
-                      <SunDim className="h-5 w-5 text-yellow-400 sm:h-6 sm:w-6" />
-                    ) : (
-                      <Moon className="h-5 w-5 text-indigo-600 sm:h-6 sm:w-6" />
-                    )}
-                  </Button>
-                </div>
               </div>
             </div>
 
-            {/* Rodapé */}
-            <div className={cn(
-              "p-6 border-t",
-              isDark ? "border-[#EED5B9]/20" : "border-[#4F3621]/20"
-            )}>
-              <div className="flex items-center justify-center space-x-6">
-                <a 
-                  href="#" 
-                  className={cn(
-                    "h-10 w-10 rounded-full flex items-center justify-center transition-all sm:h-12 sm:w-12",
-                    isDark 
-                      ? "bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20" 
-                      : "bg-[#4F3621]/10 hover:bg-[#4F3621]/20"
-                  )}
-                >
-                  <InstagramLogo className={cn(
-                    "h-5 w-5 sm:h-6 sm:w-6",
-                    isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
-                  )} />
-                </a>
-                <a 
-                  href="#" 
-                  className={cn(
-                    "h-10 w-10 rounded-full flex items-center justify-center transition-all sm:h-12 sm:w-12",
-                    isDark 
-                      ? "bg-[#EED5B9]/10 hover:bg-[#EED5B9]/20" 
-                      : "bg-[#4F3621]/10 hover:bg-[#4F3621]/20"
-                  )}
-                >
-                  <FacebookLogo className={cn(
-                    "h-5 w-5 sm:h-6 sm:w-6",
-                    isDark ? "text-[#EED5B9]" : "text-[#4F3621]"
-                  )} />
-                </a>
-              </div>
-              <p className={cn(
-                "text-center text-sm mt-4 sm:text-base",
-                isDark ? "text-[#EED5B9]/70" : "text-[#4F3621]/70"
-              )}>
-                © 2024 Aqua Vista Monchique. Todos os direitos reservados.
+            {/* Simple footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <p className="text-center text-sm text-gray-500">
+                © 2025 GreenCheck. All rights reserved.
               </p>
             </div>
           </motion.div>

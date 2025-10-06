@@ -1,33 +1,43 @@
-import { Timestamp } from "firebase/firestore";
+// GreenCheck Types - Automated ESG Certification Platform
 
-export interface SeasonalPrice {
-  id: string;
-  name: string;
-  startDate: string; // ISO format: "YYYY-MM-DD"
-  endDate: string;   // ISO format: "YYYY-MM-DD"
-  price: number;
-  description?: string;
+export interface ESGDocument {
+  id?: string;
+  userId: string;
+  fileName: string;
+  fileUrl: string;
+  uploadDate: Date;
+  status: 'processing' | 'validated' | 'certified' | 'rejected';
+  extractedData?: ESGData;
+  nftCertificate?: NFTCertificate;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export interface Room {
-  id?: string;
-  name: string;
-  type: string;
-  description: string;
-  price: number; // Preço base/padrão
-  capacity: number;
-  size: number;
-  available: boolean;
-  featured?: boolean;
-  serviceFeePct?: number;
-  images: string[];
-  amenities: string[];
-  additionalServices?: string[];
-  highlights?: string[];
-  availabilityDates?: {
-    [date: string]: boolean;
+export interface ESGData {
+  co2Emissions: number;
+  offsetMethod?: string;
+  validationStatus: 'pending' | 'approved' | 'rejected';
+  scientificValidation?: {
+    institution: string;
+    validatedAt: Date;
+    confidence: number;
   };
-  seasonalPrices?: SeasonalPrice[]; // Preços para períodos específicos
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
+}
+
+export interface NFTCertificate {
+  tokenId: string;
+  contractAddress: string;
+  blockchain: 'polygon' | 'ethereum';
+  txHash: string;
+  mintedAt: Date;
+  metadataUri: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  company?: string;
+  documents?: string[];
+  createdAt: Date;
 } 
