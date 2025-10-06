@@ -1,0 +1,37 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                  GREENCHECK - QUICK PUSH COMMAND              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🚀 COMANDO PARA FAZER O PUSH:
+
+   git push -u origin main --force
+
+
+📋 CREDENCIAIS:
+
+   Username: Glovinin
+   Password: [SEU TOKEN DO GITHUB]
+
+
+🔐 CRIAR TOKEN:
+
+   1. Abra: https://github.com/settings/tokens
+   2. Clique: "Generate new token (classic)"
+   3. Marque: ☑️ repo  ☑️ workflow
+   4. Copie o token
+
+
+✅ VERIFICAR:
+
+   Após o push: https://github.com/Glovinin/greencheck
+
+
+📚 MAIS AJUDA:
+
+   Guia completo: cat GITHUB_PUSH_GUIDE.md
+   Script: ./push-to-github.sh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dica: Salve este arquivo para referência rápida!
+
