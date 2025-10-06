@@ -89,7 +89,7 @@ export function Footer() {
               © {currentYear} GreenCheck. All rights reserved.
             </p>
             <p className="text-sm text-white/70 mt-2">
-              Made with <span className="text-red-500">❤️</span> by <a href="https://arcadesoft.webflow.io/" target="_blank" rel="noopener noreferrer" className="text-[#34C759] hover:underline">Arcadesoft</a>
+              Made with <span className="text-red-500">❤️</span> for a sustainable future
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm mt-4 md:mt-0 mb-16 lg:mb-0">
