@@ -36,7 +36,7 @@
 
 ## 🌍 About
 
-**GreenCheck** is a revolutionary computational system for **automated corporate sustainability certification** that integrates artificial intelligence, scientific validation, and blockchain technology. Our platform addresses the mandatory CSRD compliance requirements for 2.4 million European SMEs by 2025.
+**GreenCheck** is a revolutionary computational system for **automated corporate sustainability certification** that integrates artificial intelligence, scientific validation, and blockchain technology. Our platform addresses the mandatory CSRD compliance requirements for 2.4 million European SMEs by 2026.
 
 ### The Problem
 Current ESG certification methods are:
@@ -228,7 +228,7 @@ GreenCheck is based on a **computational system and method for automated corpora
 ## 💼 Market Opportunity
 
 ### Target Market
-- **2.4 Million European SMEs** requiring CSRD compliance by 2025
+- **2.4 Million European SMEs** requiring CSRD compliance by 2026
 - **450 Million** environmentally conscious consumers in Europe
 - **€8.5 Billion** annual market opportunity in European ESG certification
 
@@ -275,26 +275,26 @@ GreenCheck is based on a **computational system and method for automated corpora
 
 ## 🗓️ Roadmap
 
-### Q1 2025 ✅
+### Q1 2026 ✅
 - [x] MVP Development
 - [x] Homepage with 3D animations
 - [x] Validation flow design
 - [x] Marketplace UI
 - [x] Mobile-first responsive design
 
-### Q2 2025 🔄
+### Q2 2026 🔄
 - [ ] Firebase integration complete
 - [ ] AI processing pipeline (OCR + NLP)
 - [ ] Polygon NFT smart contract deployment
 - [ ] Beta testing with 10 SMEs
 
-### Q3 2025 📋
+### Q3 2026 📋
 - [ ] Scientific institution API integrations
 - [ ] Sentinel-2 satellite data integration
 - [ ] Public launch for European SMEs
 - [ ] Marketplace go-live
 
-### Q4 2025 🚀
+### Q4 2026 🚀
 - [ ] Scale to 1000+ certified companies
 - [ ] Mobile app (iOS & Android)
 - [ ] Expansion to North America
