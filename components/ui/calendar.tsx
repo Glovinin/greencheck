@@ -57,10 +57,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
         Day: (props) => {
-          const date = props.date;
+          const date = props.day.date;
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const day = String(date.getDate()).padStart(2, '0');
@@ -76,7 +74,7 @@ function Calendar({
           return (
             <div className="flex flex-col items-center h-full">
               <div className="w-7 h-7 flex items-center justify-center">
-                {props.date.getDate()}
+                {date.getDate()}
               </div>
               {price !== undefined && (
                 <span className="text-[10px] text-muted-foreground font-medium mt-1">
